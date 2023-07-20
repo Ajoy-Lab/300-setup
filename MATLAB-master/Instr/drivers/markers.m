@@ -1,0 +1,6 @@
+scpiWrite (ip, ":MARK:MASK 65535")
+scpiWrite (ip, ":MARK:DATA:FNAM 0 , #")
+scpiWrite (ip, ":MARK:VOLT:PTOP 1.2")
+scpiWrite (ip, ":MARK:VOLT:OFFS 0")
+scpiWrite (ip, ":MARK:SEL 1")
+scpiWrite (ip, ":MARK:STAT ON")

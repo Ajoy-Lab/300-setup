@@ -1,0 +1,318 @@
+clear;
+close;
+clear;
+
+u2 = udp('192.168.1.2', 'RemotePort', 2020, 'LocalPort', 9090);
+try
+fopen(u2);
+catch
+    fclose(u2);
+end
+% Loop to repeatedly wait for messages and send replies
+% Break or Ctrl+C to get out of loop
+while ( true )
+    % Wait for message
+    while(u2.BytesAvailable == 0)
+        % If no bytes in u2 buffer, wait 10ms then check again
+        pause(0.01);
+    end
+%     cmdBytes = fread(u2);
+    readBytes = fscanf(u2);
+    [cmdBytes,dataBytes]=strtok(readBytes,',');
+    dataBytes=strtok(dataBytes,',');
+    cmdBytes=str2num(cmdBytes);
+    % 1 - Init
+    % 2 - Aquire on Trig
+    % 3 - Measure
+    % 4 - Close
+    
+    % Immediately send a reply
+%     replyTo1 = (host1Bytes + 20);
+%     fwrite(u2, replyTo1);
+    if (cmdBytes == 1)
+        startInst = 1
+    end
+    
+    try
+    if(startInst == 1)
+        switch cmdBytes
+            case 1
+                
+                close;
+                clf;
+                %% ADC Example
+                % Capture Data with ADC
+
+            %% Load TEPAdmin.dll which is a .Net Assembly
+            % The TEPAdmin.dll is installed by WDS Setup in C:\Windows\System32 
+
+            % Currently the tested DLL is installed in the following path
+            asm = NET.addAssembly('c:\windows\system32\TEPAdmin.dll');
+
+            import TaborElec.Proteus.CLI.*
+            import TaborElec.Proteus.CLI.Admin.*
+
+            %% Create Administrator
+            % Create instance of the CProteusAdmin class, and open it.
+            % Note that only a single CProteusAdmin instance can be open, 
+            % and it must be kept open till the end of the session.
+
+            admin = CProteusAdmin(@OnLoggerEvent);
+
+            rc = admin.Open();
+            assert(rc == 0);
+
+            %% Use the administrator, and close it at the end
+                slotIds = admin.GetSlotIds();
+                numSlots = length(slotIds);
+                assert(numSlots > 0);
+
+                % If there are multiple slots, let the user select one ..
+                sId = slotIds(1);
+                if numSlots > 1
+                    fprintf(1, '\n%d slots were found\n', numSlots);
+                    for n = 1:numSlots
+                        sId = slotIds(n);
+                        slotInfo = admin.GetSlotInfo(sId);
+                        if ~slotInfo.IsSlotInUse
+                            modelName = slotInfo.ModelName;
+                            if slotInfo.IsDummySlot
+                                fprintf(1, ' * Slot Number: Model %s [Dummy Slot].\n', sId, ModelName);
+                            else
+                                fprintf(1, ' * Slot Number: Model %s.\n', sId, ModelName);
+                            end
+                        end
+                    end
+                    choice = input('Enter SlotId ');
+                    fprintf(1, '\n');
+                    sId = uint32(choice);
+                end
+
+                % Connect to the selected instrument ..
+                should_reset = false;
+                inst = admin.OpenInstrument(sId);
+                instId = inst.InstrId;
+
+                % ---------------------------------------------------------------------
+                % Send SCPI commands
+                % ---------------------------------------------------------------------
+
+                res = inst.SendScpi('*IDN?');
+                assert(res.ErrCode == 0);
+                fprintf(1, '\nConnected to ''%s''\n', netStrToStr(res.RespStr));
+
+                res = inst.SendScpi('*CLS');
+                assert(res.ErrCode == 0);
+
+                res = inst.SendScpi('*RST');
+                assert(res.ErrCode == 0);
+
+                %
+                fprintf('Reset complete\n');
+                
+                %clear variables
+%                 clear pulse pulseAmp pulseDC time_axis X
+
+            case 2
+            % ---------------------------------------------------------------------
+            % Operate the ADC with direct functions (tentative)
+            % ---------------------------------------------------------------------
+
+
+         
+            measure_time=str2double(dataBytes); %in sec
+            
+            sampleRate = 1000e6;
+               
+%             pause(0.1);
+
+            % ---------------------------------------------------------------------
+            % ADC Config
+            % ---------------------------------------------------------------------
+
+            rc = inst.SetAdcDualChanMode(1);
+            assert(rc == 0);
+
+            rc = inst.SetAdcSamplingRate(sampleRate);
+            assert(rc == 0);
+
+            rc = inst.SetAdcFullScaleMilliVolts(0,1000);
+            assert(rc == 0);
+
+            trigSource = 1; % trigger for ADC channel-1
+            adcChanInd = 0; % ADC Channel 1
+            rc = inst.SetAdcCaptureTrigSource(adcChanInd, trigSource);
+            assert(rc == 0);
+
+            % - 0: internal-trigger (generated by software).
+            %  - 1: external-trigger.
+            %  - 2: self-trigger from ADC channel-1 (what we originally used)
+            % - 3: self-trigger from ADC channel-2.
+
+            %rc = inst.SetAdcSelfTrigThresh(0, 0.05);
+            %assert(rc == 0);
+
+            numberOfPulses = 2717*4; % 1 second of pulses
+            %numberOfPulses = 2717; % 0.25 second of pulses
+            %numberOfPulses = 272; % 0.025 second of pulses
+            %numberOfPulses = 272/2; % 0.012 second of pulses
+            %numberOfPulses = 2717*8; % 2 second of pulses
+            loops = 3; % two seconds
+            readLen = 1056*34;
+            offLen = 0;
+
+            rc = inst.SetAdcAcquisitionEn(1,0);
+            assert(rc == 0);
+
+            rc = inst.SetAdcFramesLayout(numberOfPulses*loops, readLen);
+            assert(rc == 0);
+
+            % ---------------------------------------------------------------------
+            % Capture Parmeters
+            % ---------------------------------------------------------------------
+
+            rc = inst.SetAdcMultiFrameModeEn(1);
+            assert(rc == 0);
+
+            % ---------------------------------------------------------------------
+            % ADC Capture
+            % ---------------------------------------------------------------------
+
+            rc = inst.SetAdcCaptureEnable(1);
+            assert(rc == 0);
+        %choice = input('Wait for shuttle to complete then press [Enter] to continue ');
+        %fprintf(1, '\n');
+        % Wait till the capture completes
+        case 3
+            status = inst.ReadAdcCaptureStatus();
+            for i = 1 : 250
+                if status ~= 0
+                    break;
+                end
+                pause(0.01);
+                status = inst.ReadAdcCaptureStatus();
+            end
+
+            %readSize = uint64(100000);
+            %readOffset = uint64(100000);
+
+            readSize = uint64(readLen);
+            readOffset = uint64(offLen);
+
+
+            chanIndex = 0;
+            %netArray = NET.createArray('System.UInt16', 100000);
+
+            netArray = NET.createArray('System.UInt16', readLen*numberOfPulses);
+
+            %pulseAmp = [numberOfPulses*seconds];
+            pulseAmp = [];
+            padded_len=2^18;
+            dF = sampleRate/padded_len;
+            f = -sampleRate/2:dF:sampleRate/2-dF;
+
+            [v,b1]=min(abs(f-20e6));
+            [v,b2]=min(abs(f+20e6));
+
+            eff_read=100:readLen-100;
+            cyclesPoints = 50;
+
+            for n = 1:loops
+                n
+                fprintf('Start Read\n');
+                rc = inst.ReadMultipleAdcFrames(chanIndex, ((n-1)*numberOfPulses)+1, numberOfPulses, netArray);
+                assert(rc == 0);
+                samples = double(netArray);
+                fprintf('Read Complete\n');
+
+                tic 
+                fprintf('Start Processing\n');
+                pulses = reshape(samples, [], numberOfPulses);
+                clear samples;
+                for i = 1:numberOfPulses
+                    pulse = pulses(:, i);
+                    pulseMean = mean(pulse);
+                    pulseDC = pulse - pulseMean; % remove DC
+                     X = fftshift(fft(pulseDC));
+                    linFFT = (abs(X)/readLen);
+                    [amp, loc] = max(linFFT);
+        %             linFFT_vec(:,i)=linFFT;
+                    pulseAmp(i+(numberOfPulses*(n-1))) = amp;
+                end
+                clear pulses;
+                fprintf('End Processing\n');
+                toc
+            end
+
+            ivec=1:numberOfPulses*loops;
+            time_axis=92e-6.*ivec;
+            figure(1);clf;
+        %    plot(time_axis,(pulseAmp),'b-');hold on;
+            plot(time_axis,(smooth(pulseAmp,10)),'r-');
+            set(gca,'ylim',[0 max(pulseAmp)*1.1]);  
+
+            figure(2);clf;
+            plot(pulse);
+            rc = inst.SetAdcCaptureEnable(0);
+            assert(rc == 0);
+
+
+            % Free the memory space that was allocated for ADC capture
+            rc = inst.FreeAdcReservedSpace();
+            assert(rc == 0);
+            
+            
+            fn=dataBytes; %filename
+            
+            % Save data
+            save(['Z:\' dataBytes],'pulseAmp','time_axis');
+
+        % ---------------------------------------------------------------------
+        % End of the example
+        % ---------------------------------------------------------------------
+        case 4
+            res = inst.SendScpi(':SYST:ERR?');
+            fprintf(1, '\nEnd of Example - %s\n', netStrToStr(res.RespStr));
+
+            % It is recommended to disconnect from instrumet at the end
+            rc = admin.CloseInstrument(instId);    
+
+            % Close the administrator at the end ..
+            admin.Close();
+            end
+    end
+    catch ME
+        admin.Close();
+        rethrow(ME)
+    end
+end
+
+fclose(u2);
+
+% Function netStrToStr
+function str = netStrToStr(netStr)
+    try
+        str = convertCharsToStrings(char(netStr));
+    catch        
+        str = '';
+    end
+end
+
+%% Function - On Logger-Event
+function OnLoggerEvent(~, e)
+    try       
+        % print only:
+        % TaborElec.Proteus.CLI.LogLevel.Critical (1)
+        % TaborElec.Proteus.CLI.LogLevel.Error    (2)
+        % TaborElec.Proteus.CLI.LogLevel.Warning  (3)
+        if int32(e.Level) >= 1 &&  int32(e.Level) <= 3
+            msg = netStrToStr(e.Message);
+            if strlength(msg) > 0
+                fprintf(2, '\n ~ %s\n', msg(1));
+            end
+        end
+        System.Diagnostics.Trace.WriteLine(e.Message);
+    catch ME
+       rethrow(ME) 
+    end
+end

@@ -1,0 +1,1920 @@
+% Pulse Radar Demo with DUC and DDC
+% It generates a pulsed RF signal using the DUC and optimizes waveform
+% memory usage using sequencing. It captures multiple frames of the RF 
+% waveform directly or using the DDC (Digital Down Converter). DUC/DDC
+% can be synchronized and TX to RX phase drift can be shown in either case.
+% It shows all the acquisitions (acquisition # cbe selected usiong an slide
+% control).
+clear;
+close all;
+clear variables;
+clear global;
+clc;
+
+global bits
+bits = 16;
+dacChanInd = 3;
+adcChanInd = 2;
+sampleRate = 2690e6;
+global sampleRateDAC 
+sampleRateDAC = 9e9;
+global inst
+global interp
+interp = 4;
+adcDualChanMode = 2;
+
+% Define IP Address for Target Proteus device descriptor
+% VISA "Socket-Based" TCP-IP Device. Socket# = 5025
+ipAddr = '192.168.10.5'; %'127.0.0.1'= Local Host; % your IP here
+remoteAddr = ipAddr;
+remotePort = 2020;
+localPort = 9090;
+pxiSlot = 8;
+
+off = 0;
+on = 1;
+pfunc = ProteusFunctions;
+
+% Instrument setup
+cType               = "DLL";  %"LAN" = VISA or "DLL" = PXI
+
+if cType == "LAN"
+    connPar         = ipAddr; 
+else
+    connPar         = pxiSlot; % Your slot # here, o for manual selection
+end
+
+paranoia_level = 0; % 0, 1 or 2
+% Open Session and load libraries
+[inst, admin, model, slotNumber] = ConnecToProteus(cType, connPar, paranoia_level);
+
+% Report model
+fprintf('Connected to: %s, slot: %d\n', model(1), slotNumber(1));
+
+
+ %% Measurement Loop
+    u2 = udp(remoteAddr, 'RemotePort', remotePort, 'LocalPort', localPort);
+    try
+        fopen(u2);
+        connect=on;
+        fprintf('Server connected and started\n');
+    catch
+        fclose(u2);
+        connect=off;
+        fprintf('Server not connected\n');
+    end
+    
+    % Loop to repeatedly wait for messages and send replies
+    % Break or Ctrl+C to get out of loop
+    while ( connect==on )
+        % Wait for message
+        while(u2.BytesAvailable == 0)
+            % If no bytes in u2 buffer, wait 10ms then check again
+            pause(0.01);
+        end
+        %         cmdBytes = fread(u2);
+        readBytes = fscanf(u2);
+        dataBytes=1;counter=1;
+        while ~isempty(readBytes)
+            [tempBytes,readBytes]=strtok(readBytes,',');
+            cmdBytes(counter)=str2num(tempBytes);
+            counter=counter+1;
+        end
+        cmdByte=cmdBytes(1);
+        
+        % 1 - Init
+        % 2 - Switch to NMR Experiment
+        % 3 - Placeholder
+        % 4 - Cleanup - prepare for next cycle
+        % 5 - Disconnect Intrument
+        % 6 - Program MW chirp waveform
+        % 7 - Play MW chirp waveform
+        
+        %measure_time=str2double(dataBytes); %in sec
+        switch cmdByte
+            case 1 % Init
+
+% % DDC and DUC activation
+% % ======================
+% use_ddc             = true;     % true = DDC on, false = DDC off
+% sync_nco            = false;     % true = Coherent acq
+% get_coherence       = true;     % true = get coherence (only when DDC on)
+% %=======================
+% 
+% use_dtr_trigger     = true;     % Digitizer will be triggered by AWG
+% 
+% %AWG Settings
+% awg_channel         = 1;
+% segment             = 1;
+% awg_sampling_rate   = 9E+09;    % Sampling rate for the target AWG
+% dac_res             = 16;       % Default DAC resolution
+% awg_granularity     = 32;       % Waveform length granularity
+% min_segment_length  = 64;       % Minimum Segment Size
+% awg_out_lvl         = 0.5;      % Amplitude level for the AWG
+% awg_interpol        = 8;        % Interolation factor for DUC
+% apply6db            = true;     % true = twice the amplitude
+
+% % Digitizer Settings
+% digChannel          = 1;
+% adcRange            = 1;
+% adc_granularity     = 48;
+% adc_resolution      = 12;
+% adc_sampling_rate   = 2.69E+09;  % Overwritten if sync_nco = true
+% num_of_acquisitions = 1;        % Just one set of frames
+% num_of_frames       = 200;      % Number of frames per acquisition
+% pre_trigger         = 10;       % Size of the pretrigger in % of frame size
+
+
+fprintf('RADAR DEMO STARTS\n');
+% % RF Pulse Parameters
+% pulse_width         = 10.0E-6;  % Pulse Width
+% pulse_rep_frequency = 5.0E+03;  % PRI
+% carrier_freq        = 1.0E+09;  % Carrier Frequency
+% num_of_pulses       = 1;        % Num of pulses in the sequence
+% % Delay for each digitizer channel
+% delay               = 0.0E-06;  % ADC Trigger Delay set to zero
+
+
+
+% % Frame length calculation for ADC according to pulse width amd pretrigger
+% % setting.
+% frame_length = adc_sampling_rate * pulse_width * 1.5;
+% pre_trigger = frame_length * pre_trigger / 100.0;
+% pre_trigger = pre_trigger / adc_interpol;
+% pre_trigger = round (pre_trigger /adc_granularity) * adc_granularity;
+% frame_length = frame_length / adc_interpol;
+% frame_length = frame_length + 1.5 * pre_trigger;
+% frame_length = ceil(frame_length / adc_granularity) * adc_granularity;
+
+fprintf('Reset instrument ..\n');
+inst.SendScpi('*CLS; *RST');   
+
+% % Pulse RF Signal Calculation and Download
+% 
+% % The final waveform will be generated by a sequence specified in a
+% % task list as follows:
+% %
+% %   Task #      segment             num of repetitions
+% % _________________________________________________________
+% 
+% %   TASK1       pulse_section       0 or 1
+% %   TASK2       pulse_section       repeat_pulse_section - 1
+% %   TASK3       trans_section       0 or 1
+% %   TASK4       off_section         repeat_off_section
+% %
+% % Depending on the characteristics of the pulsed waveform any of the
+% % Tasks listed above may or not exist. If repeat_pulse_section = 1,
+% % then TASK3 will not exists. If repeat_pulse_section = 0, neither task
+% % nor task 2 will exist and Task 3 will become the first task in the
+% % list carrying the full pulse. this only happens when duration of the
+% % pulse is lower than the minimum segment length. Task 3 may not exist
+% % if the overall length of the waveform is a multiple of the minimum
+% % segment length and the length of the pulse is also a multiple of it.
+% % Task 4 may bot exist in case Task1, 2 and 3 already implements the
+% % complete waveform.     
+% 
+% [myWfm,...
+% map_wfm,...
+% task_list] = GetPulseWfms(  awg_sampling_rate, ...
+%                             awg_interpol, ...
+%                             awg_granularity, ...
+%                             min_segment_length, ...
+%                             pulse_width, ...
+%                             pulse_rep_frequency);
+% % Download all segments, build task list, set up DDC, and activate task list
+% result = SendIqmOneSeq(     inst,...
+%                             awg_sampling_rate,...
+%                             awg_interpol,...
+%                             awg_channel,...
+%                             segment,...
+%                             carrier_freq,...
+%                             0.0,...
+%                             apply6db,...
+%                             myWfm,...
+%                             map_wfm,...
+%                             task_list);    
+
+% -------------------------------------
+% Operate the ADC with direct functions
+% -------------------------------------    
+
+%DIGITIZER SECTION 
+
+sync_nco            = false;     % true = Coherent acq
+use_ddc             = true;     % true = DDC on, false = DDC off
+
+if use_ddc
+    adc_interpol    = 16;       % This is the decimation factor for DDC
+else
+    adc_interpol    = 1;        % This is the decimation factor for Direct
+    get_coherence   = false;    % If no DDC, coherence cannot be analyzed
+end
+
+% Coherent operation of NCOs in DUC and DDC activation if required
+if sync_nco
+    inst.SendScpi(':DIG:DDC:CLKS AWG');
+end
+% Get all frames from digitizer
+fprintf('Acquired Waveforms Upload to Computer Starts\n');
+carrier_freq = 75.38E+06;  % Carrier Frequency
+awg_channel = 1;
+frame_length = 2496;
+num_of_frames = 139860;
+pre_trigger = 0;
+digChannel = 2;
+adcRange = 1;
+use_dtr_trigger = true;
+adc_sampling_rate   = 2.69E+09;  % Overwritten if sync_nco = true
+
+% The Carrier Frequency for the ADC must be an integer submultiple (x1, x2,
+% x4, x8) of the AWG sampling rate. Four (4) is selected in this case.
+if sync_nco
+    adc_sampling_rate = awg_sampling_rate / 4; 
+end
+
+loops = 20;
+numberOfPulses = floor(num_of_frames/loops);
+frames_total = numberOfPulses*loops;
+pulseAmp = zeros(1,frames_total);
+relPhase = zeros(1,frames_total);
+
+    % ---------------------------------------------------------------------
+    % RF Pulse Config
+    % ---------------------------------------------------------------------
+    
+    
+    amps = [1 1];
+    frequencies = [0 0];
+    lengths = [40e-6 100e-6];
+    phases = [0 90];
+    spacings = [100e-6 43e-6];
+    reps = [1 139860];
+    markers = [1 1]; %always keep these on
+    trigs = [0 1]; %acquire on every "pi" pulse
+    
+
+            case 2 % Switch to NMR Experiment
+                
+                pw = cmdBytes(2)*1e-6;
+                lengths(1) = pw;
+%                 tof = -1000*cmdBytes(2);
+                tof = -1000*24.7;
+                
+                ch=1;
+                initializeAWG(ch);
+                generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs);
+                setNCO_IQ(ch, 75.38e6+tof, 0);
+                
+                fprintf('Calculate and set data structures...\n');
+                
+            case 3
+
+CollectMeasurements(inst,...
+                    true,...
+                    digChannel,...
+                    adcRange,...
+                    use_ddc,...
+                    use_dtr_trigger,...
+                    awg_channel,...
+                    lengths(2)+12*1e-6,...
+                    0.025,...
+                    adc_sampling_rate,...
+                    carrier_freq,...
+                    frame_length,...
+                    frames_total,...
+                    pre_trigger)
+
+for n = 1:loops
+    fprintf('Start Read %d .... ', n);
+    firstIndex = ((n-1)*numberOfPulses)+1;
+    fprintf('Downloading and processing data chunk %d\n',n);
+[wfmAmps, wfmPhases] = GetDigitizerData(  inst,...
+                            cType,...
+                            true,...
+                            digChannel,...
+                            adcRange,...
+                            use_ddc,...
+                            use_dtr_trigger,...
+                            awg_channel,...
+                            0,...
+                            0.025,...
+                            adc_sampling_rate,...
+                            carrier_freq,...                              
+                            frame_length,...
+                            numberOfPulses,...
+                            pre_trigger,...
+                            firstIndex);
+    pulseAmp(firstIndex:(firstIndex+numberOfPulses-1)) = wfmAmps;
+    relPhase(firstIndex:(firstIndex+numberOfPulses-1)) = wfmPhases;
+end
+
+fprintf('Acquired Waveforms Upload to Computer Ends\n'); 
+
+ivec=1:length(pulseAmp);
+delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
+
+%time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
+time_cycle=100e-6+delay2+(tacq+2+4+2)*1e-6;
+%                 time_cycle=time_cycle.*6; % for WHH-4
+%time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
+time_axis=time_cycle.*ivec;
+%drop first point
+time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
+try
+    start_fig(12,[5 1]);
+    p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
+    set(p1,'linewidth',0.5);
+    plot_labels('Time [s]', 'Phase [au]');
+    
+    start_fig(1,[3 2]);
+    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+    set(p1,'linewidth',1);
+    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+    set(gca,'xlim',[0,25e-3]);
+    plot_labels('Time [s]', 'Signal [au]');
+    
+    start_fig(1,[5 2]);
+    p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
+    set(p1,'markersize',3);
+    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+    plot_labels('Time [s]', 'Signal [au]');
+    
+    start_fig(13,[5 1]);
+    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+    set(p1,'linewidth',0.5);
+    set(gca,'xlim',[5-8e-3,5+30e-3]);
+    plot_labels('Time [s]', 'Signal [au]');
+    
+catch
+    disp('Plot error occured');
+end
+
+%fn=dataBytes; %filename
+a = datestr(now,'yyyy-mm-dd-HHMMSS');
+fn = sprintf([a,'_Proteus']);
+% Save data
+fprintf('Writing data to Z:.....\n');
+save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+fprintf('Save complete\n');
+
+            case 4 % Cleanup, save and prepare for next experiment
+                rc = inst.SendScpi(':DIG:INIT OFF');
+                assert(rc.ErrCode == 0);
+                %                 rc = inst.SetAdcCaptureEnable(off);
+                
+                % Free the memory space that was allocated for ADC capture
+                % Delete all wfm memory
+                rc = inst.SendScpi(':DIG:ACQ:FREE');
+                assert(rc.ErrCode == 0);
+                %                 rc = inst.FreeAdcReservedSpace();
+                %                 assert(rc == 0);
+                
+                %                 clear pulseAmp time_axis;
+                fprintf('Complete ready for next aquisition!\n');
+                
+            case 5 % Shutdown disconnect instr
+                
+                connect = 0;
+                
+            case 6 % Program MW chirp waveform
+                
+                % ---------------------------------------------------------------------
+                % Download chirp waveform of 1024 points to segment 1 of channel 1
+                % ---------------------------------------------------------------------
+                global sampleRateDAC
+                sampleRateDAC = 9e9
+                awg_center_freq = cmdBytes(2);
+                awg_bw_freq = cmdBytes(3);
+                awg_amp = cmdBytes(4);
+                sweep_freq = cmdBytes(5);
+                sweep_sigma = cmdBytes(6);
+                symm = cmdBytes(7);
+                %                 srs_freq = cmdBytes(8); % should be 0.3625e9
+                srs_freq = 0.3625e9; % new value for good chirp
+                srs_amp = cmdBytes(9);
+                pol_times = [cmdBytes(10) cmdBytes(11) cmdBytes(12) cmdBytes(13) cmdBytes(14) cmdBytes(15)];
+                pol_times = nonzeros(pol_times);
+                starting_pol_sign = cmdBytes(16);
+                
+                if starting_pol_sign == 1
+                    starting_pol = '+';
+                elseif starting_pol_sign ==-1
+                    starting_pol = '-';
+                else
+                    disp('starting polarization value is wrong (only +1 or -1)')
+                    break
+                end
+                
+                
+                %                 awg_center_freq = 3.775e9;
+                %                 awg_bw_freq = 24e6;
+                %                 awg_amp = 1.2;
+                %                 sweep_freq = 750;
+                %                 sweep_sigma = 0.1;
+                %                 symm = 0;
+                %                 srs_freq = 0.3625e9; % new value for good chirp
+                %                 srs_amp = 3;
+                %                 pol_times = [t1 t2 t3];
+                %                 pol_times = nonzeros(pol_times);
+                %                 starting_pol_sign = 1;
+                %
+                inst.SendScpi("*CLS")
+                inst.SendScpi("*RST")
+                res = inst.SendScpi(['INST:CHAN ' num2str(dacChanInd)]); % select channel 2
+                assert(res.ErrCode == 0);
+                
+                % check if its the good variable bc im not sure
+                inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC)]);
+                assert(res.ErrCode == 0);
+                
+                inst.SendScpi(":INIT:CONT OFF");
+                assert(res.ErrCode == 0);
+                
+                inst.SendScpi(":INIT:CONT ON");
+                assert(res.ErrCode == 0);
+                
+                rampTime = 1/sweep_freq;
+                fCenter = awg_center_freq - srs_freq;
+                fStart = fCenter - 0.5*awg_bw_freq;
+                disp(['fstart = ' num2str(fStart)]);
+                fStop = fCenter + 0.5*awg_bw_freq;
+                dt = 1/sampleRateDAC;
+                
+                chirps{1}.dacSignal = makeChirp(sampleRateDAC, rampTime, dt, fStart, fStop, bits);
+                chirps{2}.dacSignal = fliplr(chirps{1}.dacSignal);
+                chirps{1}.segLen = length(chirps{1}.dacSignal);
+                chirps{2}.segLen = length(chirps{2}.dacSignal);
+                chirps{1}.segm = 1;
+                chirps{2}.segm = 2;
+                chirps{1}.srs_freq = 0.3625e9;
+                chirps{2}.srs_freq = 0.3625e9;
+                fprintf('waveform length - ');
+                fprintf(num2str(length(chirps{1}.dacSignal)));
+                fprintf('\n') ;
+                
+                
+                task_list = build_tasktable(inst,pol_times,chirps,sampleRateDAC,'first sign',starting_pol);
+                
+                % % Play seg 1
+                % res = inst.SendScpi(':SOUR:FUNC:MODE:SEGM 1');
+                % assert(res.ErrCode == 0);
+                
+                res = inst.SendScpi(':SOUR:VOLT MAX');
+                assert(res.ErrCode == 0);
+                
+                res = inst.SendScpi(':OUTP ON');
+                assert(res.ErrCode == 0);
+                
+                inst.SendScpi(':TRIG:ACTIVE:SEL TRG2');
+                inst.SendScpi(':TRIG:LEV 1.0');
+                inst.SendScpi(':TRIG:ACTIVE:STAT ON');
+                
+                % create the task table
+                create_task_table(inst,task_list, sampleRateDAC);
+                
+                % write task table
+                inst.SendScpi(':TASK:COMP:WRITE');
+                fprintf(1, 'SEQUENCE CREATED!\n');
+                
+                fprintf(1, 'SETTING AWG OUTPUT\n');
+                
+                inst.SendScpi(':SOUR:FUNC:MODE TASK');
+                
+                res = inst.SendScpi(':OUTP ON');
+                assert(res.ErrCode == 0);
+                
+            case 7 % Play MW chirp waveform
+                
+                % ---------------------------------------------------------------------
+                % Play segment 1 in channel 1
+                % ---------------------------------------------------------------------
+                
+                res = inst.SendScpi(['INST:CHAN ' num2str(dacChanInd)]); % select channel 2
+                assert(res.ErrCode == 0);
+                
+                res = inst.SendScpi(':SOUR:FUNC:MODE TASK');
+                assert(res.ErrCode == 0);
+                
+                %               inst.SendScpi(':INIT:CONT ON');
+                %               assert(res.ErrCode == 0);
+                %                 res = inst.SendScpi(':SOUR:FUNC:MODE ARB');
+                %                 assert(res.ErrCode == 0);
+                %                 res = inst.SendScpi(':SOUR:FUNC:MODE:SEG 1');
+                %                 assert(res.ErrCode == 0);
+                
+                amp_str = ':SOUR:VOLT MAX';
+                res = inst.SendScpi(amp_str);
+                assert(res.ErrCode == 0);
+                
+                res = inst.SendScpi(':OUTP ON');
+                assert(res.ErrCode == 0);
+                
+                fprintf('Waveform generated and playing\n');
+                
+            case 8
+                
+                % Disable MW chirp output
+                res = inst.SendScpi(':OUTP OFF');
+                assert(res.ErrCode == 0);
+                
+                fprintf('MW Chirp Waveform stopped playing (on purpose)\n');
+                
+                
+        end % end switch
+        
+    end % end while
+        
+        res = inst.SendScpi(':SYST:ERR?');
+        fprintf(1, '\nEnd - server stopped!! \nInstrument Error Status = %s\n', netStrToStr(res.RespStr));
+        
+        if cType == "LAN"
+            inst.Disconnect();
+        else
+            admin.CloseInstrument(instId);
+            admin.Close();
+        end
+        clear inst;
+        clear;
+
+% % Coherence processing
+% % One phase value is obtained for each frame so evolution can be observed
+% phase1 = zeros(1, num_of_frames);
+% 
+% for i = 1:num_of_frames
+%     %for each acquisition, complex IQ waveforms are extracted
+%     samples1 = acqWfm(i,:);
+%     % Relative amplitude of the I and Q pulses are obtained by integration
+%     I1 = sum(real(samples1));
+%     Q1 = sum(imag(samples1));
+%     % 4 quadrant arctangent is applied to the areas of teh I and Q pulses
+%     phase1(i) = atan2(Q1,I1);    
+% end
+% phase1 = unwrap(phase1);
+% phase1 = 180.0 * phase1 / pi;
+% 
+% itemToShow = num_of_frames;
+% 
+% if use_ddc
+%     actual_pre_trigger = 2 * pre_trigger;
+% else
+%     actual_pre_trigger = pre_trigger;
+% end
+% 
+% % Span for spectrum graph
+% span = 100.0 / pulse_width;
+% % Show data for first frame
+% ShowResults(    use_ddc,...
+%                 acqWfm,...
+%                 get_coherence,...
+%                 phase1,...
+%                 1,...
+%                 actual_pre_trigger,...
+%                 carrier_freq,...
+%                 span,...
+%                 adc_interpol,...
+%                 adc_sampling_rate);
+% ---------------------------------------------------------------------
+% End of the example
+% ---------------------------------------------------------------------
+
+% fprintf('\nRADAR DEMO COMPLETED\n');
+% 
+% % GUI to access all the information about all frames is generated
+% fig = uifigure('Position',[100 100 350 100]);    
+% % Frame is selected using an slider control
+% sld = uislider(fig,...
+%     'Position',[10 75 300 3],...
+%     'Limits', [1 itemToShow],...
+%     'ValueChangedFcn',@(sld,event) ShowResults( use_ddc,...
+%                                                 acqWfm,...
+%                                                 get_coherence,...
+%                                                 phase1,...
+%                                                 sld.Value,...
+%                                                 actual_pre_trigger,...
+%                                                 carrier_freq,...
+%                                                 span,...
+%                                                 adc_interpol,...
+%                                                 adc_sampling_rate));
+
+
+% Close the session
+% It is recommended to disconnect from instrument at the end
+if cType == "LAN"
+    inst.Disconnect();
+else
+%     admin.CloseInstrument(inst.instId);    
+    admin.Close();
+end  
+
+% *******************************************************************
+% *                          FUNCTIONS                              *
+% *******************************************************************
+
+function outWfm = ComplexToInterleaved(wfmIq)
+    wfmLength = length(wfmIq);
+    outWfm = zeros(1, 2 * wfmLength);
+
+    outWfm(1:2:(2 * wfmLength - 1)) = real(wfmIq);
+    outWfm(2:2:(2 * wfmLength)) = imag(wfmIq);
+end
+
+function outWfm = InterleavedToComplex(wfmIq)
+    wfmLength = length(wfmIq);
+
+    outWfm = double(wfmIq(1:2:wfmLength)) + 1.0i * double(wfmIq(2:2:wfmLength));
+end
+
+function ncoFreq = GetNcoFreq(carrierFreq ,samplingRate, remove_second_nyquist)
+% This function maps any frequency to its image in the first or second
+% Nyquist Zone. Second Nyquist Zone can be excluded when
+% remove_second_nyquist is set to 'true'
+    ncoFreq = abs(carrierFreq);
+    ncoFreq = mod(ncoFreq, samplingRate);
+
+    if remove_second_nyquist
+        if ncoFreq > samplingRate / 2
+            ncoFreq = samplingRate - ncoFreq;
+        end
+    end
+end
+
+function CollectMeasurements(inst,...
+                                    dualMode,...
+                                    adChan,...
+                                    range,...
+                                    useDdc,...
+                                    useDtrTrig,...                                    
+                                    dtrChan,...
+                                    dtrDelay,...
+                                    trgLevel,...
+                                    samplingRateDig,...
+                                    cFreq,...
+                                    frameLen,...
+                                    numberOfFrames,...
+                                    preTrig)
+    % ----------
+    % ADC Config
+    % It supports up to two channels with different setups
+    % ----------
+
+    % Set the ADC mode and set the channel mapping
+    if dualMode
+        inst.SendScpi(':DIG:MODE DUAL');
+        if length(adChan) > 1
+            adChan = adChan(1:2);
+            if adChan(1) == adChan(2)
+                adChan = adChan(1);
+            end
+        end        
+    else
+        inst.SendScpi(':DIG:MODE SINGLE');
+        % Only Channel 1 in Single mode
+        adChan = 1;        
+    end  
+
+    adChan(adChan > 2) = 2;
+    adChan(adChan < 1) = 1;
+
+    numOfChannels = length(adChan);
+
+    % Free Acquistion Memory and Set sampling rate
+    inst.SendScpi(':DIG:ACQ:FREE');    
+    inst.SendScpi(sprintf(':DIG:FREQ %g', samplingRateDig));
+    % DDC activation
+    if useDdc        
+        inst.SendScpi(':DIG:DDC:MODE COMP');   
+        for i = 1:numOfChannels
+            % NCO frequency mapped to the first and second NZ
+            ddcFreq = GetNcoFreq(cFreq(mod(i, length(cFreq)) + 1), samplingRateDig, false);
+            inst.SendScpi([sprintf(':DIG:DDC:CFR%d ', adChan(i)) num2str(abs(ddcFreq))]);
+        end
+    end
+    % Calculate actual frame length depending on the DDC mode
+    actualFrameLen = frameLen;
+    if useDdc
+        actualFrameLen = 2 * actualFrameLen;
+    end
+    
+    % ADC Range 
+    % 1:LOW, 2:MED, 3:HIGH
+    range(range > 2) = 3;
+    range(range < 2) = 1;
+    
+    for chan = 1:numOfChannels
+        % Select digitizer channel:
+        inst.SendScpi(sprintf(':DIG:CHAN %d', adChan(chan)));
+        % Set the voltage-range of the selected channel
+        switch range(mod(chan - 1, length(range)) + 1)
+            case 1
+                inst.SendScpi(':DIG:CHAN:RANG LOW');
+            case 2
+                inst.SendScpi(':DIG:CHAN:RANG MED');
+            case 3
+                inst.SendScpi(':DIG:CHAN:RANG HIGH');
+        end
+        %Enable acquisition in the selected channel
+        inst.SendScpi(':DIG:CHAN:STATE ENAB');
+
+        % Setup frames layout. Common to both ADC channels.    
+        inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',...
+            numberOfFrames, actualFrameLen));
+        
+        % Set channel 1 of the digitizer as its trigger source
+        % If DTR trigger, it is directed to the designated AWG channel
+        if useDtrTrig(mod(chan - 1, length(useDtrTrig)) + 1) 
+            % DTR trigger must be assigned after selecting the target AWG
+            % channel as it is a property of the AWG channel and the ADC
+            % channel
+            inst.SendScpi(sprintf(':INST:CHAN %d',...
+                adChan(i)));
+%                 dtrChan(mod(chan - 1, length(dtrChan)) + 1)));
+            inst.SendScpi(sprintf(':DIG:TRIG:SOURCE TASK%d',...
+                dtrChan(mod(chan - 1, length(dtrChan)) + 1)));
+            % Set DTR trigger Dealy
+            inst.SendScpi(sprintf(':DIG:TRIG:AWG:TDEL %f',...
+                dtrDelay));
+        else
+            % Level trigger set tup
+            inst.SendScpi(sprintf(':DIG:TRIG:SOUR CH%d', adChan(i)));
+            inst.SendScpi(sprintf(':DIG:TRIG:SELF %f',...
+                trgLevel(mod(chan - 1, length(trgLevel)) + 1))); %0.025
+        end
+        % Pretrigger for DDC must be set to double as acquisions are made
+        % by IQ pair of samples
+        if useDdc
+            actualPreTrig = 2 * preTrig;
+        else
+            actualPreTrig = preTrig;
+        end
+    
+        inst.SendScpi(sprintf(':DIG:PRET %d', actualPreTrig));
+        
+        % Select which frames are filled with captured data 
+        %(all frames in this example)
+        inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');
+    
+        % Delete all wfm memory
+        inst.SendScpi(':DIG:ACQ:ZERO:ALL');
+        % Get ADC wfm format. For informative purposes
+        resp = inst.SendScpi(':DIG:DATA:FORM?');
+        resp = strtrim(netStrToStr(resp.RespStr));         
+    end
+    
+    % Stop the digitizer
+    inst.SendScpi(':DIG:INIT OFF');
+    % And start for a new acquisition
+    wfmData = zeros(numOfChannels, frameLen);
+    inst.SendScpi(':DIG:INIT ON'); 
+    % Read Acquired Wfm Data
+    for i=1:numOfChannels             
+        % Select channel
+        inst.SendScpi(sprintf(':DIG:CHAN %d', adChan(i)));
+        
+        fprintf('Triggering pulse sequence\n');
+        rc = inst.SendScpi('*TRG');
+        assert(rc.ErrCode == 0);
+                
+        % Get acquisition status CSV string from Proteus for selected
+        % channel
+        for n = 1:25000
+            resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
+            resp = strtrim(netStrToStr(resp.RespStr));
+            resp = strtrim(resp);
+            items = split(resp, ',');
+            items = str2double(items);
+            % If item 2 in the CSV string is '1', then all frames have been
+            % captured
+            if length(items) >= 3 && items(2) == 1
+                break
+            end
+            % This is just to give some information when trigger times out
+            if mod(n, 10) == 0                
+                fprintf('%d. %s Time:\n', fix(n / 10), resp);                                
+            end
+            pause(0.1);
+        end       
+    end
+    % Sttop digitizer after all acquisitions and frames for all the
+    % channels have been captured
+    inst.SendScpi(':DIG:INIT OFF');
+end
+
+
+function [wfmAmps, wfmPhases] = GetDigitizerData(inst,...
+                                    cType,...
+                                    dualMode,...
+                                    adChan,...
+                                    range,...
+                                    useDdc,...
+                                    useDtrTrig,...                                    
+                                    dtrChan,...
+                                    dtrDelay,...
+                                    trgLevel,...
+                                    samplingRateDig,...
+                                    cFreq,...
+                                    frameLen,...
+                                    numberOfFrames,...
+                                    preTrig,...
+                                    firstIndex)
+                                
+       numOfChannels = length(adChan);
+       for i=1:numOfChannels
+            % Select channel
+            inst.SendScpi(sprintf(':DIG:CHAN %d', adChan(i)));
+            ddcFreq = GetNcoFreq(cFreq(mod(i, length(cFreq)) + 1), samplingRateDig, false);
+            inst.SendScpi([sprintf(':DIG:DDC:CFR%d ', adChan(i)) num2str(abs(ddcFreq))]);
+        
+        % Define what we want to read 
+        % (frames data, frame-header, or both).
+        % In this example we read the frames-data
+        inst.SendScpi(':DIG:DATA:TYPE FRAM');
+        inst.SendScpi(':DIG:DATA:SEL ALL');
+
+        % Read binary block
+        % Get the size in bytes of the acquisition
+        resp = inst.SendScpi(':DIG:DATA:SIZE?');
+        resp = strtrim(netStrToStr(resp.RespStr));
+        num_bytes = str2double(resp);
+        % upload time will be shown so transfer rate can be compared
+        fprintf('ADC Upload Time for %d bytes:\n', num_bytes);
+        
+        if cType == "LAN"
+            if useDdc 
+                tic;
+                % DDC data is formatted as 15-bit in a 32-bit unsigned
+                % integer
+                samples = inst.ReadBinaryData(':DIG:DATA:READ?', 'uint32');              
+                toc;
+                samples = int32(samples) - 16384; % Set zero level
+                % Convert to complex I + jQ samples
+                samples = InterleavedToComplex(samples);
+                % Invert spectrum if ddcFreq < 0.0
+                if ddcFreq < 0.0
+                    samples = conj(samples);
+                end
+            else
+                tic;
+                % Direct ADC data is formated as 12-bit samples in 16-bit
+                % unsigned integers
+                samples = inst.ReadBinaryData(':DIG:DATA:READ?', 'uint16');     
+                toc;
+                samples = int16(samples) - 2048; % Set zero level
+            end
+        else
+            % For the PXI library, downloads can only handlw 8 or 16-bit
+            % unsigned.
+            if useDdc
+                % For DDC, because read format is UINT16 we divide byte
+                % number by 2
+                wavlen = floor(num_bytes / 2);
+                % allocate NET array
+%                 Tmax = 26;
+%                 numberOfPulses = floor(numberOfFrames/Tmax);
+                netArray = NET.createArray('System.UInt16', 4*frameLen*numberOfFrames);
+                
+                    
+                % read the captured frame
+                tic;
+                res = inst.ReadMultipleAdcFrames(adChan(i)-1, firstIndex, numberOfFrames, netArray);
+                toc;
+             
+%                 assert(res == 0);
+                % Each 32 sample is now 2 contiguous 16-bit samples
+                samples = uint16(netArray);
+                % As the first 16-bit samples in the pair is "all zeros"
+                % they can be discarded by taking one very two bytes
+                samples = samples(1:2:length(samples));
+%                 samples = samples(1:2:length(samples));
+                
+                % cast to matlab vector
+                samples = int16(samples) - 16384; % Set zero level
+                % Convert to complex I + jQ samples
+                samples = InterleavedToComplex(samples);
+                % Invert spectrum if ddcFreq < 0.0
+                if ddcFreq < 0.0
+                    samples = conj(samples);
+                end                
+                % deallocate the NET array
+                delete(netArray);
+            else
+                wavlen = floor(num_bytes / 2);
+        
+                % allocate NET array
+                netArray = NET.createArray('System.UInt16', wavlen);
+                % read the captured frame
+                tic
+                res = inst.ReadMultipleAdcFrames(0, 1, numberOfFrames, netArray);
+                toc
+                assert(res == 0);
+                
+                samples = uint16(netArray);
+                % cast to matlab vector
+                samples = int16(samples) - 2048;
+                                
+                % deallocate the NET array
+                delete(netArray);
+            end            
+        end        
+        % Ouput data is formatted as a two dimensions array with A x F
+        % rows (A = number of acquisitions, F = number of Frames) and
+        % FrameLem columns
+%         for j=1:numberOfFrames
+%             wfmData((i - 1) * numberOfFrames + j,:) = samples(((j-1) * frameLen + 1):(j * frameLen));
+%         end     
+tic
+        wfmData = reshape(samples, numberOfFrames, []);
+    toc
+        
+        power_of_2 = floor(log2(frameLen)); % this is normally 15 for 32us captures
+        padded_len= 2^(power_of_2) ;%2^15;
+
+        dF = samplingRateDig/16/padded_len; %set the discretization of freq in terms of sampleRate
+        f = -samplingRateDig/16/2:dF:samplingRateDig/16/2-dF; %sampleRate sets the 'bandwidth'
+        
+        [v,b1]=min(abs(f-75.36e6)); %picks out the 75 MHz component (Tecmag)
+        [v,b2]=min(abs(f+75.36e6));
+        
+        wfmAmps=zeros(numberOfFrames,1);
+        wfmPhases=zeros(numberOfFrames,1);
+        for k = 1:numberOfFrames
+            pulse = wfmData(k, :);
+            pulseMean = mean(pulse);
+            pulseDC = pulse - pulseMean; % remove DC
+            
+            X = fftshift(fft(pulseDC,padded_len)); % perform FFT and zero-pad to the padded_len
+            linFFT = (abs(X)/frameLen);
+            amp=(linFFT(b1) + linFFT(b2));
+            phase1=angle(X(b1));
+            idx = numberOfFrames;
+            wfmAmps(idx) = amp;
+            wfmPhases(idx) = phase1;
+        end
+    end
+    % Sttop digitizer after all acquisitions and frames for all the
+    % channels have been captured
+%     inst.SendScpi(':DIG:INIT OFF');
+end
+
+function [  inst,...            
+            admin,...
+            modelName,...
+            sId] = ConnecToProteus( cType, ...
+                                    connStr, ...
+                                    paranoia_level)
+
+% Connection to target Proteus
+% cType specifies API. "LAN" for VISA, "DLL" for PXI
+% connStr is the slot # as an integer(0 for manual selection) or IP adress
+% as an string
+% Paranoia Level add additional checks for each transfer. 0 = no checks.
+% 1 = send OPC?, 2 = send SYST:ERROR?
+
+% It returns
+% inst: handler for the selected instrument
+% admin: administrative handler
+% modelName: string with model name for selected instrument (i.e. "P9484")
+% sId: slot number for selected instrument
+    
+    pid = feature('getpid');
+    fprintf(1,'\nProcess ID %d\n',pid);
+    
+    dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';  
+    admin = 0;
+    sId = 0;
+    if cType == "LAN"
+        try            
+            connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
+            inst = TEProteusInst(connStr, paranoia_level);
+            
+            res = inst.Connect();
+            assert (res == true);
+            modelName = identifyModel(inst);
+        catch ME
+            rethrow(ME)
+        end   
+    else
+        asm = NET.addAssembly(dll_path);
+    
+        import TaborElec.Proteus.CLI.*
+        import TaborElec.Proteus.CLI.Admin.*
+        import System.*
+        
+        admin = CProteusAdmin(@OnLoggerEvent);
+        rc = admin.Open();
+        assert(rc == 0);   
+        
+        try
+            slotIds = admin.GetSlotIds();
+            numSlots = length(size(slotIds));
+            assert(numSlots > 0);
+            
+            % If there are multiple slots, let the user select one ..
+            sId = slotIds(1);
+            if numSlots > 1
+                fprintf('\n%d slots were found\n', numSlots);
+                for n = 1:numSlots
+                    sId = slotIds(n);
+                    slotInfo = admin.GetSlotInfo(sId);
+                    if ~slotInfo.IsSlotInUse
+                        modelName = slotInfo.ModelName;
+                        if slotInfo.IsDummySlot && connStr == 0
+                            fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
+                        elseif connStr == 0
+                            fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
+                        end
+                    end
+                end
+                pause(0.1);
+                if connStr == 0
+                    choice = input('Enter SlotId ');
+                    fprintf('\n');
+                else
+                    choice = connStr;
+                end                
+                sId = uint32(choice);
+                slotInfo = admin.GetSlotInfo(sId);
+                modelName = slotInfo.ModelName;
+                modelName = strtrim(netStrToStr(modelName));
+            end
+            
+            % Connect to the selected instrument ..
+            should_reset = true;
+            inst = admin.OpenInstrument(sId, should_reset);
+            instId = inst.InstrId;
+            
+        catch ME
+            admin.Close();
+            rethrow(ME) 
+        end    
+    end
+end
+
+function result = SendWfmToProteus( inst,...
+                                    samplingRate,...
+                                    channel,...
+                                    segment,...
+                                    myWfm,...
+                                    dacRes,...
+                                    initialize)
+
+    if dacRes == 16  
+            inst.SendScpi(':TRAC:FORM U16');
+    else
+            inst.SendScpi(':TRAC:FORM U8');
+    end
+
+    %Select Channel
+    if initialize
+        inst.SendScpi(':TRAC:DEL:ALL');
+        inst.SendScpi([':FREQ:RAST ' num2str(samplingRate)]);        
+    end
+    
+    inst.SendScpi(sprintf(':INST:CHAN %d', channel));    
+    inst.SendScpi(sprintf(':TRAC:DEF %d, %d', segment, length(myWfm)));        
+    % select segmen as the the programmable segment
+    inst.SendScpi(sprintf(':TRAC:SEL %d', segment));
+
+    % format Wfm
+%     myWfm = myQuantization(myWfm, dacRes, 1);
+    
+    % Download the binary data to segment   
+    prefix = ':TRAC:DATA 0,';
+
+    if (dacRes==16)
+        myWfm = uint16(myWfm);
+        myWfm = typecast(myWfm, 'uint8');
+        dataLength = 2 * length(myWfm);
+    else
+        myWfm = uint8(myWfm);
+        dataLength = length(myWfm);
+    end
+
+    fprintf('AWG Download Time for %d bytes:\n', dataLength);
+    tic;
+    res = inst.WriteBinaryData(prefix, myWfm);
+    toc;
+    assert(res.ErrCode == 0);
+
+    if initialize
+        inst.SendScpi(sprintf(':SOUR:FUNC:MODE:SEGM %d', segment))
+        % Output voltage set to MAX
+        inst.SendScpi(':SOUR:VOLT MAX');   
+        % Activate outpurt and start generation
+        inst.SendScpi(':OUTP ON');        
+    end
+    
+    result = length(myWfm);
+end
+
+function TaskListSetup( inst,...
+                        channel,...
+                        segment,...
+                        taskList)
+
+% This function defines a complete Task List based in the definitons
+% defined by the taskList integer uint32 array. The array is NxM, where N
+% is the number of entries in the task list being defined and M is the
+% number of fields specifying the parameters of each tasks. This is the
+% defintion of the fields:
+%
+%   Number          Description         
+% ________________________________________
+%
+%   1               pointer_to_segment
+%   2               task_type: 0: Single, 1: StartSeq, 2: InSeq, 3: EndSeq
+%   3               num_of_loops_task
+%   4               num_of_loops_seq
+%   5               next_task
+%   6               dtr_trig_flag: 0: dtr trigger off, 1: dtr trigger on
+    
+    num_of_tasks = size(taskList, 1);
+    % Select Channel
+    inst.SendScpi(sprintf(':INST:CHAN %d', channel));  
+    % The Task Composer is configured to handle a certain number of task
+    % entries
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', num_of_tasks)); 
+
+    % Then, each task is defined
+    for task_number = 1:num_of_tasks 
+        % Task to be defined is selected
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d', task_number));
+        % The type of task is defined.
+        switch taskList(task_number, 2)
+            case 0
+                inst.SendScpi(':TASK:COMP:TYPE SING');
+            case 1
+                inst.SendScpi(':TASK:COMP:TYPE STAR');
+            case 2
+                inst.SendScpi(':TASK:COMP:TYPE SEQ');
+            case 3
+                inst.SendScpi(':TASK:COMP:TYPE END');
+        end
+               
+        % The action to take after completing the task is defined. NEXT is the
+        % default so sending this command is not mandatory
+        inst.SendScpi(':TASK:COMP:DEST NEXT');
+        % Assigns segment for task in the sequence        
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', taskList(task_number, 1) + segment - 1));
+        % Assigns task to generate next in the sequence
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d', taskList(task_number, 5)));         
+   
+        % Set the Trigger for Digitizer  
+        switch taskList(task_number, 6)
+            case 0
+                inst.SendScpi(':TASK:COMP:DTR OFF');
+            otherwise
+                inst.SendScpi(':TASK:COMP:DTR ON');
+        end  
+
+        % Num of loops for the current sequence
+        if taskList(task_number, 2) == 1
+            inst.SendScpi(sprintf(':TASK:COMP:SEQ %d', taskList(task_number, 4)));
+        end
+
+        %  Num of loops for the current task
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', taskList(task_number, 3)));
+    end   
+
+    % The task table created with the Composer is written to the actual task
+    % table of teh selected channel
+    inst.SendScpi(':TASK:COMP:WRIT');
+    fprintf(1, 'SEQUENCE CREATED!\n');
+    % Select Task Mode for generation    
+    % Start in task #1 (#1 is the default)    
+    inst.SendScpi(':FUNC:MODE TASK');
+end
+
+function result = SendIqmOneSeq(    inst,...
+                                    samplingRate,...
+                                    interpol,...
+                                    channel,...
+                                    segment,...
+                                    cfr,...
+                                    phase,...
+                                    apply6db,...
+                                    myWfm,...
+                                    segMap,...
+                                    taskList)
+% This function handles the dwonload of multiple segments and also the task
+% list to generate them with the task sequencer. Waveform data are passed as
+% concatenated waveforms in a single vector. segMap is a vector with the
+% size for each segment so they can be extracted from myWfm. Assigned
+% segment is always in the order they are defined in the myWfm array
+% starting with the segment variable. taskList is a two dimensional array.
+% See the TaskListSetup functon for more information
+
+    % format Wfm
+    dacRes = 16;
+    myWfm = NormalIq(myWfm);
+    % myWfm is originally a complex vector
+    myWfm = ComplexToInterleaved(myWfm);
+    myWfm = myQuantization(myWfm, dacRes, 1);
+
+    % Select Channel
+    inst.SendScpi(sprintf(':INST:CHAN %d', channel));     
+    % Setup Sclk for initial DUC settings
+    inst.SendScpi([':FREQ:RAST ' num2str(2.5E9)]);
+    % Interpolation factor for I/Q waveforms
+    switch interpol
+        case 2
+            inst.SendScpi(':SOUR:INT X2');
+
+        case 4
+            inst.SendScpi(':SOUR:INT X4');
+
+        case 8
+            inst.SendScpi(':SOUR:INT X8');
+    end
+    
+    % DAC Mode set to 'DUC' and IQ Modulation mode set to 'ONE'
+    inst.SendScpi(':MODE DUC');
+    inst.SendScpi(':IQM ONE');   
+    % Set the definitive Sclk
+    inst.SendScpi([':FREQ:RAST ' num2str(samplingRate)]);
+    fprintf(1, sprintf('DOWNLOADING %d WAVEFORMS: %d samples\n',...
+        length(segMap) , length(myWfm))); 
+    segMap = 2 * segMap;
+    pointer_wfm = 1;
+    for k = 1:length(segMap) 
+        % For each segment, the right waveform data is selected and
+        % downloaded
+        result = SendWfmToProteus(  inst,...
+                                    samplingRate,...
+                                    channel,...
+                                    k + segment - 1,...
+                                    myWfm(pointer_wfm:(pointer_wfm + segMap(k) - 1)),...
+                                    dacRes,...
+                                    false);
+        % pointer for next segment data is updated
+        pointer_wfm = pointer_wfm + segMap(k);
+    end
+    
+    fprintf(1, 'WAVEFORMS DOWNLOADED!\n');
+
+    % task List setup    
+    TaskListSetup(  inst,...
+                    channel,...
+                    segment,...
+                    taskList);
+    
+    % Select segment for generation
+    fprintf(1, 'SETTING AWG OUTPUT\n');
+    % Output volatge set to MAX
+    inst.SendScpi(':SOUR:VOLT MAX');
+
+    % NCO set-up
+    % 6dB IQ Modulation gain applied
+    if apply6db
+        inst.SendScpi(':NCO:SIXD1 ON');   
+    else
+        inst.SendScpi(':NCO:SIXD1 OFF');    
+    end
+    % NCO frequency and phase setting
+    inst.SendScpi(sprintf(':NCO:CFR1 %d', cfr));
+    inst.SendScpi(sprintf(':NCO:PHAS1 %d', phase));
+
+    % Activate output and start generation
+    inst.SendScpi(':OUTP ON');
+end
+
+function outWfm = NormalIq(wfm)
+% Normalization to peak modulus
+    maxPwr = max(abs(wfm));
+    outWfm = wfm / maxPwr;  
+end
+
+function retval = myQuantization (myArray, dacRes, minLevel)  
+ 
+    maxLevel = 2 ^ dacRes - 1;  
+    numOfLevels = maxLevel - minLevel + 1;
+    
+    retval = round((numOfLevels .* (myArray + 1) - 1) ./ 2);
+    retval = retval + minLevel;
+    
+    retval(retval > maxLevel) = maxLevel;
+    retval(retval < minLevel) = minLevel;
+end
+
+function [  myWfm,...
+            map_wfm,...
+            task_list] = GetPulseWfms(  awg_sampling_rate, ...
+                                        awg_interpol, ...
+                                        awg_granularity, ...
+                                        min_segment_length, ...
+                                        pulse_width, ...
+                                        pulse_rep_frequency)
+% This function calculates a baseband pulse and creates an optimal
+% segmentation of the waveform and the corresponding task list to generate
+% the overall pulsed waveform. These requires one, two or three segments.
+% There may be a ON segment, an OFF segment, and a Transition segment.
+
+    % Baseband waveform sample rate
+    actual_sampling_rate = awg_sampling_rate / awg_interpol;
+    % Actual Granularity and Minimum Segement Length for complex wfms
+    awg_granularity = awg_granularity / 2;
+    min_segment_length = min_segment_length / 2;
+    % Duration of one complete cycle
+    total_duration = 1.0 / pulse_rep_frequency;
+    % Wfm length in samples rounde to the actual granularity
+    awg_wfm_length = total_duration * actual_sampling_rate;
+    awg_wfm_length = awg_granularity * floor(awg_wfm_length / awg_granularity);
+
+    % I/Q complex pulse
+    % =================
+    % Pulse length is samples
+    pulse_length = round(pulse_width * actual_sampling_rate);  
+    % Number of segments with minimum segment length
+    repeat_pulse_section = floor(pulse_length / min_segment_length);
+    % Pulse segment is "all 1s"
+    pulse_section = complex(ones(1, min_segment_length));
+
+    % I/Q interval between pulses
+    % ===========================
+    % Total length for the all zeros section in samples
+    off_section_length = awg_wfm_length - pulse_length;
+    % Number of segments with minimum segment length
+    repeat_off_section = floor(off_section_length / min_segment_length);
+    % Pulse segment is "all 1s"
+    off_section = complex(zeros(1, min_segment_length));
+
+    % I/Q transition segment
+    % ======================    
+    % Total length for the trabsition section in samples
+    trans_section_length = awg_wfm_length -...
+        min_segment_length * (repeat_pulse_section + repeat_off_section);
+    % Number of ones in the transition section
+    ones_in_trans_section = pulse_length -...
+            repeat_pulse_section * min_segment_length;
+    
+    % Transition segment calculation
+    if trans_section_length ~= 0 
+        trans_section = complex(zeros(1, trans_section_length));
+        if ones_in_trans_section ~= 0
+            trans_section(1:ones_in_trans_section) = complex(1.0);
+        end
+        % Transition length must be corrected in case its length is shorter
+        % than the minimum segment length by adding either a pulse or an
+        % off segment so the number of reps must be edited
+        if trans_section_length < min_segment_length 
+            if repeat_off_section > 0
+                trans_section = [trans_section, off_section];
+                repeat_off_section = repeat_off_section - 1;
+            elseif repeat_pulse_section > 0
+                trans_section = [pulse_section, trans_section];
+                repeat_pulse_section = repeat_pulse_section - 1;
+            end
+        end
+    end
+    % Meaning of fields in task array
+    %   1               pointer_to_segment
+    %   2               task_type: 0: Single, 1: StartSeq, 2: InSeq, 3: EndSeq
+    %   3               num_of_loops_task
+    %   4               num_of_loops_seq
+    %   5               next_task
+    %   6               dtr_trig_flag: 0: dtr trigger off, 1: dtr trigger on
+
+    % The number of waveforms may be one, two, or three
+    % The number of tasks may be one, two, three, o four
+    num_of_wfms = 0;
+    myWfm = complex(double.empty);
+    map_wfm = uint32.empty;
+    num_of_tasks = 0;
+
+    if repeat_pulse_section > 0
+        num_of_wfms = num_of_wfms + 1;
+        myWfm = [myWfm, pulse_section];
+        map_wfm = [map_wfm, min_segment_length];
+        % If there must be more than one repetition of the pulse segment,
+        % there must be an additional task so the DTR trigger happens only
+        % once in a waveform cycle.
+        if repeat_pulse_section == 1
+            num_of_tasks = num_of_tasks + 1;
+        else
+            num_of_tasks = num_of_tasks + 2;
+        end
+    end
+    if length(trans_section) >= 1
+        num_of_wfms = num_of_wfms + 1;
+        myWfm = [myWfm, trans_section];
+        map_wfm = [map_wfm, trans_section_length];
+        num_of_tasks = num_of_tasks + 1;
+    end
+    if repeat_off_section > 0
+        num_of_wfms = num_of_wfms + 1;
+        myWfm = [myWfm, off_section];
+        map_wfm = [map_wfm, min_segment_length];
+        num_of_tasks = num_of_tasks + 1;
+    end
+    % Task list two dimensional array is created
+    task_list = uint32(zeros(num_of_tasks, 6));
+    % And then populated for proper sequencing, pulse timing, PRI, and
+    % continuous geneation
+    task_pointer = 1;
+    segment_pointer = 1;
+
+    if repeat_pulse_section > 0
+        % Pulse segment is always generated once in the first task
+        task_list(task_pointer, 1) = segment_pointer;
+            task_list(task_pointer, 2) = 0;
+            task_list(task_pointer, 3) = 1;            
+            task_list(task_pointer, 5) = task_pointer + 1;
+            task_list(task_pointer, 6) = 1;
+            task_pointer = task_pointer + 1;
+        % If number of repetitions is larger than one, the second task must
+        % be added with the number of repetitions - 1 as task #1 takes care
+        % of the first repetition
+        if repeat_pulse_section > 1
+            task_list(task_pointer, 1) = segment_pointer;
+            task_list(task_pointer, 2) = 0;
+            task_list(task_pointer, 3) = repeat_pulse_section - 1;
+            task_list(task_pointer, 5) = task_pointer + 1;
+            task_list(task_pointer, 6) = 0;
+            task_pointer = task_pointer + 1;
+        end
+        segment_pointer = segment_pointer + 1;
+    end
+
+    if length(trans_section) >= 1
+        task_list(task_pointer, 1) = segment_pointer;
+        task_list(task_pointer, 2) = 0;
+        task_list(task_pointer, 3) = 1;
+        task_list(task_pointer, 5) = task_pointer + 1;
+        % Transition segments may be repeated zero or one time. When there
+        % is no pulse segment, the transition segment will be generated
+        % first and it has to generate the DTR trigger
+        if repeat_pulse_section == 0
+            task_list(task_pointer, 6) = 1;
+        else
+            task_list(task_pointer, 6) = 0;
+        end
+        task_pointer = task_pointer + 1;
+        segment_pointer = segment_pointer + 1;
+    end
+
+    if repeat_off_section > 0
+        % The off segment may be repeated zero or more times
+        task_list(task_pointer, 1) = segment_pointer;
+        task_list(task_pointer, 2) = 0;
+        task_list(task_pointer, 3) = repeat_off_section;
+        task_list(task_pointer, 5) = 1;
+        task_list(task_pointer, 6) = 0;    
+    end
+    % The last task always point yo task # 1
+    task_list(task_pointer, 5) = 1;
+
+end
+
+function model = identifyModel(inst)
+    idnStr = inst.SendScpi('*IDN?');
+    idnStr = strtrim(netStrToStr(idnStr.RespStr));
+    idnStr = split(idnStr, ',');    
+
+    if length(idnStr) > 1
+        model = idnStr(2);
+    else
+        model ='';
+    end
+end
+
+function [str] = netStrToStr(netStr)
+    try
+        str = convertCharsToStrings(char(netStr));
+    catch        
+        str = '';
+    end
+end
+
+function dacWav = makeChirp(sampleRateDAC, rampTime, dt, fStart, fStop, bits)            
+
+    t = 0:1/sampleRateDAC:rampTime;
+    dacWave = chirp(t,fStart,rampTime,fStop);
+    seglenTrunk = (floor(length(dacWave)/ 64))*64;
+    dacWave = dacWave(1:seglenTrunk);
+    dacWav = ampScale(bits, dacWave);
+
+end
+
+% Scale to FSD
+function dacSignal = ampScale(bits, rawSignal)
+ 
+  maxSig = max(rawSignal);
+  verticalScale = ((2^bits)/2)-1;
+
+  vertScaled = (rawSignal / maxSig) * verticalScale;
+  dacSignal = (vertScaled + verticalScale);
+  %plot(dacSignal);
+
+%   if bits > 8
+%       dacSignal16 = [];
+%       sigLen = length(dacSignal);
+%       k=1;
+%       for j = 1:2:sigLen*2;
+%         dacSignal16(j) = bitand(dacSignal(k), 255);
+%         dacSignal16(j+1) = bitshift(dacSignal(k),-8);
+%         k = k + 1;
+%       end
+%       dacSignal = dacSignal16;
+%   end
+end
+
+function rNb = roundCheck(nb, units)
+    global debug
+    rNb = round(nb/units);
+    if ~isempty(debug) && debug > 1 && abs(rNb*units - nb) > units/100
+       disp([inputname(1) ' = ' num2str(nb/units) ' rounded to ' num2str(rNb)]);
+    end
+end
+
+function u = create_task_table(inst,task_list, awgSRate)
+limit_cycles = 1.04e6;
+task_list = arrange_tasktable(task_list,awgSRate,limit_cycles);
+inst.SendScpi(sprintf(':TASK:COMP:LENG %d',length(task_list)));
+    for i = 1:length(task_list)
+        len = task_list{i}.len;
+        dacSignal = task_list{i}.dacSignal;
+        t = task_list{i}.time;
+        segm = task_list{i}.segm;
+        segm_period = len/awgSRate;
+        cycles = round(t/segm_period);
+%         cycles = 1;
+        real_time = cycles*segm_period;
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',i));
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',segm)); %what is segment 3?? 
+        inst.SendScpi(':TASK:COMP:TYPE SING');
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',cycles));
+        
+        if i==1 % define trigger
+            inst.SendScpi(':TASK:COMP:ENAB TRG2');
+        end
+        
+        if i==length(task_list)
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
+        else
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',i+1))
+        end
+    end
+    u = 0;
+end
+
+function new_task_list = arrange_tasktable(task_list,awgSRate,limit_cycles)
+num_task = 1;
+     for i = 1:length(task_list)
+            len = task_list{i}.len;
+            dacSignal = task_list{i}.dacSignal;
+            t = task_list{i}.time;
+            segm = task_list{i}.segm;
+            segm_period = len/awgSRate;
+            cycles = round(t/segm_period);
+            real_time = cycles*segm_period;
+            if cycles >= limit_cycles
+                n = fix(cycles/limit_cycles);
+                for j = 1:n
+                    new_task_list{num_task}.len = len;
+                    new_task_list{num_task}.dacSignal = dacSignal;
+                    new_task_list{num_task}.segm = segm;
+                    new_task_list{num_task}.cycles = limit_cycles;
+                    new_task_list{num_task}.time = limit_cycles*segm_period;
+                    num_task = num_task +1;
+                end
+            end
+            rem_cycles = rem(cycles, limit_cycles);
+            if rem_cycles ~= 0
+                 new_task_list{num_task}.len = len;
+                 new_task_list{num_task}.dacSignal = dacSignal;
+                 new_task_list{num_task}.segm = segm;
+                 new_task_list{num_task}.cycles = rem_cycles;
+                 new_task_list{num_task}.time = rem_cycles*segm_period;
+                 num_task = num_task +1;
+            end
+     end
+end
+
+function task_list = build_tasktable(inst,pol_times,chirps,sampleRateDAC,varargin)
+% function that create the task liste before creating the task table
+% input: - pol_times : list that contains the different DNP time for each
+% steps. 
+%          - chirps: 2 dimension structure that contains the information
+%          for each chirp, with positive and negative DNP respectively
+%         
+%          - sampleRateDAC: sample rate for the creation of the mw
+%
+% options : -  'first sign' could be '+' or '-' to stqrt with positive or
+% negative DNP. positive DNP is the default value
+%
+%               - 'test' could be 'on' or 'off' depending on if the chirp
+%               structure contains real chirps (on) or arbitrary wave form
+%               for the test (off)
+    
+    test = 'off';
+    chirp_num = 1;
+    if isempty(varargin) == 0
+        for i = length(varargin)/2
+            if strcmp(varargin(i),'first sign') == 1
+                if strcmp(varargin(i+1),'+') ==1
+                    chirp_num = 1;
+                elseif strcmp(varargin(i+1),'-')
+                    chirp_num = 2;
+                end
+            elseif strcmp(varargin(i),'test') == 1
+                test = varargin(i+1);
+            end
+        end
+    end
+    
+    for i = 1:2
+             % Define segment i 
+        res = inst.SendScpi([':TRAC:DEF ',num2str(chirps{i}.segm),',',num2str(chirps{i}.segLen)]); % define memory location 1 of length dacSignal
+        assert(res.ErrCode == 0);
+
+        % select segment as the the programmable segment
+        res = inst.SendScpi(sprintf(':TRAC:SEL %d',chirps{i}.segm));
+        assert(res.ErrCode == 0); 
+
+%         % Download the binary data to segment
+%         res = inst.WriteBinaryData(':TRAC:DATA 0,', chirps{i}.dacSignal);
+%         assert(res.ErrCode == 0);
+        
+        % Download the binary data to segment
+        prefix = ':TRAC:DATA 0,';
+        
+        global bits
+        if (bits==16)
+            myWfm = uint16(chirps{i}.dacSignal);
+            myWfm = typecast(myWfm, 'uint8');
+        else
+            myWfm = uint8(chirps{i}.dacSignal);
+        end
+        
+        res = inst.WriteBinaryData(prefix, myWfm);
+        
+        if strcmp(test,'off') == 1
+            srs_freq_str = [':SOUR:NCO:CFR1 ' sprintf('%0.2e',  sampleRateDAC - chirps{i}.srs_freq)]; %srs_freq
+            res = inst.SendScpi(srs_freq_str);
+            assert(res.ErrCode == 0);
+
+           inst.SendScpi(':NCO:SIXD1 ON');
+
+            rc = inst.SendScpi(':SOUR:MODE DUC');
+            assert(rc.ErrCode == 0);
+            
+            try
+                sampleRateDAC_str = [':FREQ:RAST ' sprintf('%0.2e', sampleRateDAC)];
+                res = inst.SendScpi(sampleRateDAC_str); % set sample clock
+                assert(res.ErrCode == 0);
+                catch
+                sampleRateDAC_str = [':FREQ:RAST ' sprintf('%0.2e', sampleRateDAC)];
+                res = inst.SendScpi(sampleRateDAC_str); % set sample clock
+                assert(res.ErrCode == 0);
+            end
+    end
+    
+    for i = 1:length(pol_times)
+        task_list{i}.len = chirps{chirp_num}.segLen;
+        task_list{i}.segm = chirps{chirp_num}.segm;
+        task_list{i}.dacSignal = chirps{chirp_num}.dacSignal;
+        task_list{i}.time = pol_times(i);
+        if chirp_num == 1 
+            chirp_num = 2;
+        else
+            chirp_num = 1;
+        end
+    end
+    end
+end
+
+function initializeAWG(ch)
+     global inst
+     global interp
+     global sampleRateInterp
+     global sampleRateDAC
+     
+     sampleRateInterp = 8070e6;
+     %sampleRateInterp = 2017.5e6;
+     %sampleRateInterp =  2*interp * sampleRateDAC;
+     %sampleRateDAC = sampleRateDAC/(2*interp);
+     sampleRateDAC = sampleRateInterp/(2*interp);
+     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+     inst.SendScpi(sprintf(':FREQ:RAST %d',sampleRateDAC));
+     fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
+     inst.SendScpi(':SOUR:VOLT MAX');
+     inst.SendScpi(':INIT:CONT ON');
+     res = inst.SendScpi(':TRAC:DEL:ALL');
+     assert(res.ErrCode==0);
+end
+
+
+
+function generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs)
+global inst
+global sampleRateDAC
+global interp
+global sampleRateInterp
+    
+    function downLoad_mrkr(ch, segMem, dacWave, mkrNum, state)
+    fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
+    
+    myMkr = uint8(zeros(length(dacWave)/4, 1) + state);
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
+    
+    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));
+
+    res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
+    disp(res)
+    assert(res.ErrCode == 0)
+    
+    inst.SendScpi(sprintf(':MARK:SEL %d',mkrNum));
+    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
+    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
+    inst.SendScpi(':MARK:VOLT:OFFS 0.25');
+    inst.SendScpi(':MARK:STAT ON');
+    
+    
+    end
+
+    function downLoadIQ(ch, segMem, dacWaveI, dacWaveQ, markerState, mkrNum)
+        disp(sprintf('Downloading waveform to channel %s, segment %s', num2str(ch), num2str(segMem)))
+
+        dacWaveIQ = [dacWaveI; dacWaveQ];
+        dacWaveIQ = dacWaveIQ(:)';
+        inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+        inst.SendScpi(':TRAC:FORM U16');
+        inst.SendScpi(sprintf(':TRAC:DEF %d, %d',segMem, length(dacWaveIQ)));
+        inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
+
+%         res = inst.WriteBinaryData(':TRAC:DATA 0,', dacWaveIQ)
+%         %assert(res.ErrCode==0);
+        
+        % Download the binary data to segment
+        prefix = ':TRAC:DATA 0,';
+        
+        global bits
+        if (bits==16)
+            myWfm = uint16(dacWaveIQ);
+            myWfm = typecast(myWfm, 'uint8');
+        else
+            myWfm = uint8(dacWaveIQ);
+        end
+        
+        res = inst.WriteBinaryData(prefix, myWfm);
+        
+        downLoad_mrkr(ch, segMem, myWfm, mkrNum, markerState)
+    end   
+
+    function [mydcI, mydcQ] = makeDC(length)
+
+    
+    segLen = 64*round(length/64); %must be a multiple of 64
+    
+    max_dac = 2^16-1;
+    half_dac = floor(max_dac/2);
+    
+    dacWave = zeros(1, segLen) + half_dac;
+    
+    mydcI = dacWave;
+    mydcQ = dacWave;
+    
+    end 
+
+    function [myWaveI, myWaveQ] = makeSqPulse(modFreq, pulseLen, amplitude, phase)
+        
+        ampI = amplitude;
+        ampQ = amplitude;
+
+        segLen = 32*round(pulseLen/32); %must be a multiple of 32
+        cycles = segLen * modFreq / sampleRateDAC;
+        time = linspace(0, segLen-1, segLen);
+        omega = 2 * pi * cycles;
+
+        disp(sprintf('pulse segment length = %d points, actual time= %d', segLen, segLen/sampleRateDAC))
+        %disp('pulse modulation freq = ' + sampleRateDAC*cycles/segLen)
+
+        max_dac = 2^16-1;
+        half_dac = floor(max_dac/2);
+
+        dacWave = ampI*cos(omega*time/segLen + pi*phase/180);
+        dacWaveI = (dacWave + 1)*half_dac;
+        myWaveI = dacWaveI;
+        
+        dacWave = ampQ*sin(omega*time/segLen + pi*phase/180);
+        dacWaveQ = (dacWave + 1)*half_dac;
+        myWaveQ = dacWaveQ;
+    end 
+    
+    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs)
+    disp('setting task table')
+
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi('TASK:ZERO:ALL');
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs));
+
+    
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',0));
+    inst.SendScpi(':TASK:COMP:ABOR CPU');
+    inst.SendScpi(':TASK:COMP:JUMP IMM');
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
+    for u=1:numPulses
+        %% dc segment %% 
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',2*u));
+       
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',2*u));
+        if reps(u) ~= 1
+            inst.SendScpi('TASK:COMP:TYPE STAR');
+            inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',reps(u)));
+        else
+            inst.SendScpi('TASK:COMP:TYPE SING');
+        end
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2*u+1));
+
+            %% pulse segment %% 
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',2*u+1));
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',2*u+1));
+        if reps(u) ~= 1
+            inst.SendScpi('TASK:COMP:TYPE END');
+        else
+            inst.SendScpi('TASK:COMP:TYPE SING');
+        end
+
+        if trigs(u)==1
+            inst.SendScpi('TASK:COMP:DTR ON');
+        else
+            inst.SendScpi('TASK:COMP:DTR OFF');
+        end
+
+        if u == numPulses
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
+        else
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2*u+2));
+        end    
+    end
+
+    inst.SendScpi('TASK:COMP:WRITE');
+    resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
+    assert(resp.ErrCode==0);
+    end
+    
+numPulses = length(amps)
+numSegs = 1 + 2*numPulses;
+
+disp('generating RF pulse sequence')
+sampleRateDAC
+lengthsPts = sampleRateDAC * lengths;
+spacingsPts = sampleRateDAC * spacings;
+global segMat
+segMat = cell(3, numSegs);
+   
+   DClen = 64;
+   [segMat{1,1}, segMat{2,1}] = makeDC(DClen);
+
+   for z = 1:numPulses
+    %%% make DC segment %%%
+  
+   DClen = spacingsPts(z);
+   [segMat{1,(2*z)}, segMat{2,(2*z)}] = makeDC(DClen);
+   DClenreal = length(segMat{2,2*z});
+   
+   %%% calculate true time %%% 
+   segMat{3,2*z} = linspace(0, DClenreal/sampleRateDAC, DClenreal);
+   
+       %%% make pulse segment %%% 
+   [segMat{1,2*z+1}, segMat{2,2*z+1}] = makeSqPulse(frequencies(z), lengthsPts(z),  amps(z), phases(z));
+   
+   pulselenreal = length(segMat{1,2*z});
+   
+    %%% calculate true time %%% 
+   segMat{3,2*z+1} = linspace(0, pulselenreal/sampleRateDAC, pulselenreal);
+   
+   %time = time + reps(x)*(DClenreal + pulselenreal);
+   end
+
+fprintf('pulse sequence generated')
+ 
+    downLoadIQ(ch, 1, segMat{1,1}, segMat{2,1}, 0, 1);
+    for y=1:numPulses
+       downLoadIQ(ch, 2*y, segMat{1,2*y}, segMat{2,2*y}, 0, 1);
+       downLoadIQ(ch, 2*y+1, segMat{1,2*y+1}, segMat{2,2*y+1}, markers(y), 1);
+   end
+   setTask_Pulse(ch, numPulses, numSegs, reps, trigs);
+   
+   
+end
+
+function setNCO_IQ(ch, cfr, phase)
+    global sampleRateDAC
+    global sampleRateInterp
+    global inst
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi('SOUR:MODE DUC');
+    inst.SendScpi('SOUR:INT X4');
+    inst.SendScpi('SOUR:IQM ONE');
+    sampleRateDAC = sampleRateInterp;
+    inst.SendScpi(sprintf(':FREQ:RAST %d', sampleRateDAC));
+    inst.SendScpi('SOUR:NCO:SIXD1 ON');
+    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',cfr));
+    inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',phase));
+    resp = inst.SendScpi(':OUTP ON');
+    assert(resp.ErrCode==0);
+end    
+

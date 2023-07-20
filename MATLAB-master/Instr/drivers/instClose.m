@@ -1,0 +1,3 @@
+
+
+scpiWrite (ip, "CLOSEPXI")
