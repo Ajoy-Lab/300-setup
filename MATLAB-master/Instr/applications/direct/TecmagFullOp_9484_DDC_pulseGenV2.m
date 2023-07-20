@@ -273,6 +273,7 @@ end
     markers2 = [0 0 0];
     trigs = [0 1 0]; %acquire on every "pi" pulse
     
+    %need to fix reps
     reps = [1 6000 1];
     repeatSeq = [1 1]; % how many times to repeat the block of pulses
     
