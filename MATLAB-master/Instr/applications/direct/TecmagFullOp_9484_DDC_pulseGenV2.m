@@ -275,7 +275,7 @@ end
     trigs = [0 1 0 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 300];
-    repeatSeq = [1 2]; % how many times to repeat the block of pulses
+    repeatSeq = [1 700]; % how many times to repeat the block of pulses
     
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
@@ -410,7 +410,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 0.01');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 8e-6));
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
@@ -651,6 +651,7 @@ end
                         pulseAmp(idx) = abs(realMean + 1.0i*imagMean);
                         relPhase(idx) = angle(realMean + 1.0i*imagMean);
                         
+                        
 %                         pulseDC = pulse - pulseMean; % remove DC
 %                         
 %                         X = fftshift(fft(pulseDC,padded_len)); % perform FFT and zero-pad to the padded_len
@@ -688,6 +689,8 @@ end
                 time_axis=time_cycle.*ivec;
                 %drop first point
                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
+                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
