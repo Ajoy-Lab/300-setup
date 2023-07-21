@@ -356,7 +356,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+300*repeatSeq(2);
+                numberOfPulses_total = reps(2)+reps(4)*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -624,8 +624,8 @@ end
                             end
                         end
                         
-                        if n == 4
-                            if i == 1
+                        if n == 1
+                            if i == 6002
                                 figure(6);clf;
                                 plot(pulse);
                                 figure(7);clf;
@@ -706,8 +706,16 @@ end
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',3);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+                    plot_labels('Time [s]', 'Signal [au]');
+                    
+                    start_fig(2,[5 2]);
+                    p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
+                    set(p1,'linestyle','--');
+                    p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
+                    set(p1,'markersize',3);
+                    set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
                     start_fig(13,[5 1]);
