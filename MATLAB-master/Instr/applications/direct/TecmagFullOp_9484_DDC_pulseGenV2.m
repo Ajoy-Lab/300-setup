@@ -182,8 +182,8 @@ end
         fprintf('Server not connected\n');
     end
     
-% % % % % % % % % % % % % %     % Loop to repeatedly wait for messages and send replies
-    % Break or Ctrl+C to get out of loop
+%     Loop to repeatedly wait for messages and send replies
+%     Break or Ctrl+C to get out of loop
     while ( connect==on )
         % Wait for message
         while(u2.BytesAvailable == 0)
@@ -262,19 +262,20 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-                
-    amps = [1.0 1.0 1.0];
-    frequencies = [0 0 0];
-    lengths = [60e-6 60e-6 120e-6];
-    phases = [0 90 0];
-    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6 5e-6];
-    markers = [1 1 1]; %always keep these on
-    markers2 = [0 0 0];
-    trigs = [0 1 0]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1];
-    repeatSeq = [1 1]; % how many times to repeat the block of pulses
+%     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
+    amps = [1.0 1.0 1.0 1.0];
+    frequencies = [0 0 0 0];
+    lengths = [60e-6 60e-6 120e-6 60e-6];
+    phases = [0 90 0 90];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [5e-6 43e-6 5e-6 43e-6];
+    markers = [1 1 1 1]; %always keep these on
+    markers2 = [0 0 0 0];
+    trigs = [0 1 0 1]; %acquire on every "pi" pulse
+    
+    reps = [1 6000 1 300];
+    repeatSeq = [1 2]; % how many times to repeat the block of pulses
     
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
@@ -287,10 +288,11 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
                 defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
-                defBlock('pulsed_SL', {'init_pul','theta'}, reps(1:2), markers(1:2), trigs(1:2));
-                defBlock('DTC', {'gamma','theta'}, [reps(3),300], [markers(3),1], [trigs(3),1]);
+                defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
+                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
@@ -1336,7 +1338,7 @@ global pulseDict
 
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs));
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
     inst.SendScpi(':TASK:COMP:ENAB CPU');
@@ -1350,11 +1352,13 @@ global pulseDict
            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
-           if (repeatSeq(y) > 1 && z==1)
+           if (repeatSeq(y) > 1 && z==1) % if first task in a block
                inst.SendScpi('TASK:COMP:TYPE STAR');
-               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y)));            
-           elseif (repeatSeq(y) > 1 && z==lenBlock)
-               inst.SendScpi('TASK:COMP:TYPE STAR');
+               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
+           elseif (repeatSeq(y) > 1 && z~=lenBlock) % if intermediate task in a block
+               inst.SendScpi('TASK:COMP:TYPE SEQ');
+           elseif (repeatSeq(y) > 1 && z==lenBlock) % if last task in a block
+               inst.SendScpi('TASK:COMP:TYPE END');
            else
                inst.SendScpi(':TASK:COMP:TYPE SING');
            end
