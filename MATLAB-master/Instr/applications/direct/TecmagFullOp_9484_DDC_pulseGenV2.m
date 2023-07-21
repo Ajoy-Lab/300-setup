@@ -182,7 +182,7 @@ end
         fprintf('Server not connected\n');
     end
     
-    % Loop to repeatedly wait for messages and send replies
+% % % % % % % % % % % % % %     % Loop to repeatedly wait for messages and send replies
     % Break or Ctrl+C to get out of loop
     while ( connect==on )
         % Wait for message
