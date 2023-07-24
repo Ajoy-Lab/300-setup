@@ -1412,7 +1412,7 @@ global pulseDict
     numSegs = numPulses;
     disp('generating RF pulse sequence')
     global segMat
-    segMat = cell(3, numSegs);
+    segMat = cell(4, numSegs); % added a fourth row for Marker2 (trigs)
 
     %%%%%%% MAKE HOLDING SEGMENT %%%  
     DClen = 64;
@@ -1428,13 +1428,16 @@ global pulseDict
             [tempDCi, tempDCq] = makeDC(DClen);
             DClenreal = length(tempDCi);
             markDC = uint8(zeros(DClenreal, 1));
+            markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
             [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
-            segMat{1,x} = [tempI tempDCi];
-            segMat{2,x} = [tempQ tempDCq];
-            segMat{3,x} = [markIQ' markDC'];     
+            markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
+            segMat{1,x} = [tempI tempDCi]; % first row is In-phase of pulse
+            segMat{2,x} = [tempQ tempDCq]; % second row is Quadrature of pulse
+            segMat{3,x} = [markIQ' markDC']; % third row is blanking signal (M1)
+            segMat{4,x} = [markIQ2' markDC2']; % fourth row is ADC Ext trig signal (M2)
             x = x+1;
        end
     end
@@ -1449,7 +1452,7 @@ global pulseDict
     for y = 1:numBlocks
         lenBlock = length(indices{y});
         for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{3,x}, 1);
+           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
            x=x+1;
         end
     end
