@@ -1,3 +1,4 @@
+% This version runs a DTC pulse sequence
 %% Clear everything
 clear;
 close;
