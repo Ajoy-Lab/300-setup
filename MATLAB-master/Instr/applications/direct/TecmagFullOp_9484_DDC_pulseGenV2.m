@@ -688,8 +688,8 @@ end
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
-                %drop first point
-                time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
+%                 %drop first point -- NOT ANYMORE
+%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                         phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                         relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
@@ -715,7 +715,7 @@ end
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--');
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',3);
+                    set(p1,'markersize',1);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
