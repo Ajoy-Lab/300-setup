@@ -623,7 +623,7 @@ end
                         end
                         
                         if n == 1
-                            if i == 6002
+                            if i == 500
                                 figure(6);clf;
                                 plot(pulse);
                                 figure(7);clf;
@@ -632,16 +632,26 @@ end
                                 yline(2048);
                             end
                         end
-%                         if n == 60
-%                             if i == 1
-%                                 figure(8);clf;
-%                                 plot(pulse);
-%                                 figure(9);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
+                        if n == 4
+                            if i == 1
+                                figure(8);clf;
+                                plot(pulse);
+                                figure(9);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
+                        if n == 60
+                            if i == 1
+                                figure(10);clf;
+                                plot(pulse);
+                                figure(11);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
 
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
@@ -695,12 +705,12 @@ end
                     set(p1,'linewidth',0.5);
                     plot_labels('Time [s]', 'Phase [au]');
                     
-                    start_fig(1,[3 2]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-                    set(p1,'linewidth',1);
-                    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-                    set(gca,'xlim',[0,25e-3]);
-                    plot_labels('Time [s]', 'Signal [au]');
+%                     start_fig(1,[3 2]);
+%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+%                     set(p1,'linewidth',1);
+%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+%                     set(gca,'xlim',[0,25e-3]);
+%                     plot_labels('Time [s]', 'Signal [au]');
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
@@ -716,11 +726,11 @@ end
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
-                    start_fig(13,[5 1]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-                    set(p1,'linewidth',0.5);
-                    set(gca,'xlim',[5-8e-3,5+30e-3]);
-                    plot_labels('Time [s]', 'Signal [au]');
+%                     start_fig(13,[5 1]);
+%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+%                     set(p1,'linewidth',0.5);
+%                     set(gca,'xlim',[5-8e-3,5+30e-3]);
+%                     plot_labels('Time [s]', 'Signal [au]');
 
                 catch
                     disp('Plot error occured');

@@ -1,3 +1,6 @@
+% Varian Transmit
+% For Varian T/R -- look for 20MHz component
+% For Tecmag T/R -- look for 75MHz component
 %% Clear everything
 clear;
 close;
@@ -242,7 +245,7 @@ end
 %                   pw=136e-6;
 
                   pw=60e-6;
-                  pw=100e-6;
+%                   pw=100e-6;
                   
 %                   %pw=113.333e-6;
 %                   %pw=56.666e-6;
@@ -406,11 +409,11 @@ end
                 dF = sampleRate/16/padded_len; %set the discretization of freq in terms of sampleRate
                 f = -sampleRate/16/2:dF:sampleRate/16/2-dF; %sampleRate sets the 'bandwidth'
                 
-                [v,b1]=min(abs(f-20.00706e6)); %picks out the 20MHz component (Varian)
-                [v,b2]=min(abs(f+20.00706e6));
+%                 [v,b1]=min(abs(f-20.00706e6)); %picks out the 20MHz component (Varian)
+%                 [v,b2]=min(abs(f+20.00706e6));
                 
-                %[v,b1]=min(abs(f-75.38e6)); %picks out the 75 MHz component (Tecmag)
-                %[v,b2]=min(abs(f+75.38e6));
+                [v,b1]=min(abs(f-75.38e6)); %picks out the 75 MHz component (Tecmag)
+                [v,b2]=min(abs(f+75.38e6));
                 
                 eff_read=100:readLen-100;
                 cyclesPoints = 50;
