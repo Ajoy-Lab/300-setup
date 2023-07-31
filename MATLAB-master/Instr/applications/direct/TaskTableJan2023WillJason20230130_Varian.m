@@ -6,13 +6,14 @@ close;
 savealldata=false;
 savesinglechunk=false;
 savemultwind=false;
-
-sampleRate = 1000e6;
+global bits;
+bits = 16;
+sampleRate = 2700e6;
 sampleRateDAC = 9e9;
 adcDualChanMode = 2;
 % fullScaleMilliVolts =1000;
 trigSource = 1; % 1 = external-trigger
-dacChanInd = 2; % 1 = chan 1 and 2 = chan 2
+dacChanInd = 3; % 1 = chan 1 and 2 = chan 2
 adcChanInd = 2; % ADC Channel 1
 measurementTimeSeconds = 7; %Integer
 %delay = 0.0000178; % dead time
@@ -240,6 +241,7 @@ end
 %                   pw=34e-6;
 %                   pw=136e-6;
 
+                  pw=60e-6;
                   pw=100e-6;
                   
 %                   %pw=113.333e-6;
@@ -505,7 +507,7 @@ end
                         end
                         
                         if n == 1
-                            if i == 2000
+                            if i == 500
                                 figure(4);clf;
                                 plot(pulse);
                                 figure(5);clf;
@@ -683,7 +685,8 @@ end
                 inst.SendScpi(":INIT:CONT OFF");
                 assert(res.ErrCode == 0);
                 
-                bits = 8;
+                inst.SendScpi(":INIT:CONT ON");
+                assert(res.ErrCode == 0);
                 
                 rampTime = 1/sweep_freq;
                 fCenter = awg_center_freq - srs_freq;
@@ -750,6 +753,9 @@ assert(res.ErrCode == 0);
 %                 amp_str = [':SOUR:VOLT ' sprintf('%0.2f', awg_amp)];
 %                 res = inst.SendScpi(amp_str);
 %                 assert(res.ErrCode == 0);
+                amp_str = ':SOUR:VOLT MAX';
+                res = inst.SendScpi(amp_str);
+                assert(res.ErrCode == 0);
 
                 res = inst.SendScpi(':SOUR:FUNC:MODE TASK');
                 assert(res.ErrCode == 0);
@@ -779,7 +785,7 @@ assert(res.ErrCode == 0);
                 res = inst.SendScpi(':SOUR:FUNC:MODE:SEG 2');
                 assert(res.ErrCode == 0);
                 
-                amp_str = [':SOUR:VOLT ' sprintf('%0.2f', awg_amp)];
+                amp_str = [':SOUR:VOLT MAX'];
                 res = inst.SendScpi(amp_str);
                 assert(res.ErrCode == 0);
                 
@@ -882,7 +888,7 @@ function dacSignal = ampScale(bits, rawSignal)
   verticalScale = ((2^bits)/2)-1;
 
   vertScaled = (rawSignal / maxSig) * verticalScale;
-  dacSignal = uint8(vertScaled + verticalScale);
+  dacSignal = (vertScaled + verticalScale);
   %plot(dacSignal);
 
 %   if bits > 8
@@ -1012,8 +1018,21 @@ function task_list = build_tasktable(inst,pol_times,chirps,sampleRateDAC,varargi
         assert(res.ErrCode == 0); 
 
         % Download the binary data to segment
-        res = inst.WriteBinaryData(':TRAC:DATA 0,', chirps{i}.dacSignal);
-        assert(res.ErrCode == 0);
+        %res = inst.WriteBinaryData(':TRAC:DATA 0,', chirps{i}.dacSignal);
+        
+        
+        prefix = ':TRAC:DATA 0,';
+        
+        global bits
+        if (bits==16)
+            myWfm = uint16(chirps{i}.dacSignal);
+            myWfm = typecast(myWfm, 'uint8');
+        else
+            myWfm = uint8(chirps{i}.dacSignal);
+        end
+        
+        res = inst.WriteBinaryData(prefix, myWfm);
+        %assert(res.ErrCode == 0);
         
         if strcmp(test,'off') == 1
             srs_freq_str = [':SOUR:NCO:CFR1 ' sprintf('%0.2e',  sampleRateDAC - chirps{i}.srs_freq)]; %srs_freq
