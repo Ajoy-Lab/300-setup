@@ -74,90 +74,107 @@ try
         admin.Close();
         rethrow(ME) 
 end
-    
-res = inst.SendScpi('*IDN?');
-assert(res.ErrCode == 0);
 
-fprintf(1, '\nConnected to ''%s''\n', netStrToStr(res.RespStr));
 
-pause(0.01);
-    
-res = inst.SendScpi('*CLS'); % clear
-assert(res.ErrCode == 0);
-    
-res = inst.SendScpi('*RST'); % reset
-assert(res.ErrCode == 0);
-fprintf('Reset complete\n');
-
-%%Initialization of the AWG
-%Sets the voltage value to maximum -- not sure why we need this line though
-inst.SendScpi(':SOUR:VOLT MAX');
-%initializes to the continous mode where no triggers are needed
-inst.SendScpi(':INIT:CONT ON');
-%delete all segments stored previously
-res = inst.SendScpi(':TRAC:DEL:ALL');
-assert(res.ErrCode == 0);
-
-max_dac = 2^16 - 1;
-half_dac = floor(max_dac/2);
-
-pulse_on_len = 60e-6;
-pulse_off_len = 40e-6;
-
-pulse_on_pts = 32*round(sampleRateDAC * pulse_on_len/32);
-pulse_off_pts = 32*round(sampleRateDAC * pulse_off_len/32);
-dacWaveI_on = uint8(zeros(1, pulse_on_pts) + 1) * half_dac;
-fprintf("%d, %d \n", pulse_off_pts, uint32(pulse_off_pts));
-dacWaveI_off = uint8(zeros(1, pulse_off_pts));
-dacWaveQ_on = uint8((zeros(1, pulse_on_pts) + 1) * half_dac);
-dacWaveQ_off = uint8(zeros(1, pulse_off_pts));
-dacWaveI = [dacWaveI_on dacWaveI_off];
-dacWaveQ = [dacWaveQ_on dacWaveQ_off];
-dacWaveIQ = [dacWaveI ; dacWaveQ];
-dacWaveIQ = dacWaveIQ(:)';
-ch = 1;
-inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-inst.SendScpi(':TRAC:FORM U16');
-inst.SendScpi(sprintf(':TRAC:DEF %d, %d', 1, length(dacWaveIQ)));
-inst.SendScpi(sprintf(':TRAC:SEL %d',1));
-res = inst.SendScpi("TRAC:DEF?");
-prefix = ':TRAC:DATA 0,';
-myWfm = uint16(dacWaveIQ);
-myWfm = typecast(myWfm, 'uint8');
-res = inst.WriteBinaryData(prefix, myWfm);
-inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-inst.SendScpi('TASK:ZERO:ALL');
-inst.SendScpi(sprintf(':TASK:COMP:LENG %d',1));
-inst.SendScpi(':TASK:COMP:ENAB CPU');
-
-inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
-inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
-inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
-inst.SendScpi(':TASK:COMP:TYPE SING');
-inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
-
-inst.SendScpi('TASK:COMP:WRITE');
-resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
-inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC)]);
-inst.SendScpi(':SOUR:INT X8');
-inst.SendScpi(':SOUR:MODE DIR');
-inst.SendScpi(':IQM ONE');
-inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC*8)]);
-inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E6));
-inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
-inst.SendScpi('SOUR:NCO:SIXD1 ON');
-inst.SendScpi(':OUTP ON');
+% run_square_pulse(inst);
+run_NCO(inst)
 
 admin.CloseInstrument(inst.InstrId);
 admin.Close();
-function clearPulseDict()
-    global pulseDict
-    pulseDict = containers.Map;
+
+function run_NCO(inst)
+global sampleRateDAC
+ch = 1;
+inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+inst.SendScpi([':FREQ:RAST ' num2str(2.5E9)]);
+inst.SendScpi(':SOUR:INT X8');
+inst.SendScpi(':MODE NCO');
+% inst.SendScpi(':IQM ONE');
+% sampleRateDAC = sampleRateInterp;
+inst.SendScpi(sprintf(':FREQ:RAST %d', 5400e6));
+inst.SendScpi('SOUR:NCO:SIXD1 ON');
+inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E6));
+inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
+resp = inst.SendScpi(':OUTP ON');
+
 end
 
-function clearBlockDict()
-    global blockDict
-    blockDict = containers.Map;
+
+function run_square_pulse(inst)
+global sampleRateDAC
+    
+    res = inst.SendScpi('*IDN?');
+    assert(res.ErrCode == 0);
+
+    fprintf(1, '\nConnected to ''%s''\n', netStrToStr(res.RespStr));
+
+    pause(0.01);
+
+    res = inst.SendScpi('*CLS'); % clear
+    assert(res.ErrCode == 0);
+
+    res = inst.SendScpi('*RST'); % reset
+    assert(res.ErrCode == 0);
+    fprintf('Reset complete\n');
+
+    %%Initialization of the AWG
+    %Sets the voltage value to maximum -- not sure why we need this line though
+    inst.SendScpi(':SOUR:VOLT MAX');
+    %initializes to the continous mode where no triggers are needed
+    inst.SendScpi(':INIT:CONT ON');
+    %delete all segments stored previously
+    res = inst.SendScpi(':TRAC:DEL:ALL');
+    assert(res.ErrCode == 0);
+
+    max_dac = 2^16 - 1;
+    half_dac = floor(max_dac/2);
+
+    pulse_on_len = 60e-6;
+    pulse_off_len = 40e-6;
+
+    pulse_on_pts = 32*round(sampleRateDAC * pulse_on_len/32);
+    pulse_off_pts = 32*round(sampleRateDAC * pulse_off_len/32);
+    dacWaveI_on = uint8(zeros(1, pulse_on_pts) + 1) * half_dac;
+    fprintf("%d, %d \n", pulse_off_pts, uint32(pulse_off_pts));
+    dacWaveI_off = uint8(zeros(1, pulse_off_pts));
+    dacWaveQ_on = uint8((zeros(1, pulse_on_pts) + 1) * half_dac);
+    dacWaveQ_off = uint8(zeros(1, pulse_off_pts));
+    dacWaveI = [dacWaveI_on dacWaveI_off];
+    dacWaveQ = [dacWaveQ_on dacWaveQ_off];
+    dacWaveIQ = [dacWaveI ; dacWaveQ];
+    dacWaveIQ = dacWaveIQ(:)';
+    ch = 1;
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi(':TRAC:FORM U16');
+    inst.SendScpi(sprintf(':TRAC:DEF %d, %d', 1, length(dacWaveIQ)));
+    inst.SendScpi(sprintf(':TRAC:SEL %d',1));
+    res = inst.SendScpi("TRAC:DEF?");
+    prefix = ':TRAC:DATA 0,';
+    myWfm = uint16(dacWaveIQ);
+    myWfm = typecast(myWfm, 'uint8');
+    res = inst.WriteBinaryData(prefix, myWfm);
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi('TASK:ZERO:ALL');
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',1));
+    inst.SendScpi(':TASK:COMP:ENAB CPU');
+
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
+    inst.SendScpi(':TASK:COMP:TYPE SING');
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
+
+    inst.SendScpi('TASK:COMP:WRITE');
+    resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
+    inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC)]);
+    inst.SendScpi(':SOUR:INT X8');
+    inst.SendScpi(':SOUR:MODE DIR');
+    inst.SendScpi(':IQM ONE');
+    inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC*8)]);
+    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E6));
+    inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
+    inst.SendScpi('SOUR:NCO:SIXD1 ON');
+    inst.SendScpi(':OUTP ON');
 end
 
 function str = netStrToStr(netStr)
