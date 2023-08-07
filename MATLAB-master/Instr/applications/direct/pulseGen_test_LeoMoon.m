@@ -90,7 +90,8 @@ function run_square_pulse(inst)
     % maximum sampling rate for IQ One mode is 2.5Gsa/sec for the baseband
     % waveform(not NCO!) -- because IQ One mode has I and Q interleaved,
     % the complex waveform has sample rate of 1.25GSa/sec
-    sampleRateDAC = 2.5e9;
+    max_sampleRateDAC = 9e9;
+    sampleRateDAC = 1.125e9;
     % resolution for DAC
     dac_res = 16;
     % granularity of a waveform (Waveform length must be 32)
@@ -119,17 +120,18 @@ function run_square_pulse(inst)
     assert(res.ErrCode == 0);
 
     max_dac = 2^dac_res - 1;
+    half_dac = floor(max_dac / 2);
     
     pulse_on_len = 60e-6;
     pulse_off_len = 40e-6;
 
     pulse_on_pts = granularity*round(sampleRateDAC * pulse_on_len/granularity);
     pulse_off_pts = granularity*round(sampleRateDAC * pulse_off_len/granularity);
-    dacWaveI_on = (zeros(1, pulse_on_pts) + 1) * max_dac;
+    dacWaveI_on = (zeros(1, pulse_on_pts));
     fprintf("%d, %d \n", pulse_off_pts, uint32(pulse_off_pts));
-    dacWaveI_off = (zeros(1, pulse_off_pts));
-    dacWaveQ_on = ((zeros(1, pulse_on_pts) + 1) * max_dac);
-    dacWaveQ_off = (zeros(1, pulse_off_pts));
+    dacWaveI_off = (zeros(1, pulse_off_pts)+1)* half_dac;
+    dacWaveQ_on = (zeros(1, pulse_on_pts));
+    dacWaveQ_off = (zeros(1, pulse_off_pts)+1)* half_dac;
     dacWaveI = [dacWaveI_on dacWaveI_off];
     dacWaveQ = [dacWaveQ_on dacWaveQ_off];
     dacWaveIQ = [dacWaveI ; dacWaveQ];
@@ -155,23 +157,17 @@ function run_square_pulse(inst)
     inst.SendScpi(':TASK:COMP:ENAB NONE');
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
-    
-%     inst.SendScpi('TASK:COMP:DTR ON');
-    
-    
-    
 
     inst.SendScpi('TASK:COMP:WRITE');
     inst.SendScpi(':INST:CHAN 1');
-    inst.SendScpi(sprintf(':FREQ:RAST %d', 2.5e9));
-%     inst.SendScpi('SOUR:NCO:SIXD1 ON');
-%     inst.SendScpi(':SOUR:INT X8');
-%     inst.SendScpi(':SOUR:INT X8');
-%     inst.SendScpi(':MODE DUC');
-%     inst.SendScpi(':IQM ONE');
-%     inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
-%     inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
-%     inst.SendScpi('SOUR:NCO:SIXD1 ON')
+    inst.SendScpi(sprintf(':FREQ:RAST %d', sampleRateDAC));
+    inst.SendScpi(':SOUR:INT X8');
+    inst.SendScpi(sprintf(':FREQ:RAST %d', max_sampleRateDAC));
+    inst.SendScpi(':MODE DUC');
+    inst.SendScpi(':IQM ONE');
+    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',50E4));
+    inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
+    inst.SendScpi('SOUR:NCO:SIXD1 ON')
     inst.SendScpi('SOUR:FUNC:MODE TASK');
     inst.SendScpi(':OUTP ON');
     
