@@ -27,36 +27,104 @@ clc;
 fprintf(1, 'INITIALIZING SETTINGS\n');
 
 % Communication Parameters
-connStr = '192.168.1.48'; % your IP here
-paranoia_level = 1; % 0, 1 or 2
+remotePort = 2020;
+localPort = 9090;
+
+off = 0;
+on = 1;
+pfunc = ProteusFunctions;
+
+dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';
+
+cType = "DLL";  %"LAN" or "DLL"
+
+paranoia_level = 2;
+
+if cType == "LAN"
+    try
+        connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
+        inst = TEProteusInst(connStr, paranoia_level);
+        
+        res = inst.Connect();
+        assert (res == true);
+    catch ME
+        rethrow(ME)
+    end   
+else
+    asm = NET.addAssembly(dll_path);
+
+    import TaborElec.Proteus.CLI.*
+    import TaborElec.Proteus.CLI.Admin.*
+    import System.*
+    
+    admin = CProteusAdmin(@OnLoggerEvent);
+    rc = admin.Open();
+    assert(rc == 0);   
+    
+    try
+        slotIds = admin.GetSlotIds();
+        numSlots = length(size(slotIds));
+        assert(numSlots > 0);
+        
+        % If there are multiple slots, let the user select one ..
+        sId = slotIds(1);
+        if numSlots > 1
+            fprintf('\n%d slots were found\n', numSlots);
+            for n = 1:numSlots
+                sId = slotIds(n);
+                slotInfo = admin.GetSlotInfo(sId);
+                if ~slotInfo.IsSlotInUse
+                    modelName = slotInfo.ModelName;
+                    if slotInfo.IsDummySlot
+                        fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
+                    else
+                        fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
+                    end
+                end
+            end
+            pause(0.1);
+            choice = 8%input('Enter SlotId ');
+            fprintf('\n');
+            sId = uint32(choice);
+        end
+        
+        % Connect to the selected instrument ..
+        should_reset = true;
+        inst = admin.OpenInstrument(sId, should_reset);
+        instId = inst.InstrId;
+        
+    catch ME
+        admin.Close();
+        rethrow(ME) 
+    end    
+end
 
 %% Create Administrator
-inst = TEProteusInst(connStr, paranoia_level);
-fprintf('\n');
-
-res = inst.Connect();
-assert (res == true);
+% fprintf('\n');
+% 
+% res = inst.Connect();
+% assert (res == true);
 
 % Identify instrument using the standard IEEE-488.2 Command
-idnstr = inst.identifyModel();
-fprintf('\nConnected to: %s\n', idnstr);
+% idnstr = inst.identifyModel();
+% fprintf('\nConnected to: %s\n', idnstr);
 
 % Reset AWG
-inst.SendCmd('*CLS');
-inst.SendCmd('*RST');
+inst.SendScpi('*CLS');
+inst.SendScpi('*RST');
 
 % Get options using the standard IEEE-488.2 Command
-optstr = inst.getOptions();
+% optstr = inst.getOptions();
 
 % Get Number of Channels
-numOfChannels = inst.getNumOfChannels(idnstr);
+numOfChannels = 4
 % This example is written to handle a maximum of 4 channels
 if numOfChannels > 4
     numOfChannels = 4;
 end
 
 % Get maximum sample rate for target instrument
-samplingRate = inst.getMaxSamplingRate();
+samplingRate = 1.0e9;
 
 fprintf(1, 'Calculating WAVEFORMS\n');
 
@@ -74,11 +142,11 @@ period = 1.0E-6;
 fprintf(1, 'SETTING AWG\n');
 
 % Set sampling rate for AWG to maximum.
-inst.SendCmd([':FREQ:RAST ' num2str(samplingRate)]);
+inst.SendScpi([':FREQ:RAST ' num2str(samplingRate)]);
 % Get granularity
-granul = inst.getGranularity(idnstr, optstr);
+granul = 32;
 % Get the default DAC resolution for the current settings.
-dacRes = inst.getDacResolution();
+dacRes = 16;
 
 % Calculate basic square wave
 myWfm = getSquareWfm(   samplingRate,... 
@@ -87,11 +155,11 @@ myWfm = getSquareWfm(   samplingRate,...
                         granul);
                     
 %Select Channel
-inst.SendCmd(sprintf(':INST:CHAN %d', channel));
+inst.SendScpi(sprintf(':INST:CHAN %d', channel));
 % DAC Mode set to 'DIRECT" (Default)
-inst.SendCmd(':MODE DIR');
+inst.SendScpi(':MODE DIR');
 % All segments deleted
-inst.SendCmd(':TRAC:DEL:ALL');
+inst.SendScpi(':TRAC:DEL:ALL');
 
 % Waveform Downloading
 % ********************
@@ -117,48 +185,49 @@ fprintf(1, 'CREATING SEQUENCE\n');
 totalTasks = 4;
 % The Task Composer is configured to handle a certain number of task
 % entries
-inst.SendCmd(sprintf(':TASK:COMP:LENG %d', totalTasks)); 
+inst.SendScpi(sprintf(':TASK:COMP:LENG %d', totalTasks)); 
 
 % Then, each task is defined
 for taskNumber = 1:totalTasks
     % Task to be defined is selected
-    inst.SendCmd(sprintf(':TASK:COMP:SEL %d', taskNumber));
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', taskNumber));
     % The type of task is defined. SINGle is the default so sending this 
     % command is not mandatory
-    inst.SendCmd(':TASK:COMP:TYPE SING');
+    inst.SendScpi(':TASK:COMP:TYPE SING');
     % The action to take after completing the task is defined. NEXT is the
     % default so sending this command is not mandatory
-    inst.SendCmd(':TASK:COMP:DEST NEXT');
+    inst.SendScpi(':TASK:COMP:DEST NEXT');
     % Assigns segment for task in the sequence 1..numOfSegments
     param = mod(taskNumber - 1, numOfSegments) + 1;
-    inst.SendCmd(sprintf(':TASK:COMP:SEGM %d', param));    
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', param));    
     % Next Task is the following task in the table except for the last
     % task, which points to task #1
     param = mod(taskNumber, totalTasks) + 1;
-    inst.SendCmd(sprintf(':TASK:COMP:NEXT1 %d', param));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d', param));
     % Num of Loops = task #    
     param = taskNumber;     
-    inst.SendCmd(sprintf(':TASK:COMP:LOOP %d', param));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', param));
 end
 
 % The task table created with the Composer is written to the actual task
 % table of teh selected channel
-inst.SendCmd(':TASK:COMP:WRITE');
+inst.SendScpi(':TASK:COMP:WRITE');
 fprintf(1, 'SEQUENCE CREATED!\n');
 
 fprintf(1, 'SETTING AWG OUTPUT\n');
 % Select Task Mode for generation
-inst.SendCmd(':FUNC:MODE TASK');
+inst.SendScpi(':FUNC:MODE TASK');
 % Start in task #1 (#1 is the default)
-inst.SendCmd(':FUNC:MODE:TASK 1')
+inst.SendScpi(':FUNC:MODE:TASK 1')
 
 % Output volatge set to MAX
-inst.SendCmd(':SOUR:VOLT MAX');   
+inst.SendScpi(':SOUR:VOLT MAX');   
 % Activate outpurt and start generation
-inst.SendCmd(':OUTP ON');
+inst.SendScpi(':OUTP ON');
 
 % It is recommended to disconnect from instrument at the end
-inst.Disconnect();    
+admin.CloseInstrument(inst.InstrId);
+admin.Close();  
 clear inst;
 clear;
 fprintf(1, 'END\n');
@@ -198,10 +267,10 @@ function result = SendWfmToProteus( instHandle,...
                                     dacRes)
 
     %Select Channel
-    instHandle.SendCmd(sprintf(':INST:CHAN %d', channel));    
-    instHandle.SendCmd(sprintf(':TRAC:DEF %d, %d', segment, length(myWfm)));        
+    instHandle.SendScpi(sprintf(':INST:CHAN %d', channel));    
+    instHandle.SendScpi(sprintf(':TRAC:DEF %d, %d', segment, length(myWfm)));        
     % select segmen as the the programmable segment
-    instHandle.SendCmd(sprintf(':TRAC:SEL %d', segment));
+    instHandle.SendScpi(sprintf(':TRAC:SEL %d', segment));
 
     % format Wfm
     myWfm = myQuantization(myWfm, dacRes);
@@ -210,9 +279,11 @@ function result = SendWfmToProteus( instHandle,...
     prefix = ':TRAC:DATA 0,';
     
     if dacRes == 16
-        instHandle.SendBinaryData(prefix, myWfm, 'uint16');
+        myWfm = typecast(myWfm, 'uint8');
+        instHandle.WriteBinaryData(prefix, myWfm);
     else
-        instHandle.SendBinaryData(prefix, myWfm, 'uint8');
+        myWfm = uint8(myWfm)
+        instHandle.WriteBinaryData(prefix, myWfm);
     end   
     
     result = length(myWfm);
