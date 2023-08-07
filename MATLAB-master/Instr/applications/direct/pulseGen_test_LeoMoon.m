@@ -68,6 +68,8 @@ run_square_pulse(inst);
 admin.CloseInstrument(inst.InstrId);
 admin.Close();
 
+
+
 function run_NCO(inst)
 global sampleRateDAC
 ch = 1;
@@ -84,7 +86,6 @@ inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
 resp = inst.SendScpi(':OUTP ON');
 
 end
-
 
 function run_square_pulse(inst)
     % maximum sampling rate for IQ One mode is 2.5Gsa/sec for the baseband
@@ -127,10 +128,10 @@ function run_square_pulse(inst)
 
     pulse_on_pts = granularity*round(sampleRateDAC * pulse_on_len/granularity);
     pulse_off_pts = granularity*round(sampleRateDAC * pulse_off_len/granularity);
-    dacWaveI_on = (zeros(1, pulse_on_pts));
+    dacWaveI_on = (zeros(1, pulse_on_pts) + 1) * max_dac;
     fprintf("%d, %d \n", pulse_off_pts, uint32(pulse_off_pts));
     dacWaveI_off = (zeros(1, pulse_off_pts)+1)* half_dac;
-    dacWaveQ_on = (zeros(1, pulse_on_pts));
+    dacWaveQ_on = (zeros(1, pulse_on_pts)+ 1) * max_dac;
     dacWaveQ_off = (zeros(1, pulse_off_pts)+1)* half_dac;
     dacWaveI = [dacWaveI_on dacWaveI_off];
     dacWaveQ = [dacWaveQ_on dacWaveQ_off];
