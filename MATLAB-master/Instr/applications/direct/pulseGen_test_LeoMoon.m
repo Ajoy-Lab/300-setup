@@ -147,25 +147,14 @@ function run_square_pulse(inst)
     
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',3));
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',1));
 
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
-    inst.SendScpi(':TASK:COMP:TYPE STAR');
+    inst.SendScpi(':TASK:COMP:TYPE SING');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(':TASK:COMP:ENAB NONE');
-    inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',10^6));
-    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
-    
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', 2));
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
-    inst.SendScpi(':TASK:COMP:TYPE SEQ');
-    inst.SendScpi(':TASK:COMP:ENAB NONE');
-    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',3));
-    
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', 3));
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
-    inst.SendScpi(':TASK:COMP:TYPE END');
-    inst.SendScpi(':TASK:COMP:ENAB NONE');
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
     
 %     inst.SendScpi('TASK:COMP:DTR ON');
     
