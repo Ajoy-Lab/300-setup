@@ -3,8 +3,8 @@ clear;
 close;
 
 %% Set default variables
-global sampleRateDAC
-sampleRateDAC = 1e9;
+% global sampleRateDAC
+% sampleRateDAC = 1e9;
 global inst
 global bits
 bits = 16;
@@ -90,7 +90,7 @@ function run_square_pulse(inst)
     % maximum sampling rate for IQ One mode is 2.5Gsa/sec for the baseband
     % waveform(not NCO!) -- because IQ One mode has I and Q interleaved,
     % the complex waveform has sample rate of 1.25GSa/sec
-    sampleRateDAC = 1e9;
+    sampleRateDAC = 2.5e9;
     % resolution for DAC
     dac_res = 16;
     % granularity of a waveform (Waveform length must be 32)
@@ -119,7 +119,7 @@ function run_square_pulse(inst)
     assert(res.ErrCode == 0);
 
     max_dac = 2^dac_res - 1;
-   
+    
     pulse_on_len = 60e-6;
     pulse_off_len = 40e-6;
 
@@ -173,16 +173,16 @@ function run_square_pulse(inst)
     
 
     inst.SendScpi('TASK:COMP:WRITE');
-%     inst.SendScpi(':INST:CHAN 1');
-%     inst.SendScpi(sprintf(':FREQ:RAST %d', 5400e6));
+    inst.SendScpi(':INST:CHAN 1');
+    inst.SendScpi(sprintf(':FREQ:RAST %d', 2.5e9));
 %     inst.SendScpi('SOUR:NCO:SIXD1 ON');
-% %     inst.SendScpi(':SOUR:INT X8');
+%     inst.SendScpi(':SOUR:INT X8');
 %     inst.SendScpi(':SOUR:INT X8');
 %     inst.SendScpi(':MODE DUC');
 %     inst.SendScpi(':IQM ONE');
-    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
-    inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
-    inst.SendScpi('SOUR:NCO:SIXD1 ON')
+%     inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
+%     inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
+%     inst.SendScpi('SOUR:NCO:SIXD1 ON')
     inst.SendScpi('SOUR:FUNC:MODE TASK');
     inst.SendScpi(':OUTP ON');
     
