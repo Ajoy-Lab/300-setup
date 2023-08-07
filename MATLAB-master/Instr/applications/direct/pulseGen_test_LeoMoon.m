@@ -3,23 +3,9 @@ clear;
 close;
 
 %% Set default variables
-sampleRate = 2700e6;
 global sampleRateDAC
-sampleRateDAC = 1.125e9;
+sampleRateDAC = 1e9;
 global inst
-global interp
-global pulseDict
-global blockDict
-pulseDict = containers.Map;
-blockDict = containers.Map;
-interp = 4;
-adcDualChanMode = 2;
-% fullScaleMilliVolts =1000;
-trigSource = 1; % 1 = external-trigger
-dacChanInd = 3;
-adcChanInd = 2;
-measurementTimeSeconds = 7;
-delay = 0.0000038; % dead time
 global bits
 bits = 16;
 
@@ -74,10 +60,10 @@ try
         admin.Close();
         rethrow(ME) 
 end
+%%Until above is good
 
-
-% run_square_pulse(inst);
-run_NCO(inst)
+run_square_pulse(inst);
+%run_NCO(inst)
 
 admin.CloseInstrument(inst.InstrId);
 admin.Close();
@@ -93,7 +79,7 @@ inst.SendScpi(':MODE NCO');
 % sampleRateDAC = sampleRateInterp;
 inst.SendScpi(sprintf(':FREQ:RAST %d', 5400e6));
 inst.SendScpi('SOUR:NCO:SIXD1 ON');
-inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E6));
+inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
 inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
 resp = inst.SendScpi(':OUTP ON');
 
@@ -101,8 +87,14 @@ end
 
 
 function run_square_pulse(inst)
-global sampleRateDAC
-    
+    % maximum sampling rate for IQ One mode is 2.5Gsa/sec for the baseband
+    % waveform(not NCO!) -- because IQ One mode has I and Q interleaved,
+    % the complex waveform has sample rate of 1.25GSa/sec
+    sampleRateDAC = 1e9;
+    % resolution for DAC
+    dac_res = 16;
+    % granularity of a waveform (Waveform length must be 32)
+    granularity = 32;
     res = inst.SendScpi('*IDN?');
     assert(res.ErrCode == 0);
 
@@ -117,28 +109,27 @@ global sampleRateDAC
     assert(res.ErrCode == 0);
     fprintf('Reset complete\n');
 
-    %%Initialization of the AWG
-    %Sets the voltage value to maximum -- not sure why we need this line though
+    %% Initialization of the AWG
+    % Sets the voltage value to maximum -- not sure why we need this line though
     inst.SendScpi(':SOUR:VOLT MAX');
-    %initializes to the continous mode where no triggers are needed
+    % initializes to the continous mode where no triggers are needed
     inst.SendScpi(':INIT:CONT ON');
-    %delete all segments stored previously
+    % delete all segments stored previously
     res = inst.SendScpi(':TRAC:DEL:ALL');
     assert(res.ErrCode == 0);
 
-    max_dac = 2^16 - 1;
-    half_dac = floor(max_dac/2);
-
+    max_dac = 2^dac_res - 1;
+   
     pulse_on_len = 60e-6;
     pulse_off_len = 40e-6;
 
-    pulse_on_pts = 32*round(sampleRateDAC * pulse_on_len/32);
-    pulse_off_pts = 32*round(sampleRateDAC * pulse_off_len/32);
-    dacWaveI_on = uint8(zeros(1, pulse_on_pts) + 1) * half_dac;
+    pulse_on_pts = granularity*round(sampleRateDAC * pulse_on_len/granularity);
+    pulse_off_pts = granularity*round(sampleRateDAC * pulse_off_len/granularity);
+    dacWaveI_on = (zeros(1, pulse_on_pts) + 1) * max_dac;
     fprintf("%d, %d \n", pulse_off_pts, uint32(pulse_off_pts));
-    dacWaveI_off = uint8(zeros(1, pulse_off_pts));
-    dacWaveQ_on = uint8((zeros(1, pulse_on_pts) + 1) * half_dac);
-    dacWaveQ_off = uint8(zeros(1, pulse_off_pts));
+    dacWaveI_off = (zeros(1, pulse_off_pts));
+    dacWaveQ_on = ((zeros(1, pulse_on_pts) + 1) * max_dac);
+    dacWaveQ_off = (zeros(1, pulse_off_pts));
     dacWaveI = [dacWaveI_on dacWaveI_off];
     dacWaveQ = [dacWaveQ_on dacWaveQ_off];
     dacWaveIQ = [dacWaveI ; dacWaveQ];
@@ -153,28 +144,48 @@ global sampleRateDAC
     myWfm = uint16(dacWaveIQ);
     myWfm = typecast(myWfm, 'uint8');
     res = inst.WriteBinaryData(prefix, myWfm);
+    
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',3));
 
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
+    inst.SendScpi(':TASK:COMP:TYPE STAR');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
-    inst.SendScpi(':TASK:COMP:TYPE SING');
-    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
+    inst.SendScpi(':TASK:COMP:ENAB NONE');
+    inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',10^6));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
+    
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', 2));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(':TASK:COMP:TYPE SEQ');
+    inst.SendScpi(':TASK:COMP:ENAB NONE');
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',3));
+    
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', 3));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(':TASK:COMP:TYPE END');
+    inst.SendScpi(':TASK:COMP:ENAB NONE');
+    
+%     inst.SendScpi('TASK:COMP:DTR ON');
+    
+    
+    
 
     inst.SendScpi('TASK:COMP:WRITE');
-    resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
-    inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC)]);
-    inst.SendScpi(':SOUR:INT X8');
-    inst.SendScpi(':SOUR:MODE DIR');
-    inst.SendScpi(':IQM ONE');
-    inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC*8)]);
-    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E6));
+%     inst.SendScpi(':INST:CHAN 1');
+%     inst.SendScpi(sprintf(':FREQ:RAST %d', 5400e6));
+%     inst.SendScpi('SOUR:NCO:SIXD1 ON');
+% %     inst.SendScpi(':SOUR:INT X8');
+%     inst.SendScpi(':SOUR:INT X8');
+%     inst.SendScpi(':MODE DUC');
+%     inst.SendScpi(':IQM ONE');
+    inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
     inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
-    inst.SendScpi('SOUR:NCO:SIXD1 ON');
+    inst.SendScpi('SOUR:NCO:SIXD1 ON')
+    inst.SendScpi('SOUR:FUNC:MODE TASK');
     inst.SendScpi(':OUTP ON');
+    
 end
 
 function str = netStrToStr(netStr)
@@ -185,3 +196,22 @@ function str = netStrToStr(netStr)
     end
 end
 
+function dacRes = getDacResolution(inst)
+%Proteus unit internal data format. The unit used in 300 setup is 16 bit
+    dacRes = inst.SendScpi(':TRAC:FORM?');
+    dacRes = strtrim(netStrToStr(dacRes.RespStr));
+    if contains(dacRes, 'U8')
+        dacRes = 8;
+    else
+        dacRes = 16;
+    end
+end
+
+%granularity of the Proteus model is 32
+
+function maxSr = getMaxSamplingRate(inst)
+%This function returns 9e-9 as expected
+    maxSr = inst.SendScpi(':FREQ:RAST MAX?');
+    maxSr = strtrim(netStrToStr(maxSr.RespStr));
+    maxSr = str2double(maxSr);
+end
