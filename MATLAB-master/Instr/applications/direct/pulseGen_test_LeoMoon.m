@@ -62,8 +62,9 @@ try
 end
 %%Until above is good
 
-run_square_pulse(inst);
-%run_NCO(inst)
+% run_square_pulse(inst);
+% run_NCO(inst)
+set_marker(inst);
 
 admin.CloseInstrument(inst.InstrId);
 admin.Close();
@@ -85,6 +86,65 @@ inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',75.38E4));
 inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',90));
 resp = inst.SendScpi(':OUTP ON');
 
+end
+
+function set_marker(inst)
+    max_sampleRateDAC = 9e9;
+%     sampleRateDAC = 1.125e9; % 9e9 / 8
+    dac_res = 16;
+    granularity = 32;
+    half_dac = floor((2^16 - 1) / 2);
+    %% Create a marker waveform that has 
+%     marker_on_pts = granularity*round(sampleRateDAC * marker_on/granularity);
+%     marker_off_pts = granularity*round(sampleRateDAC * marker_off/granularity);
+    marker_on_pts = 6400;
+    marker_off_pts = 6400;
+    signal_on_pts = marker_on_pts * 2;
+    signal_off_pts = marker_off_pts * 2;
+    %% turn on marker
+    temp_mrkr_on = uint8(zeros(1, marker_on_pts) + 1)*half_dac;
+    temp_mrkr_off = uint8(zeros(1, marker_off_pts));
+    temp_on = uint8(zeros(1, signal_on_pts));
+    temp_off = uint8(zeros(1, signal_off_pts));
+    myWfm = [temp_on temp_off];
+    myMkr = [temp_mrkr_on temp_mrkr_off];
+    inst.SendScpi(sprintf(':FREQ:RAST %d', 2.5e9));
+    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));
+    
+    %% Download to channel 2 data
+    inst.SendScpi(sprintf(':INST:CHAN %d',2));
+    inst.SendScpi(':TRAC:FORM U16');
+    inst.SendScpi(sprintf(':TRAC:DEF %d, %d', 1, length(myWfm)));
+    inst.SendScpi(sprintf(':TRAC:SEL %d',1));
+%     prefix = ':TRAC:DATA 0,';
+%     myWfm = uint16(myWfm);
+%     myWfm = typecast(myWfm, 'uint8');
+%     res = inst.WriteBinaryData(prefix, myWfm);
+    
+    %% Setting into a segment in channel 2
+    inst.SendScpi(sprintf(':TRAC:SEL %d', 1));
+    res = inst.WriteBinaryData(':MARK:DATA 0,',myMkr);
+    inst.SendScpi(sprintf(':MARK:SEL %d', 1));
+    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
+    inst.SendScpi(':MARK:VOLT:OFFS 0.0');
+    inst.SendScpi(':MARK:STAT ON');
+    assert(res.ErrCode == 0); 
+    
+    %% creating task table for infinite repetition
+    inst.SendScpi(sprintf(':INST:CHAN %d', 2));
+    inst.SendScpi('TASK:ZERO:ALL');
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',1));
+
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
+    inst.SendScpi(':TASK:COMP:TYPE SING');
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(':TASK:COMP:ENAB NONE');
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',10^6));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
+
+    inst.SendScpi('TASK:COMP:WRITE');
+    inst.SendScpi('SOUR:FUNC:MODE TASK');
+    inst.SendScpi(':OUTP ON');
 end
 
 function run_square_pulse(inst)
