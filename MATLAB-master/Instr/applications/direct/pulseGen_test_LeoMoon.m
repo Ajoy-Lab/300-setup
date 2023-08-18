@@ -97,8 +97,8 @@ function set_marker(inst)
     %% Create a marker waveform that has 
 %     marker_on_pts = granularity*round(sampleRateDAC * marker_on/granularity);
 %     marker_off_pts = granularity*round(sampleRateDAC * marker_off/granularity);
-    marker_on_pts = 6400;
-    marker_off_pts = 6400;
+    marker_on_pts = 6400000;
+    marker_off_pts = 6400000;
     signal_on_pts = marker_on_pts * 2;
     signal_off_pts = marker_off_pts * 2;
     %% turn on marker
@@ -115,17 +115,12 @@ function set_marker(inst)
     inst.SendScpi(sprintf(':INST:CHAN %d',2));
     inst.SendScpi(':TRAC:FORM U16');
     inst.SendScpi(sprintf(':TRAC:DEF %d, %d', 1, length(myWfm)));
-    inst.SendScpi(sprintf(':TRAC:SEL %d',1));
-%     prefix = ':TRAC:DATA 0,';
-%     myWfm = uint16(myWfm);
-%     myWfm = typecast(myWfm, 'uint8');
-%     res = inst.WriteBinaryData(prefix, myWfm);
     
     %% Setting into a segment in channel 2
     inst.SendScpi(sprintf(':TRAC:SEL %d', 1));
     res = inst.WriteBinaryData(':MARK:DATA 0,',myMkr);
     inst.SendScpi(sprintf(':MARK:SEL %d', 1));
-    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
+    inst.SendScpi(':MARK:VOLT:PTOP 1');
     inst.SendScpi(':MARK:VOLT:OFFS 0.0');
     inst.SendScpi(':MARK:STAT ON');
     assert(res.ErrCode == 0); 

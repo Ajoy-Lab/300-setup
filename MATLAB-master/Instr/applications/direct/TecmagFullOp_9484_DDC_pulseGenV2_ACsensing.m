@@ -265,7 +265,7 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1'];
-    amps = [1.0 1.0];
+    amps = [0.5 0.5];
     frequencies = [0 0];
     lengths = [60e-6 60e-6];
     phases = [0 90];
@@ -440,7 +440,6 @@ end
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
-                assert(rc.ErrCode == 0);
                
 %                 rc = inst.SetAdcCaptureEnable(on);
 %                 assert(rc == 0);
@@ -456,11 +455,7 @@ end
                 
                 
             case 3 % Measure
-                
-                %inst.SendScpi(':DIG:INIT ON');
                 inst.SendScpi(sprintf(':DIG:CHAN 2'))
-                fprintf('Triggering pulse sequence\n');
-                rc = inst.SendScpi('*TRG');
                 assert(rc.ErrCode == 0);
                 
                 n=0;
@@ -902,6 +897,7 @@ assert(res.ErrCode == 0);
                 
                 % Disable MW chirp output
                 res = inst.SendScpi(':OUTP OFF');
+                inst.SendScpi(':TRIG:ACTIVE:STAT ON');
                 assert(res.ErrCode == 0);
                 
                 fprintf('MW Chirp Waveform stopped playing (on purpose)\n');
@@ -1244,14 +1240,13 @@ global pulseDict
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
     
-    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));
+    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr)); %ask Joan why this happens
 
     res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
     assert(res.ErrCode == 0);
     
     inst.SendScpi(sprintf(':MARK:SEL %d',1));
     inst.SendScpi(':MARK:VOLT:PTOP 0.5');
-    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
     inst.SendScpi(':MARK:VOLT:OFFS 0.25');
     inst.SendScpi(':MARK:STAT ON');
     
@@ -1352,7 +1347,7 @@ global pulseDict
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
+    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num)
     disp('setting task table')
 
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
@@ -1360,7 +1355,7 @@ global pulseDict
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(sprintf(':TASK:COMP:ENAB TRG%d', trig_num));
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
@@ -1464,9 +1459,19 @@ global pulseDict
         end
     end
     downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
-    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
+    trig_num = 2;
+    voltage_level = 1.0;
+    set_trig(trig_num,voltage_level);
+    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num);
  
     fprintf('pulse sequence written \n');
+end
+
+function set_trig(trig_num, voltage_level)
+    global inst
+    inst.SendScpi(sprintf(':TRIG:ACTIVE:SEL TRG%d', trig_num));
+    inst.SendScpi(sprintf(':TRIG:LEV %.3f', voltage_level));
+    inst.SendScpi(':TRIG:ACTIVE:STAT ON');
 end
 
 function setNCO_IQ(ch, cfr, phase)
