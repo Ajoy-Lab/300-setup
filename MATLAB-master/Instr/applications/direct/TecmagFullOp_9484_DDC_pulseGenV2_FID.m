@@ -124,52 +124,8 @@ end
     res = inst.SendScpi('*RST'); % reset
     assert(res.ErrCode == 0);
     
-%     sampleRateDAC = 9e9;
-%     sampleRateDAC_str = [':FREQ:RAST ' sprintf('%0.2e', sampleRateDAC)];
-%     res = inst.SendScpi(sampleRateDAC_str); % set sample clock
-%     assert(res.ErrCode == 0);
-    
     fprintf('Reset complete\n');
     
-    
-%     % ---------------------------------------------------------------------
-%     % RF Pulse Config
-%     % ---------------------------------------------------------------------
-%     
-%     
-%     amps = [1.0 1.0];
-%     frequencies = [0 0];
-%     lengths = [60e-6 60e-6];
-%     phases = [0 90];
-%     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-%     spacings = [100e-6 43e-6];
-%     reps = [1 194174];
-%     markers = [1 1]; %always keep these on
-%     markers2 = [0 0];
-%     trigs = [0 1]; %acquire on every "pi" pulse
-%     repeatSeq = [1];
-
-    
-    % ---------------------------------------------------------------------
-    % ADC Config
-    % ---------------------------------------------------------------------
-    
-    %inst.SendScpi(':DIG:MODE DUAL');
-    
-    %inst.SendScpi(sprintf(':DIG:CHAN CH%d', adcChanInd)); 
-    
-    %inst.SendScpi(':DIG:DDC:MODE COMP');
-    % inst.SendScpi(':DIG:DDC:CFR2 0.0');
-    %  inst.SendScpi(':DIG:DDC:PHAS2 90.0');
-   
-    %inst.SendScpi(sprintf(':DIG:FREQ %g', sampleRate));
-    
-    %inst.SendScpi(':DIG:CHAN:RANG LOW');
-    
-    % Enable acquisition in the digitizer's channels  
-    %inst.SendScpi(':DIG:CHAN:STAT ENAB');
-    
-    %fprintf('ADC Configured\n');
     
     %% Measurement Loop
     u2 = udp(remoteAddr, 'RemotePort', remotePort, 'LocalPort', localPort);
@@ -267,10 +223,10 @@ end
 %     pulse_name = ['init_pul'];
     amps = [0.5];
     frequencies = [0];
-    lengths = [200e-6];
-    phases = [0];
+    lengths = [100e-6];
+    phases = [180];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [15000e-6];
+    spacings = [50000e-6];
     markers = [1]; %always keep these on
     markers2 = [0];
     trigs = [1]; %acquire on every "pi" pulse
@@ -289,11 +245,8 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-%                 defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
                 defBlock('FID', {'init_pul'}, reps(1), markers(1), trigs(1));
                 makeBlocks({'FID'}, ch, repeatSeq);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -350,38 +303,16 @@ end
                 
                 fprintf('Calculate and set data structures...\n');
                 
-                
-%                numberOfPulses_total = cmdBytes(3);
-%                reps(2) = numberOfPulses_total;
-%                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = 388349;
+                numberOfPulses_total = 1;
 
+                Tmax=1; % will be 1 for FID
                 
-                Tmax=cmdBytes(4);
-                
-                
-                tacq=cmdBytes(5);
-%                 tacq=128;
-%                 tacq=64;
-%                 tacq=96;
-                
-                numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
+                tacq=50000;
+
+                numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;
                     
                 readLen = round2((tacq+2)*1e-6*2.7/(16*1e-9),96)-96;
-%                  readLen = round2((tacq+2)*1e-6/(13.27*1e-9),96)-96;
-                 %readLen = round2((tacq+2)*1e-6/(16*1e-9),96)-96;
-                 %readLen = round2((tacq)*1e-6/1e-9,96)-96;
-%                 readLen = 33888; % round2((tacq+2)*1e-6/1e-9,96)-96 %constraint: has to be multiple of 96, add 4 of deadtime %number of points in a frame
-                  %readLen = 16896; % for tacq=16
-%                 readLen = 65856; % for tacq=64
-%                 readLen = 129888; % for tacq=128
-
-%                 readLen = 66912; % actual tacq=64
-%                 readLen = 131040;
-%                 readLen = 129600;
-%                 readLen = 126912; % actual tacq=128
-%                 readLen = 97920; % for tacq=96
                 
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
@@ -412,47 +343,17 @@ end
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
-                
-                %netArray = NET.createArray('System.UInt16', 2* readLen*numberOfPulses); %total array -- all memory needed
-                
-%                 rc = inst.SetAdcAcquisitionEn(on,off);
-%                 assert(rc == 0);
 
-                % Setup frames layout    
-
-                
-%                  rc = inst.SendScpi(':DIG:ACQ:CAPT 1,-1');   
-%                  assert(rc.ErrCode == 0);
-%                  rc = inst.SendScpi(':DIG:ACQ:ZERO 1,-1');
-%                  assert(rc.ErrCode == 0);
                  rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
                  assert(rc.ErrCode == 0);
                  rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
                  assert(rc.ErrCode == 0);
-
-%                 rc = inst.SetAdcFramesLayotrigut(numberOfPulses*loops, readLen); %set memory of the AWG
-    %                 assert(rc == 0);
-%                  rc = resp = inst.SendScpi(':DIG:DATA:FORM?');
-%                  assert(rc == 0);
-%                  resp = strtrim(pfunc.netStrToStr(resp.RespStr));
     
                 fprintf('Waiting... Listen for Shuttle\n');
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
                 assert(rc.ErrCode == 0);
-               
-%                 rc = inst.SetAdcCaptureEnable(on);
-%                 assert(rc == 0);
-
-%                 resp1 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp1 = strtrim(pfunc.netStrToStr(resp1.RespStr));
-%                 pause(0.1);
-%                 resp2 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp2 = strtrim(pfunc.netStrToStr(resp2.RespStr));
-%                 pause(0.1);
-%                 resp3 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp3 = strtrim(pfunc.netStrToStr(resp3.RespStr));
                 
                 
             case 3 % Measure
@@ -580,74 +481,18 @@ end
                     pulses = reshape(samples, [], numberOfPulses); % reshape samples into a more useful array (2 dimensions)
                     %pulses2 = reshape(samples2, [], numberOfPulses);
                     
-                    if savealldata
-                        pulsechunk = int16(pulses);
-                        a = datestr(now,'yyyy-mm-dd-HHMMSS');
-                        fn = sprintf([a,'_Proteus','_chunk', num2str(n)]);
-                        % Save data
-                        fprintf('Writing data to Z:.....\n');
-                        save(['Z:\' fn],'pulsechunk');
-                        %writematrix(pulses);
-                    end
-                    
-                    if savesinglechunk
-                        if  n==1 %determines which chunk will be saved
-                            pulsechunk = int16(pulses);
-                            a = datestr(now,'yyyy-mm-dd-HHMMSS');
-                            fn = sprintf([a,'_Proteus_chunk', num2str(n)]);
-                            % Save data
-                            fprintf('Writing data to Z:.....\n');
-                            save(['Z:\' fn],'pulsechunk');
-                            %writematrix(pulses);
-                        end
-                    end
-                    
                     clear samples;
                     clear samples2;
 %                     tWin = flattopwin()
                     for i = 1:numberOfPulses
                         pulse = pulses(:, i);
-                       
-                        
-                        %                         pulse = pulse(1024:readLen);
-                        %                         readLen=length(pulse);
-                        if savemultwind %save multiple consecutive windows of raw data if true
-                            if n==2 & i<=8
-                                pulsechunk = int16(pulse);
-                                a = datestr(now,'yyyy-mm-dd-HHMMSS');
-                                fn = sprintf([a,'_Proteus_chunk', num2str(n) '_' num2str(i)]);
-                                % Save data
-                                fprintf('Writing data to Z:.....\n');
-                                save(['Z:\' fn],'pulsechunk');
-                            end
-                        end
                         
                         if n == 1
-                            if i == 500
+                            if i == 1
                                 figure(6);clf;
                                 plot(pulse);
                                 figure(7);clf;
                                 plot(f,abs(fftshift(fft(pulse,padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
-                        if n == 4
-                            if i == 2
-                                figure(8);clf;
-                                plot(pulse);
-                                figure(9);clf;
-                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
-                        if n == 58
-                            if i == 9708
-                                figure(10);clf;
-                                plot(pulse);
-                                figure(11);clf;
-                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
                                 hold on;
                                 yline(2048);
                             end
@@ -658,90 +503,23 @@ end
                         imagMean = mean(imag(pulse));
                         pulseAmp(idx) = abs(realMean + 1.0i*imagMean);
                         relPhase(idx) = angle(realMean + 1.0i*imagMean);
-                        
-                        
-%                         pulseDC = pulse - pulseMean; % remove DC
-%                         
-%                         X = fftshift(fft(pulseDC,padded_len)); % perform FFT and zero-pad to the padded_len
-%                         linFFT = (abs(X)/readLen);
-%                         %                         [amp, loc] = max(linFFT);
-%                         amp=(linFFT(b1) + linFFT(b2));
-%                         phase1=angle(X(b1));
-%                         phase2=angle(X(b2));
-%                         phase=phase1-phase2;
-%                         %             linFFT_vec(:,i)=linFFT;
-%                         idx = i+(numberOfPulses*(n-1));
-%                         pulseAmp(idx) = amp;
-% %                         relPhase(idx) = phase;
-%                         relPhase(idx) = phase2;
                     end
-%                     if n == 1
-%                         figure(8);clf;
-%                         plot(pulse);
-%                         hold on;
-%                         yline(2048);
-%                     end
+
                     clear pulses;
                     fprintf('Data processing iteration %d complete!\n', n);
                     toc
                 end
                 
-                %ivec=1:numberOfPuacqlses*loops;
-                ivec=1:length(pulseAmp);
-                delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
-                
-                %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
-%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
-                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
-                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
-                try
-                    start_fig(12,[5 1]);
-                    p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
-                    set(p1,'linewidth',0.5);
-                    plot_labels('Time [s]', 'Phase [au]');
-                    
-%                     start_fig(1,[3 2]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',1);
-%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-%                     set(gca,'xlim',[0,25e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
-                    
-                    start_fig(1,[5 2]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1);
-                    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-                    plot_labels('Time [s]', 'Signal [au]');
-                    
-                    start_fig(2,[5 2]);
-                    p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
-                    set(p1,'linestyle','--'); set(p1,'linewidth',1);
-                    p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',1);
-                    set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
-                    plot_labels('Time [s]', 'Signal [au]');
-                    
-%                     start_fig(13,[5 1]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',0.5);
-%                     set(gca,'xlim',[5-8e-3,5+30e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
-
-                catch
-                    disp('Plot error occured');
-                end
-                
+                time_vec = 1:length(pulse);
+                time_axis = time_vec./sampleRate;
+                complex_acq = pulse;
+%                 
                 %fn=dataBytes; %filename
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'complex_acq','time_axis');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
