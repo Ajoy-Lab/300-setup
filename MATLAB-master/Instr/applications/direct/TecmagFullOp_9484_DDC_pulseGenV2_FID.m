@@ -224,7 +224,7 @@ end
     amps = [0.5];
     frequencies = [0];
     lengths = [100e-6];
-    phases = [180];
+    phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [50000e-6];
     markers = [1]; %always keep these on
@@ -237,7 +237,7 @@ end
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*24.84;
+                tof = -1000*(25.0613);
                 
                 ch=1;
                 initializeAWG(ch);
