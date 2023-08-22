@@ -1,4 +1,4 @@
-% This version runs a Pulse Spin-locking sequence
+% This version runs a Pulsed Spin-locking sequence
 %% Clear everything
 clear;
 close;
@@ -265,7 +265,7 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1'];
-    amps = [1.0 1.0];
+    amps = [0.5 0.5];
     frequencies = [0 0];
     lengths = [60e-6 60e-6];
     phases = [0 90];
@@ -281,7 +281,7 @@ end
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*24.84;
+                tof = -1000*(25.0613);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -623,7 +623,7 @@ end
                         end
                         
                         if n == 1
-                            if i == 500
+                            if i == 1
                                 figure(6);clf;
                                 plot(pulse);
                                 figure(7);clf;
@@ -632,7 +632,7 @@ end
                                 yline(2048);
                             end
                         end
-                        if n == 4
+                        if n == 1
                             if i == 2
                                 figure(8);clf;
                                 plot(pulse);
@@ -714,7 +714,7 @@ end
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',3);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
@@ -722,7 +722,7 @@ end
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',3);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
