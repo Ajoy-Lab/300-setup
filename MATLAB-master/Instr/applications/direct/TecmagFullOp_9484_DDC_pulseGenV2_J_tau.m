@@ -705,7 +705,8 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
+                %NOT SURE wheter this should be the case
+                time_cycle=lengths(2)+spacings(2);
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
@@ -733,9 +734,11 @@ end
                     plot_labels('Time [s]', 'Signal [au]');
                     
                     start_fig(2,[5 2]);
-                    %plot_preliminaries
+                    % plot_preliminaries(x,y,color of a plot, (line or marker))
+                    % plot black line in the middle
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
+                    % plot the real plot of the pulse amplitude in red
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
                     set(p1,'markersize',3);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
