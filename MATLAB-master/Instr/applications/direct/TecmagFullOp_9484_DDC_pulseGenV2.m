@@ -265,20 +265,22 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1'];
-    amps = [1 1];
+    amps = [0.5 0.5];
     frequencies = [0 0];
-    lengths = [60e-6 10e-6];
+    lengths = [60e-6 60e-6];
     phases = [0 90];
-    mods = [1 1]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 18867];
+    reps = [1 194174];
     repeatSeq = [1]; % how many times to repeat the block of pulses
-                             
-                tof = -1000*cmdBytes(2);
+    
+                pw = cmdBytes(2)*1e-6;
+                lengths(1) = pw;
+%                 tof = -1000*cmdBytes(2);
                 tof = -1000*(25.0613);
                 
                 ch=1;
@@ -408,8 +410,6 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
-%                 rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 22e-6)); % external trigger delay
-%                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
                 
@@ -627,33 +627,31 @@ end
                                 figure(6);clf;
                                 plot(pulse);
                                 figure(7);clf;
-                                plot(real(pulse));
-                                figure(8);clf;
                                 plot(f,abs(fftshift(fft(pulse,padded_len))));
                                 hold on;
                                 yline(2048);
                             end
                         end
-%                         if n == 1
-%                             if i == 2
-%                                 figure(8);clf;
-%                                 plot(pulse);
-%                                 figure(9);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
-%                         if n == 1
-%                             if i == 3
-%                                 figure(10);clf;
-%                                 plot(pulse);
-%                                 figure(11);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
+                        if n == 1
+                            if i == 2
+                                figure(8);clf;
+                                plot(pulse);
+                                figure(9);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
+                        if n == 58
+                            if i == 9708
+                                figure(10);clf;
+                                plot(pulse);
+                                figure(11);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
 
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
