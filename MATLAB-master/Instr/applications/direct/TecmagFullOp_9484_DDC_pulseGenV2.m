@@ -267,7 +267,7 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     amps = [0.5 0.5];
     frequencies = [0 0];
-    lengths = [60e-6 60e-6];
+    lengths = [120e-6 120e-6];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
@@ -278,8 +278,6 @@ end
     reps = [1 194174];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
-                pw = cmdBytes(2)*1e-6;
-                lengths(1) = pw;
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(25.0613);
                 
@@ -691,14 +689,14 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
+                time_cycle=lengths(2)+spacings(2);
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
-                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
-                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
+                phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
