@@ -267,7 +267,7 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     amps = [0.5 0.5];
     frequencies = [0 0];
-    lengths = [60e-6 60e-6];
+    lengths = [120e-6 120e-6];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
@@ -275,11 +275,10 @@ end
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 194174];
+%     reps = [1 194174];
+    reps = [1 350000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
-                pw = cmdBytes(2)*1e-6;
-                lengths(1) = pw;
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*24.84;
                 
@@ -387,7 +386,7 @@ end
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
                 assert(rc.ErrCode == 0);
                 
-                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd))
+                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd));
                 %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
                 %assert(rc.ErrCode == 0);
                 %rc = inst.SendScpi(sprintf(':DIG:TRIG:SELF %f', 0.025)); %0.025 
@@ -455,14 +454,14 @@ end
                 
                 
             case 3 % Measure
-                inst.SendScpi(sprintf(':DIG:CHAN 2'))
+                inst.SendScpi(sprintf(':DIG:CHAN 2'));
                 assert(rc.ErrCode == 0);
                 
                 n=0;
                 
                % pause(Tmax+3);
                 
-                for n = 1:700
+                for n = 1:1200
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
@@ -683,21 +682,20 @@ end
                 
                 %ivec=1:numberOfPuacqlses*loops;
                 ivec=1:length(pulseAmp);
-                delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
+                time_cycle=lengths(2)+spacings(2);
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
-                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
-                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
+                phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
-                    p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
-                    set(p1,'linewidth',0.5);
+                    p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
+                    set(p1,'markersize',1);
                     plot_labels('Time [s]', 'Phase [au]');
                     
 %                     start_fig(1,[3 2]);
