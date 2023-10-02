@@ -277,7 +277,6 @@ end
     
     reps = [1 194174];
     repeatSeq = [1]; % how many times to repeat the block of pulses
->>>>>>> DTC_code
     
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(25.0613);
