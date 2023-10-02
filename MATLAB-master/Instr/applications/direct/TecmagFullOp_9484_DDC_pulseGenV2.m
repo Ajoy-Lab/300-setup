@@ -699,8 +699,8 @@ end
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
-                    p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
-                    set(p1,'linewidth',0.5);
+                    p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
+                    set(p1,'markersize',1);
                     plot_labels('Time [s]', 'Phase [au]');
                     
 %                     start_fig(1,[3 2]);
@@ -712,7 +712,7 @@ end
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',3);
+                    set(p1,'markersize',1);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
@@ -720,7 +720,7 @@ end
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',3);
+                    set(p1,'markersize',1);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
