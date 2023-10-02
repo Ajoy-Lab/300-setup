@@ -1,3 +1,4 @@
+% This version runs a Pulsed Spin-locking sequence
 %% Clear everything
 clear;
 close;
@@ -182,8 +183,8 @@ end
         fprintf('Server not connected\n');
     end
     
-    % Loop to repeatedly wait for messages and send replies
-    % Break or Ctrl+C to get out of loop
+%     Loop to repeatedly wait for messages and send replies
+%     Break or Ctrl+C to get out of loop
     while ( connect==on )
         % Wait for message
         while(u2.BytesAvailable == 0)
@@ -262,25 +263,24 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-                
-    amps = [1.0 1.0 1.0];
-    frequencies = [0 0 0];
-    lengths = [60e-6 60e-6 120e-6];
-    phases = [0 90 0];
-    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6 5e-6];
-    markers = [1 1 1]; %always keep these on
-    markers2 = [0 0 0];
-    trigs = [0 1 0]; %acquire on every "pi" pulse
     
-    %need to fix reps
-    reps = [1 6000 1];
-    repeatSeq = [1 1]; % how many times to repeat the block of pulses
+%     pulse_name = ['init_pul', 'theta1'];
+    amps = [0.5 0.5];
+    frequencies = [0 0];
+    lengths = [120e-6 120e-6];
+    phases = [0 90];
+    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [5e-6 43e-6];
+    markers = [1 1]; %always keep these on
+    markers2 = [0 0];
+    trigs = [0 1]; %acquire on every "pi" pulse
     
-                pw = cmdBytes(2)*1e-6;
-                lengths(1) = pw;
+    reps = [1 194174];
+    repeatSeq = [1]; % how many times to repeat the block of pulses
+>>>>>>> DTC_code
+    
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*24.84;
+                tof = -1000*(25.0613);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -288,11 +288,9 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-                defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
-                defBlock('pulsed_SL', {'init_pul','theta'}, reps(1:2), markers(1:2), trigs(1:2));
-                defBlock('DTC', {'gamma','theta'}, [reps(3),300], [markers(3),1], [trigs(3),1]);
-                makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
+                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
                     
@@ -355,7 +353,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+300*repeatSeq(2);
+                numberOfPulses_total = reps(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -409,7 +407,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 0.01');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 8e-6));
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
@@ -623,7 +621,7 @@ end
                             end
                         end
                         
-                        if n == 4
+                        if n == 1
                             if i == 1
                                 figure(6);clf;
                                 plot(pulse);
@@ -633,22 +631,33 @@ end
                                 yline(2048);
                             end
                         end
-%                         if n == 60
-%                             if i == 1
-%                                 figure(8);clf;
-%                                 plot(pulse);
-%                                 figure(9);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
+                        if n == 1
+                            if i == 2
+                                figure(8);clf;
+                                plot(pulse);
+                                figure(9);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
+                        if n == 58
+                            if i == 9708
+                                figure(10);clf;
+                                plot(pulse);
+                                figure(11);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
 
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
                         imagMean = mean(imag(pulse));
                         pulseAmp(idx) = abs(realMean + 1.0i*imagMean);
                         relPhase(idx) = angle(realMean + 1.0i*imagMean);
+                        
                         
 %                         pulseDC = pulse - pulseMean; % remove DC
 %                         
@@ -681,24 +690,26 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
+                time_cycle=lengths(2)+spacings(2);
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
-                %drop first point
-                time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
+%                 %drop first point -- NOT ANYMORE
+%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
+                phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
-                    p1=plot_preliminaries(time_axis,(relPhase),2,'nomarker');
-                    set(p1,'linewidth',0.5);
+                    p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
+                    set(p1,'markersize',1);
                     plot_labels('Time [s]', 'Phase [au]');
                     
-                    start_fig(1,[3 2]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-                    set(p1,'linewidth',1);
-                    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-                    set(gca,'xlim',[0,25e-3]);
-                    plot_labels('Time [s]', 'Signal [au]');
+%                     start_fig(1,[3 2]);
+%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+%                     set(p1,'linewidth',1);
+%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+%                     set(gca,'xlim',[0,25e-3]);
+%                     plot_labels('Time [s]', 'Signal [au]');
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
@@ -706,11 +717,19 @@ end
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
-                    start_fig(13,[5 1]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-                    set(p1,'linewidth',0.5);
-                    set(gca,'xlim',[5-8e-3,5+30e-3]);
+                    start_fig(2,[5 2]);
+                    p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
+                    set(p1,'linestyle','--'); set(p1,'linewidth',1);
+                    p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
+                    set(p1,'markersize',1);
+                    set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
+                    
+%                     start_fig(13,[5 1]);
+%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+%                     set(p1,'linewidth',0.5);
+%                     set(gca,'xlim',[5-8e-3,5+30e-3]);
+%                     plot_labels('Time [s]', 'Signal [au]');
 
                 catch
                     disp('Plot error occured');
@@ -1337,7 +1356,7 @@ global pulseDict
 
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs));
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
     inst.SendScpi(':TASK:COMP:ENAB CPU');
@@ -1351,11 +1370,13 @@ global pulseDict
            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
-           if (repeatSeq(y) > 1 && z==1)
+           if (repeatSeq(y) > 1 && z==1) % if first task in a block
                inst.SendScpi('TASK:COMP:TYPE STAR');
-               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y)));            
-           elseif (repeatSeq(y) > 1 && z==lenBlock)
-               inst.SendScpi('TASK:COMP:TYPE STAR');
+               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
+           elseif (repeatSeq(y) > 1 && z~=lenBlock) % if intermediate task in a block
+               inst.SendScpi('TASK:COMP:TYPE SEQ');
+           elseif (repeatSeq(y) > 1 && z==lenBlock) % if last task in a block
+               inst.SendScpi('TASK:COMP:TYPE END');
            else
                inst.SendScpi(':TASK:COMP:TYPE SING');
            end
@@ -1397,7 +1418,7 @@ global pulseDict
     numSegs = numPulses;
     disp('generating RF pulse sequence')
     global segMat
-    segMat = cell(3, numSegs);
+    segMat = cell(4, numSegs); % added a fourth row for Marker2 (trigs)
 
     %%%%%%% MAKE HOLDING SEGMENT %%%  
     DClen = 64;
@@ -1413,13 +1434,16 @@ global pulseDict
             [tempDCi, tempDCq] = makeDC(DClen);
             DClenreal = length(tempDCi);
             markDC = uint8(zeros(DClenreal, 1));
+            markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
             [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
-            segMat{1,x} = [tempI tempDCi];
-            segMat{2,x} = [tempQ tempDCq];
-            segMat{3,x} = [markIQ' markDC'];     
+            markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
+            segMat{1,x} = [tempI tempDCi]; % first row is In-phase of pulse
+            segMat{2,x} = [tempQ tempDCq]; % second row is Quadrature of pulse
+            segMat{3,x} = [markIQ' markDC']; % third row is blanking signal (M1)
+            segMat{4,x} = [markIQ2' markDC2']; % fourth row is ADC Ext trig signal (M2)
             x = x+1;
        end
     end
@@ -1434,7 +1458,7 @@ global pulseDict
     for y = 1:numBlocks
         lenBlock = length(indices{y});
         for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{3,x}, 1);
+           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
            x=x+1;
         end
     end
@@ -1582,4 +1606,5 @@ function makeBlocks(blockNames, channel, repeatSeq)
     generatePulseSeqIQ(channel, amps, frequencies, lengthsTime, phases, waitTimes, reps, markers, trigs, repeatSeq, indices);
     
 end
+ 
  
