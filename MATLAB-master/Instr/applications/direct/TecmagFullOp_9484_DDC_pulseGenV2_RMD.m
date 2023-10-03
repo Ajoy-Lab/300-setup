@@ -1361,54 +1361,34 @@ global sampleRateInterp
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
+    function setTask_Pulse(ch, numPulses, numSegs, trigs)
     disp('setting task table')
-
+    t_idx = 1;
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
+    %set tasktable length to 5
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',5));
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    %t_idx = tasktable index
+    t_idx = t_idx + 1;
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
     inst.SendScpi(':TASK:COMP:ENAB CPU');
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
-    x=2;
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-           inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
-           inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
-           inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
-           if (repeatSeq(y) > 1 && z==1) % if first task in a block
-               inst.SendScpi('TASK:COMP:TYPE STAR');
-               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
-           elseif (repeatSeq(y) > 1 && z~=lenBlock) % if intermediate task in a block
-               inst.SendScpi('TASK:COMP:TYPE SEQ');
-           elseif (repeatSeq(y) > 1 && z==lenBlock) % if last task in a block
-               inst.SendScpi('TASK:COMP:TYPE END');
-           else
-               inst.SendScpi(':TASK:COMP:TYPE SING');
-           end
-           
-           inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',x+1));
-           
-           if trigs{y}(z)==1
-            inst.SendScpi('TASK:COMP:DTR ON');
-           else
-            inst.SendScpi('TASK:COMP:DTR OFF');
-           end
-           
-           x=x+1;     
-        end
+    for x = 1: numPulses
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+        t_idx = t_idx + 1;
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', x);
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 10000);
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+        inst.SendScpi(':TASK:COMP:TYPE SING');
     end
-    
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
-    
     inst.SendScpi('TASK:COMP:WRITE');
     resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
     assert(resp.ErrCode==0);
@@ -1505,57 +1485,31 @@ global sampleRateInterp
     [segMat{1:x}, segMat{2:x}, segMat{3:x}, segMat{4:x}] = deal(I, Q, M1, Tr1);
     
     %% Generate RMD sequence of n-order
-    % 2 and 3 are indexes in all the hyperparmeter dictionaries (lengths, spacings ..) that
-    % correspond to U+ and U- pulse
+    % 2nd and 3rd indexes indicate pulses \tilda{Un} and Un.
     for x : (2: numPulses)
         RMD_seq_block = get_rmd_seq_block(x, n_order, 2, 3);
+        [seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1] = deal([], [], [], []);  
         for idx : (1: length(RMD_seq))
-            % p_t = pulse type
+            % p_t = pulse type (can be U+ or U-)
             p_t = RMD_seq_block(idx);
             [I, Q, M1, Tr1] = get_square_pulse(frequencies(p_t), lengths(p_t), spacings(p_t), amps(p_t), phases(p_t));
-            %% NEED A WAY TO concatenate correctly.
+            %% concatentate to create RMD sequence block.
+            seq_b_I = [seq_b_I, I];
+            seq_b_Q = [seq_b_Q, Q];
+            seq_b_M1 = [seq_b_M1, M1];
+            seq_b_Tr1 = [seq_b_Tr1, Tr1];
         end
+        [segMat{1:x}, segMat{2:x}, segMat{3:x}, segMat{4:x}] = deal(seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1);
     end
-        
-    
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-            DClen = spacingsPts{y}(z);
-            %%% make DC segment %%%
-            [tempDCi, tempDCq] = makeDC(DClen);
-            DClenreal = length(tempDCi);
-            markDC = uint8(zeros(DClenreal, 1));
-            markDC2 = uint8(zeros(DClenreal,1));
-            %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
-            pulseLenReal = length(tempI);
-            markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
-            markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
-            segMat{1,x} = [tempI tempDCi]; % first row is In-phase of pulse
-            segMat{2,x} = [tempQ tempDCq]; % second row is Quadrature of pulse
-            segMat{3,x} = [markIQ' markDC']; % third row is blanking signal (M1)
-            segMat{4,x} = [markIQ2' markDC2']; % fourth row is ADC Ext trig signal (M2)
-            x = x+1;
-       end
-    end
-    %%% MAKE FINAL SEGMENT %%% 
-    DClen = 64;
-    [finalI, finalQ] = makeDC(DClen);
 
     fprintf('pulse sequence generated')
  
-    downLoadIQ(ch, 1, holdI, holdQ, markHold, markHold, 1);
-    x=1;
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
-           x=x+1;
-        end
+    for x : (1: numPulses)
+        downLoadIQ(ch, x, segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
+        x=x+1;
     end
-    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
-    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
+    downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
+    setTask_Pulse(ch, numPulses, numSegs, trigs);
  
     fprintf('pulse sequence written \n');
 end
