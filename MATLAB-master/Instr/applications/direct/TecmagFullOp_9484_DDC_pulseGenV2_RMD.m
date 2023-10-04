@@ -281,9 +281,15 @@ end
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
     
-    %cannot define reps # of theta_a and theta_b will be pseudo random
-    reps = [1 63000];
-    repeatSeq = [1]; % how many times to repeat the block of pulses
+    % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
+    % sequence
+    RMD_seq_length = 63000;
+    seed = 1;
+    random_seq = get_random_seq(RMD_seq_length, seed);
+    % n_order indicates the value of n in a unit cell for the RMD_seq
+    n_order = 2;
+    % The number of corresponding pulses
+    numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(25.0613);
@@ -293,7 +299,7 @@ end
                 clearPulseDict();
                 clearBlockDict();
                 
-                generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, 2);
+                generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, n_order, random_seq);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -349,12 +355,6 @@ end
 
                 
                 fprintf('Calculate and set data structures...\n');
-                
-                
-%                numberOfPulses_total = cmdBytes(3);
-%                reps(2) = numberOfPulses_total;
-%                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -1225,9 +1225,12 @@ function initializeAWG(ch)
      assert(res.ErrCode==0);
 end
 
+function random_seq = get_random_seq(RMD_seq_length, seed)
+    rng(seed);
+    random_seq = randi([0, 1], RMD_seq_length);
+end
 
-
-function generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, n_order)
+function generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, n_order, random_seq)
 %{
 ch: channel RMD sequence is being applied
 amps: amplitude of each pulses -- there are only three pulses pi/2
@@ -1361,7 +1364,8 @@ global sampleRateInterp
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, trigs)
+    function setTask_Pulse(ch, numPulses, numSegs, trigs, random_seq)
+    %% NEED TO WORK ON incorporating random sequence into a task table.
     disp('setting task table')
     t_idx = 1;
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
@@ -1517,7 +1521,8 @@ global sampleRateInterp
         x=x+1;
     end
     downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
-    setTask_Pulse(ch, numPulses, numSegs, trigs);
+
+    setTask_Pulse(ch, numPulses, numSegs, trigs, random_seq);
  
     fprintf('pulse sequence written \n');
 end
