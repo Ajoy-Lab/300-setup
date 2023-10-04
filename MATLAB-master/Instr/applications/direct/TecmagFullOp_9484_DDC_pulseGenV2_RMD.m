@@ -293,7 +293,7 @@ end
                 clearPulseDict();
                 clearBlockDict();
                 
-                generateRMDPulseSeqIQ(channel, amps, frequencies, lengthsTime, phases, waitTimes, markers, trigs, n);
+                generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, 2);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -1379,8 +1379,12 @@ global sampleRateInterp
     for x = 1: numPulses
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
         t_idx = t_idx + 1;
-        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', x);
-        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 10000);
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', x));
+        if x > 1
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 10000));
+        else
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+        end
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
         inst.SendScpi(':TASK:COMP:TYPE SING');
     end
@@ -1417,7 +1421,7 @@ global sampleRateInterp
         end
     end
 
-    function [I, Q, M1, Tr1] = get_square_pulse(frequency, length, spacing, amp, phase)
+    function [I, Q, M1, Tr1] = get_square_pulse(frequency, lengthsPt, spacingsPt, amp, phase, marker, trig)
         %{
         Creates a square pulse that has following form.
         (I)
@@ -1444,31 +1448,35 @@ global sampleRateInterp
         - M1(marker1) is turned on when the pulse is low (during spacing)
         - Tr1(marker2) is turned on only when reading out during spacing.
         %}
-        DClen = spacing;
+        DClen = spacingsPt;
         %%% make DC segment %%%
         [tempDCi, tempDCq] = makeDC(DClen);
         DClenreal = length(tempDCi);
         markDC = uint8(zeros(DClenreal, 1));
         markDC2 = uint8(zeros(DClenreal,1));
         %%% make Pulse %%% 
-        [tempI, tempQ] = makeSqPulse(frequency, length, amp, phase, 0);
+        [tempI, tempQ] = makeSqPulse(frequency, lengthsPt, amp, phase, 0);
         pulseLenReal = length(tempI);
-        markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
-        markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
+        markIQ = uint8(zeros(pulseLenReal, 1) + marker);
+        markIQ2 = uint8(zeros(pulseLenReal, 1) + trig);
         I = [tempI tempDCi]; % first row is In-phase of pulse
         Q = [tempQ tempDCq]; % second row is Quadrature of pulse
         M1 = [markIQ' markDC']; % third row is blanking signal (M1)
         Tr1 = [markIQ2' markDC2'];
     end
+    
+    function segMat = assign_segMat(x, segMat, I, Q, M1, Tr1)
+        segMat{1,x} = I;
+        segMat{2,x} = Q;
+        segMat{3,x} = M1;
+        segMat{4,x} = Tr1;
+    end
+
     %%%% FUNCTION STARTS HERE %%%%
     numPulses = length(lengths);
-    lengthsPts = {};
-    spacingsPts = {};
-
-    for u = 1:numPulses
-        lengthsPts{end+1} = sampleRateDAC * lengths{u};
-        spacingsPts{end+1} = sampleRateDAC * spacings{u};
-    end
+    lengthsPts = lengths * sampleRateDAC;
+    spacingsPts = spacings * sampleRateDAC;
+    
     numSegs = numPulses;
     disp('generating RMD RF pulse sequence')
     global segMat
@@ -1481,30 +1489,30 @@ global sampleRateInterp
     
     %% First pulse is the initial theta/2 pulse
     x=1;
-    [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengths(x), spacings(x), amps(x), phases(x));
-    [segMat{1:x}, segMat{2:x}, segMat{3:x}, segMat{4:x}] = deal(I, Q, M1, Tr1);
+    [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengthsPts(x), spacingsPts(x), amps(x), phases(x), markers1(x), trigs(x));
+    segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
     
     %% Generate RMD sequence of n-order
     % 2nd and 3rd indexes indicate pulses \tilda{Un} and Un.
-    for x : (2: numPulses)
+    for x = (2: numPulses)
         RMD_seq_block = get_rmd_seq_block(x, n_order, 2, 3);
         [seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1] = deal([], [], [], []);  
-        for idx : (1: length(RMD_seq))
+        for idx = (1: length(RMD_seq_block))
             % p_t = pulse type (can be U+ or U-)
             p_t = RMD_seq_block(idx);
-            [I, Q, M1, Tr1] = get_square_pulse(frequencies(p_t), lengths(p_t), spacings(p_t), amps(p_t), phases(p_t));
+            [I, Q, M1, Tr1] = get_square_pulse(frequencies(p_t), lengthsPts(p_t), spacingsPts(p_t), amps(p_t), phases(p_t), markers1(x), trigs(x));
             %% concatentate to create RMD sequence block.
             seq_b_I = [seq_b_I, I];
             seq_b_Q = [seq_b_Q, Q];
             seq_b_M1 = [seq_b_M1, M1];
             seq_b_Tr1 = [seq_b_Tr1, Tr1];
         end
-        [segMat{1:x}, segMat{2:x}, segMat{3:x}, segMat{4:x}] = deal(seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1);
+        segMat = assign_segMat(x, segMat, seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1);
     end
 
     fprintf('pulse sequence generated')
  
-    for x : (1: numPulses)
+    for x = (1: numPulses)
         downLoadIQ(ch, x, segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
         x=x+1;
     end
