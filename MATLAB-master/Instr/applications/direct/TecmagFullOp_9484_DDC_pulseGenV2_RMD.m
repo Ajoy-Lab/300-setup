@@ -281,13 +281,22 @@ end
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
     
+    index = cmdBytes(2);
+    delay_tau = (1.1^index)*163 - 163;
+    spacings(2) = delay_tau*1e-6 + 43e-6;
+    spacings(3) = delay_tau*1e-6 + 43e-6;
+    
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
-    RMD_seq_length = 63000;
+    RMD_seq_length = 20000;
+    % random seed used to generate pseudo-random sequence.
     seed = 1;
+    % generate random seq of 2s and 3s with length RMD_seq_length.
+    % it will be used to indicate which segment to use when generating
+    % tasktable
     random_seq = get_random_seq(RMD_seq_length, seed);
     % n_order indicates the value of n in a unit cell for the RMD_seq
-    n_order = 2;
+    n_order = 1;
     % The number of corresponding pulses
     numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
@@ -1227,7 +1236,7 @@ end
 
 function random_seq = get_random_seq(RMD_seq_length, seed)
     rng(seed);
-    random_seq = randi([0, 1], RMD_seq_length);
+    random_seq = randi([2, 3], 1, RMD_seq_length);
 end
 
 function generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, n_order, random_seq)
@@ -1364,34 +1373,49 @@ global sampleRateInterp
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, trigs, random_seq)
-    %% NEED TO WORK ON incorporating random sequence into a task table.
+    function setTask_Pulse(ch, numPulses, numSegs, random_seq)
+    %{
+    4 types of segment:
+    1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
+    %}
     disp('setting task table')
+    % t_idx = tasktable index
     t_idx = 1;
+    %% Initialize task table
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    %set tasktable length to 5
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',5));
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-    %t_idx = tasktable index
-    t_idx = t_idx + 1;
-    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
+    % set tasktable length to length of random sequence + 3
+    % +2 comes from the first and last holding segment and the +1 comes
+    % from the first pi/2 pulse.
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', length(random_seq)+3));
+    %% set the first holding segment
     inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    t_idx = t_idx + 1;
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
-    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
-    for x = 1: numPulses
+    %% set the initial pi/2 pulse
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    t_idx = t_idx + 1;
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+    inst.SendScpi(':TASK:COMP:TYPE SING');
+    
+    %% set tasktable to apply random sequence
+    for seq_idx = 1: length(random_seq)
+        segm = random_seq(seq_idx);
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
         t_idx = t_idx + 1;
-        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', x));
-        if x > 1
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 10000));
-        else
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
-        end
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', segm));
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
         inst.SendScpi(':TASK:COMP:TYPE SING');
     end
+    
+    %% set final segment to apply tasktable
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
@@ -1522,7 +1546,7 @@ global sampleRateInterp
     end
     downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
 
-    setTask_Pulse(ch, numPulses, numSegs, trigs, random_seq);
+    setTask_Pulse(ch, numPulses, numSegs, random_seq);
  
     fprintf('pulse sequence written \n');
 end
