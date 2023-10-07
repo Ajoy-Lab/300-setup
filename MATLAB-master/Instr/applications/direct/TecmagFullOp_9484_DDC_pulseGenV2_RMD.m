@@ -267,8 +267,10 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
-    theta_a = 0.9*pi_half;
-    theta_b = 1.1*pi_half;
+    index = cmdBytes(2);
+    % can start out with index = 1
+    theta_a = (1-0.01*index)*pi_half;
+    theta_b = (1+0.01*index)*pi_half;
     
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5];
@@ -281,14 +283,14 @@ end
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
     
-    index = cmdBytes(2);
-    delay_tau = (1.1^index)*163 - 163;
-    spacings(2) = delay_tau*1e-6 + 43e-6;
-    spacings(3) = delay_tau*1e-6 + 43e-6;
+    
+%     delay_tau = (1.1^index)*163 - 163;
+%     spacings(2) = delay_tau*1e-6 + 43e-6;
+%     spacings(3) = delay_tau*1e-6 + 43e-6;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
-    RMD_seq_length = 20000;
+    RMD_seq_length = 400;
     % random seed used to generate pseudo-random sequence.
     seed = 1;
     % generate random seq of 2s and 3s with length RMD_seq_length.
@@ -1520,10 +1522,16 @@ global sampleRateInterp
     [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengthsPts(x), spacingsPts(x), amps(x), phases(x), markers1(x), trigs(x));
     segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
     
+    %%memoize get_rmd_seq_block for runtime improvment for higher n_order
+    mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
+    mf_get_rmd_seq_block.CacheSize = n_order * 2;
+    
     %% Generate RMD sequence of n-order
     % 2nd and 3rd indexes indicate pulses \tilda{Un} and Un.
+    
+    
     for x = (2: numPulses)
-        RMD_seq_block = get_rmd_seq_block(x, n_order, 2, 3);
+        RMD_seq_block = mf_get_rmd_seq_block(x, n_order, 2, 3);
         [seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1] = deal([], [], [], []);  
         for idx = (1: length(RMD_seq_block))
             % p_t = pulse type (can be U+ or U-)
