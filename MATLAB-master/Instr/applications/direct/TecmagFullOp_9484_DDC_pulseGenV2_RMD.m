@@ -268,9 +268,9 @@ end
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
     index = cmdBytes(2);
-    % can start out with index = 1
-    theta_a = (1-0.01*index)*pi_half;
-    theta_b = (1+0.01*index)*pi_half;
+    % can start out with index = 1,2, ... 20
+    theta_a = (1-0.005*index)*pi_half;
+    theta_b = (1+0.005*index)*pi_half;
     
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5];
