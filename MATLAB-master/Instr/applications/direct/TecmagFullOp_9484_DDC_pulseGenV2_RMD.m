@@ -267,11 +267,10 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
-    index = cmdBytes(2);
     % can start out with index = 1,2, ... 20
-    theta_a = (1-0.005*index)*pi_half;
-    theta_b = (1+0.005*index)*pi_half;
-    
+    theta_a = (1-0.03)*pi_half;
+    theta_b = (1+0.03)*pi_half;
+    index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5];
     frequencies = [0 0 0];
@@ -282,7 +281,11 @@ end
     spacings = [5e-6 43e-6 43e-6];
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
-    
+    n_order = mod(index,4) + 1;
+    % random seed used to generate pseudo-random sequence (sweeping 
+    seed = (fix(index/4)+1) * 5;
+    fprintf("This is n_order: %d \n", n_order);
+    fprintf("This is seed: %d \n", seed);
     
 %     delay_tau = (1.1^index)*163 - 163;
 %     spacings(2) = delay_tau*1e-6 + 43e-6;
@@ -290,13 +293,13 @@ end
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
-    RMD_seq_length = 400;
-    % random seed used to generate pseudo-random sequence.
-    seed = 1;
+    RMD_seq_length = 40000;
+    
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
     random_seq = get_random_seq(RMD_seq_length, seed);
+    
     % n_order indicates the value of n in a unit cell for the RMD_seq
     n_order = 1;
     % The number of corresponding pulses
@@ -698,15 +701,35 @@ end
                 end
                 
                 %ivec=1:numberOfPuacqlses*loops;
-                ivec=1:length(pulseAmp);
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+spacings(2);
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
+                %creating time_axis --- need to account for the randomness
+                %create memoized get_rmd_seq_block function
+                mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
+                mf_get_rmd_seq_block.CacheSize = n_order * 2;
+                Un_tilda_pulse = mf_get_rmd_seq_block(2, n_order, 2, 3);
+                Un_pulse = mf_get_rmd_seq_block(3, n_order, 2, 3);
+                curr_t = 0;
+                time_axis = [];
+                for i = (1:length(random_seq))
+                    %each entry in random sequence corrresponds to random
+                    %block
+                    p_t = random_seq(i);
+                    U_pulse = [];
+                    if p_t == 2
+                        U_pulse = Un_tilda_pulse;
+                    elseif p_t == 3
+                        U_pulse = Un_pulse;
+                    else
+                        error("pulse type needs to be 2 or 3");
+                    end
+                    for idx = (1:length(U_pulse))
+                        curr_t = curr_t + lengths(U_pulse(idx)) + spacings(U_pulse(idx));
+                        time_axis = [time_axis, curr_t];
+                    end
+                end
+                  %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
@@ -1241,6 +1264,29 @@ function random_seq = get_random_seq(RMD_seq_length, seed)
     random_seq = randi([2, 3], 1, RMD_seq_length);
 end
 
+function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
+    %{
+    Generate arbitrary length n-order Thue-Morse. t1 indicates + pulse. t2
+    indicates b pulse.
+    pulse_t = t1 or t2
+    For example,
+    get_rmd_seq_block(2,5,2,3) = \tilda{U_{5}}, get_rmd_seq_block(3,5,2,3) = U_{5}
+    %}
+    if n == 0
+        rmd_seq = [pulse_t];
+    elseif n > 0
+        if pulse_t == t1
+            rmd_seq = cat(2, get_rmd_seq_block(t1, n-1, t1, t2), get_rmd_seq_block(t2, n-1, t1, t2));
+        elseif pulse_t == t2
+            rmd_seq = cat(2, get_rmd_seq_block(t2, n-1, t1, t2), get_rmd_seq_block(t1, n-1, t1, t2));
+        else
+            error("pulse_t must be t1 or t2 (get_rmd_seq_block function)");
+        end
+    else
+        error("input n must be integer or must be larger or equal to 0");
+    end
+end
+
 function generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, n_order, random_seq)
 %{
 ch: channel RMD sequence is being applied
@@ -1426,29 +1472,6 @@ global sampleRateInterp
     inst.SendScpi('TASK:COMP:WRITE');
     resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
     assert(resp.ErrCode==0);
-    end
-    
-    function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
-    %{
-    Generate arbitrary length n-order Thue-Morse. t1 indicates + pulse. t2
-    indicates b pulse.
-    pulse_t = t1 or t2
-    For example,
-    get_rmd_seq_block(2,5,2,3) = \tilda{U_{5}}, get_rmd_seq_block(3,5,2,3) = U_{5}
-    %}
-        if n == 0
-            rmd_seq = [pulse_t];
-        elseif n > 0
-            if pulse_t == t1
-                rmd_seq = cat(2, get_rmd_seq_block(t1, n-1, t1, t2), get_rmd_seq_block(t2, n-1, t1, t2));
-            elseif pulse_t == t2
-                rmd_seq = cat(2, get_rmd_seq_block(t2, n-1, t1, t2), get_rmd_seq_block(t1, n-1, t1, t2));
-            else
-                error("pulse_t must be t1 or t2 (get_rmd_seq_block function)");
-            end
-        else
-            error("input n must be integer or must be larger or equal to 0");
-        end
     end
 
     function [I, Q, M1, Tr1] = get_square_pulse(frequency, lengthsPt, spacingsPt, amp, phase, marker, trig)
