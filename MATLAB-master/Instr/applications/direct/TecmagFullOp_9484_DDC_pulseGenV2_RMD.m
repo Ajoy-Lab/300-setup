@@ -293,15 +293,12 @@ end
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
-    RMD_seq_length = 40000;
+    RMD_seq_length = 40000/(2^(n_order - 1));
     
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
     random_seq = get_random_seq(RMD_seq_length, seed);
-    
-    % n_order indicates the value of n in a unit cell for the RMD_seq
-    n_order = 1;
     % The number of corresponding pulses
     numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
