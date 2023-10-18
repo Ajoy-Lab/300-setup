@@ -269,7 +269,6 @@ end
     pi_half = 120e-6;
     % can start out with index = 1,2, ... 20
     offset = 0.12*pi_half;
-%     offset = 0;
     theta_a = pi_half - offset;
     theta_b = pi_half + offset;
     %% DEFINE PULSE SEQUENCE PARAMETERS
@@ -284,6 +283,7 @@ end
     trigs = [0 1 1]; %acquire on every "pi" pulse
     %set random seed
     seed = 5;
+    n_order = 1;
     fprintf("This is seed: %d \n", seed);
     fprintf("This is n_order: %d \n", n_order);
     
