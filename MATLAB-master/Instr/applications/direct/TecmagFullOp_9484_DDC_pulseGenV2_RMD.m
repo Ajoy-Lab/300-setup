@@ -272,7 +272,6 @@ end
 %     offset = 0;
     theta_a = pi_half - offset;
     theta_b = pi_half + offset;
-    index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5];
     frequencies = [0 0 0];
@@ -285,16 +284,8 @@ end
     trigs = [0 1 1]; %acquire on every "pi" pulse
     %set random seed
     seed = 5;
-    tau_index = mod(index, 30);
-    % random seed used to generate pseudo-random sequence (sweeping 
-    n_order = (fix(index/30)+1);
     fprintf("This is seed: %d \n", seed);
-    fprintf("This is tau_index: %d \n", tau_index); 
     fprintf("This is n_order: %d \n", n_order);
-    
-    delay_tau = (1.1^tau_index)*163 - 163;
-    spacings(2) = delay_tau*1e-6 + 43e-6;
-    spacings(3) = delay_tau*1e-6 + 43e-6;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
@@ -377,6 +368,7 @@ end
                 
                 
                 tacq=cmdBytes(5);
+                fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
 %                 tacq=96;
