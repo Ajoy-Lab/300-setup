@@ -268,8 +268,10 @@ end
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
     % can start out with index = 1,2, ... 20
-    theta_a = (1-0.03)*pi_half;
-    theta_b = (1+0.03)*pi_half;
+    offset = 0.12*pi_half;
+%     offset = 0;
+    theta_a = pi_half - offset;
+    theta_b = pi_half + offset;
     index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5];
@@ -281,15 +283,18 @@ end
     spacings = [5e-6 43e-6 43e-6];
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
-    n_order = mod(index,4) + 1;
+    %set random seed
+    seed = 5;
+    tau_index = mod(index, 30);
     % random seed used to generate pseudo-random sequence (sweeping 
-    seed = (fix(index/4)+1) * 5;
-    fprintf("This is n_order: %d \n", n_order);
+    n_order = (fix(index/30)+1);
     fprintf("This is seed: %d \n", seed);
+    fprintf("This is tau_index: %d \n", tau_index); 
+    fprintf("This is n_order: %d \n", n_order);
     
-%     delay_tau = (1.1^index)*163 - 163;
-%     spacings(2) = delay_tau*1e-6 + 43e-6;
-%     spacings(3) = delay_tau*1e-6 + 43e-6;
+    delay_tau = (1.1^tau_index)*163 - 163;
+    spacings(2) = delay_tau*1e-6 + 43e-6;
+    spacings(3) = delay_tau*1e-6 + 43e-6;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
