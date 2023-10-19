@@ -286,6 +286,9 @@ end
     n_order = 1;
     fprintf("This is seed: %d \n", seed);
     fprintf("This is n_order: %d \n", n_order);
+    index = cmdBytes(2);
+    spacings(2) = index * 1e-6;
+    spacings(3) = index * 1e-6;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
@@ -366,8 +369,8 @@ end
                 
                 Tmax=cmdBytes(4);
                 
-                
-                tacq=cmdBytes(5);
+                %fix the window as 2us.
+                tacq= 2;
                 fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
