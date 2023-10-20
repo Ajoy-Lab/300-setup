@@ -280,21 +280,21 @@ end
     phases = [0 90 90];
     mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % theta_a and theta_b can have the same spacings
-    spacings = [5e-6 43e-6 43e-6];
+    spacings = [5e-6 13e-6 13e-6];
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
     %set random seed
     seed = 5;
-    tau_index = mod(index, 30);
+    tau_index = mod(index, 21);
     % random seed used to generate pseudo-random sequence (sweeping 
-    n_order = (fix(index/30)+1);
+    n_order = (fix(index/21)+1);
     fprintf("This is seed: %d \n", seed);
     fprintf("This is tau_index: %d \n", tau_index); 
     fprintf("This is n_order: %d \n", n_order);
     
-    delay_tau = (1.1^tau_index)*163 - 163;
-    spacings(2) = delay_tau*1e-6 + 43e-6;
-    spacings(3) = delay_tau*1e-6 + 43e-6;
+    delay_tau = ((1.1^tau_index)*30 - 30 + 13)*1e-6;
+    spacings(2) = delay_tau;
+    spacings(3) = delay_tau;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
@@ -375,8 +375,8 @@ end
                 
                 Tmax=cmdBytes(4);
                 
-                
-                tacq=cmdBytes(5);
+                %fix scan to tacq = 2us
+                tacq = 2;
 %                 tacq=128;
 %                 tacq=64;
 %                 tacq=96;
