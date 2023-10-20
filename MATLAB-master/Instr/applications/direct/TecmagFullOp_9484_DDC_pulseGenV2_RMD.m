@@ -269,7 +269,6 @@ end
     pi_half = 120e-6;
     % can start out with index = 1,2, ... 20
     offset = 0.12*pi_half;
-%     offset = 0;
     theta_a = pi_half - offset;
     theta_b = pi_half + offset;
     index = cmdBytes(2);
@@ -288,9 +287,6 @@ end
     tau_index = mod(index, 21);
     % random seed used to generate pseudo-random sequence (sweeping 
     n_order = (fix(index/21)+1);
-    fprintf("This is seed: %d \n", seed);
-    fprintf("This is tau_index: %d \n", tau_index); 
-    fprintf("This is n_order: %d \n", n_order);
     
     delay_tau = ((1.1^tau_index)*30 - 30 + 13)*1e-6;
     spacings(2) = delay_tau;
@@ -375,8 +371,9 @@ end
                 
                 Tmax=cmdBytes(4);
                 
-                %fix scan to tacq = 2us
-                tacq = 2;
+                %fix the window as 2us.
+                tacq= 2;
+                fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
 %                 tacq=96;
