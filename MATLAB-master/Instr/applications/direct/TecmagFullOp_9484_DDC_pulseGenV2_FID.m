@@ -234,9 +234,6 @@ end
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
-                pw = cmdBytes(2)*1e-6;
-                lengths(1) = pw;
-%                 tof = -1000*cmdBytes(2);
                 tof = -1000*(25.0613);
                 
                 ch=1;
@@ -307,7 +304,7 @@ end
 
                 Tmax=1; % will be 1 for FID
                 
-                tacq=50000;
+                tacq=40000;
 
                 numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;

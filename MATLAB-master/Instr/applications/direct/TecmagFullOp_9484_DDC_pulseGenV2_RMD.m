@@ -268,7 +268,7 @@ end
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
     % can start out with index = 1,2, ... 20
-    offset = 0.12*pi_half;
+    offset = 0.01*pi_half;
     theta_a = pi_half - offset;
     theta_b = pi_half + offset;
     index = cmdBytes(2);
@@ -283,18 +283,20 @@ end
     markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1]; %acquire on every "pi" pulse
     %set random seed
-    seed = 5;
+    seed = 20;
     tau_index = mod(index, 21);
-    % random seed used to generate pseudo-random sequence (sweeping 
+%     % random seed used to generate pseudo-random sequence (sweeping 
     n_order = (fix(index/21)+1);
+    fprintf("This is tau_index: %d \n", tau_index);
+    fprintf("This is n_order: %d \n", n_order);
     
-    delay_tau = ((1.1^tau_index)*30 - 30 + 13)*1e-6;
+    delay_tau = ((1.1^tau_index)*60 - 60 + 16)*1e-6;
     spacings(2) = delay_tau;
     spacings(3) = delay_tau;
     
     % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
     % sequence
-    RMD_seq_length = 40000/(2^(n_order - 1));
+    RMD_seq_length = 50000/(2^(n_order - 1));
     
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
@@ -372,7 +374,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq= 2;
+                tacq= 4;
                 fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
