@@ -267,12 +267,12 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
-    index = cmdBytes(2);
+%     index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5 0.5];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    lengths = [120-6 120e-6 240e-6 120e-6];
+    lengths = [120e-6 120e-6 240e-6 120e-6];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
@@ -1422,13 +1422,14 @@ global sampleRateInterp
     % set tasktable length to length of 2*random_seq + 2
     % +2 comes from the first and last holding segment and the +2 comes
     % from the first pi/2 and the next train of x-pulses.
-    % Y-pulse
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', length(random_seq)+3));
+    % y-pulse and train of x-pulse to create DTC requires two entries in
+    % the task table.
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', 3));
     %% set the first holding segment
     inst.SendScpi(':TASK:COMP:ENAB CPU');
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
     t_idx = t_idx + 1;
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',5));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
@@ -1436,25 +1437,25 @@ global sampleRateInterp
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
     t_idx = t_idx + 1;
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
-    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 100000));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     
-    %% set tasktable to apply random sequence
-    for seq_idx = 1: length(random_seq)
-        segm = random_seq(seq_idx);
-        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-        t_idx = t_idx + 1;
-        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', segm));
-        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
-        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-        inst.SendScpi(':TASK:COMP:TYPE SING');
-    end
+%     %% set tasktable to apply random sequence
+%     for seq_idx = 1: length(random_seq)
+%         segm = random_seq(seq_idx);
+%         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+%         t_idx = t_idx + 1;
+%         inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', segm));
+%         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+%         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+%         inst.SendScpi(':TASK:COMP:TYPE SING');
+%     end
     
     %% set final segment to apply tasktable
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',5));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
     inst.SendScpi('TASK:COMP:WRITE');
