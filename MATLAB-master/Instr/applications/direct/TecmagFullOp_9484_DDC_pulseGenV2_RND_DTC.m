@@ -691,29 +691,30 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                %creating time_axis --- need to account for the randomness
-                %create memoized get_rmd_seq_block function
-                mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
-                mf_get_rmd_seq_block.CacheSize = n_order * 2;
-                Un_tilda_pulse = mf_get_rmd_seq_block(2, n_order, 2, 3);
-                Un_pulse = mf_get_rmd_seq_block(3, n_order, 2, 3);
-                curr_t = 0;
                 time_axis = [];
+                curr_t = 0;
+                for i = (1:reps(2))
+                    curr_t = curr_t + lengths(2)+spacings(2);
+                    time_axis = [time_axis, curr_t];
+                end
                 for i = (1:length(random_seq))
-                    %each entry in random sequence corrresponds to random
-                    %block
-                    p_t = random_seq(i);
-                    U_pulse = [];
-                    if p_t == 2
-                        U_pulse = Un_tilda_pulse;
-                    elseif p_t == 3
-                        U_pulse = Un_pulse;
-                    else
-                        error("pulse type needs to be 2 or 3");
-                    end
-                    for idx = (1:length(U_pulse))
-                        curr_t = curr_t + lengths(U_pulse(idx)) + spacings(U_pulse(idx));
+                    
+                    if i == 0
+                        curr_t = curr_t + lengths(3)+spacings(3);
                         time_axis = [time_axis, curr_t];
+                        for j = (1:reps(4))
+                            curr_t = curr_t+lengths(4)+spacings(4);
+                            time_axis = [time_axis, curr_t];
+                        end
+                    elseif i == 1
+                        for j = (1:reps(4))
+                            curr_t = curr_t+lengths(4)+spacings(4);
+                            time_axis = [time_axis, curr_t];
+                        end
+                        curr_t = curr_t + lengths(3)+spacings(3);
+                        time_axis = [time_axis, curr_t];
+                    else
+                        assert((i == 0 | i == 1), "i should be 0 or 1");
                     end
                 end
                   %drop first point -- NOT ANYMORE
@@ -1414,17 +1415,18 @@ global sampleRateInterp
     1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
     %}
     disp('setting task table')
-    % t_idx = tasktable index
-    t_idx = 1;
     %% Initialize task table
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    % set tasktable length to length of 2*random_seq + 2
+    % set tasktable length = 2*length(random_seq)+4
     % +2 comes from the first and last holding segment and the +2 comes
     % from the first pi/2 and the next train of x-pulses.
-    % y-pulse and train of x-pulse to create DTC requires two entries in
+    % y-pulse and train of x-pulse (vice versa as well) to create DTC requires two entries in
     % the task table.
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', 3));
+    task_table_length = 2*length(random_seq) + 4;
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', task_table_length));
+    % t_idx = tasktable index
+    t_idx = 1;
     %% set the first holding segment
     inst.SendScpi(':TASK:COMP:ENAB CPU');
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
@@ -1436,21 +1438,52 @@ global sampleRateInterp
     %% set the initial pi/2 pulse
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
     t_idx = t_idx + 1;
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
-    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 100000));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(1)));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     
-%     %% set tasktable to apply random sequence
-%     for seq_idx = 1: length(random_seq)
-%         segm = random_seq(seq_idx);
-%         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-%         t_idx = t_idx + 1;
-%         inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', segm));
-%         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
-%         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-%         inst.SendScpi(':TASK:COMP:TYPE SING');
-%     end
+    %% set train of x-pulses for initial spin lock
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    t_idx = t_idx + 1;
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(2)));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+    inst.SendScpi(':TASK:COMP:TYPE SING');
+    
+    %% set tasktable to apply random sequence
+    for rand_idx = 1: length(random_seq)
+        rand_num = random_seq(rand_idx);
+        if rand_num == 0
+            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+            t_idx = t_idx + 1;
+            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(3)));
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+            inst.SendScpi(':TASK:COMP:TYPE SING');
+            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+            t_idx = t_idx + 1;
+            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(4)));
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+            inst.SendScpi(':TASK:COMP:TYPE SING');
+        elseif rand_num == 1
+            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+            t_idx = t_idx + 1;
+            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(4)));
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+            inst.SendScpi(':TASK:COMP:TYPE SING');
+            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+            t_idx = t_idx + 1;
+            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
+            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(3)));
+            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+            inst.SendScpi(':TASK:COMP:TYPE SING');
+        else
+            assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1");
+        end     
+    end
     
     %% set final segment to apply tasktable
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
