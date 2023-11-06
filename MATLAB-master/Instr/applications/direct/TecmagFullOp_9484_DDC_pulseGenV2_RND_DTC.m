@@ -1436,7 +1436,7 @@ global sampleRateInterp
     %% set the initial pi/2 pulse
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
     t_idx = t_idx + 1;
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 100000));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
