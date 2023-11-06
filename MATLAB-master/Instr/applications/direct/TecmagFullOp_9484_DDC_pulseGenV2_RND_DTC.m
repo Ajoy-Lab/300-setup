@@ -283,7 +283,7 @@ end
     %set random seed
     seed = 20;
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 700;
+    DTC_rep_seq = 720;
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
@@ -360,7 +360,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq= 4;
+                tacq= 12;
                 fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
@@ -698,15 +698,15 @@ end
                     time_axis = [time_axis, curr_t];
                 end
                 for i = (1:length(random_seq))
-                    
-                    if i == 0
+                    rand_num = random_seq(i);
+                    if rand_num == 0
                         curr_t = curr_t + lengths(3)+spacings(3);
                         time_axis = [time_axis, curr_t];
                         for j = (1:reps(4))
                             curr_t = curr_t+lengths(4)+spacings(4);
                             time_axis = [time_axis, curr_t];
                         end
-                    elseif i == 1
+                    elseif rand_num == 1
                         for j = (1:reps(4))
                             curr_t = curr_t+lengths(4)+spacings(4);
                             time_axis = [time_axis, curr_t];
@@ -714,14 +714,14 @@ end
                         curr_t = curr_t + lengths(3)+spacings(3);
                         time_axis = [time_axis, curr_t];
                     else
-                        assert((i == 0 | i == 1), "i should be 0 or 1");
+                        assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1");
                     end
                 end
                   %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
-                try
+%                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
                     set(p1,'markersize',1);
@@ -754,9 +754,9 @@ end
 %                     set(gca,'xlim',[5-8e-3,5+30e-3]);
 %                     plot_labels('Time [s]', 'Signal [au]');
 
-                catch
-                    disp('Plot error occured');
-                end
+%                 catch
+%                     disp('Plot error occured');
+%                 end
                 
                 %fn=dataBytes; %filename
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
@@ -1453,7 +1453,7 @@ global sampleRateInterp
     
     %% set tasktable to apply random sequence
     for rand_idx = 1: length(random_seq)
-        rand_num = random_seq(rand_idx);
+        rand_num = 0;
         if rand_num == 0
             inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
             t_idx = t_idx + 1;
