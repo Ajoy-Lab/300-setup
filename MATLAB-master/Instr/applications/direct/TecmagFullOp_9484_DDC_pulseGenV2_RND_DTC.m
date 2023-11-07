@@ -267,16 +267,19 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi_half = 120e-6;
-%     index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [0.5 0.5 0.5 0.5];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [120e-6 120e-6 240e-6 120e-6];
+    
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
     spacings = [5e-6 43e-6 43e-6 43e-6];
+    index = cmdBytes(2);
+    spacings(3) = index*1e-6;
+    spacings(4) = index*1e-6;
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
