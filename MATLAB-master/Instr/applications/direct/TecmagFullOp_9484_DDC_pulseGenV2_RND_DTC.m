@@ -284,6 +284,7 @@ end
     seed = 20;
     % the number of repetitions to create DTC once polarization stabilizes
     DTC_rep_seq = 720;
+    x_pulse_ratio = 6;
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
@@ -299,7 +300,7 @@ end
                 clearPulseDict();
                 clearBlockDict();
                 
-                generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq);
+                generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq, x_pulse_ratio);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -699,22 +700,23 @@ end
                 end
                 for i = (1:length(random_seq))
                     rand_num = random_seq(i);
+                    num_x_pulse = 0; 
                     if rand_num == 0
-                        curr_t = curr_t + lengths(3)+spacings(3);
-                        time_axis = [time_axis, curr_t];
-                        for j = (1:reps(4))
-                            curr_t = curr_t+lengths(4)+spacings(4);
-                            time_axis = [time_axis, curr_t];
-                        end
+                        num_x_pulse = floor(reps(4)/x_pulse_ratio);
                     elseif rand_num == 1
-                        for j = (1:reps(4))
-                            curr_t = curr_t+lengths(4)+spacings(4);
-                            time_axis = [time_axis, curr_t];
-                        end
-                        curr_t = curr_t + lengths(3)+spacings(3);
-                        time_axis = [time_axis, curr_t];
+                        num_x_pulse = reps(4) - floor(reps(4)/x_pulse_ratio);
                     else
-                        assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1");
+                        assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1"); 
+                    end
+                    for j = (1:num_x_pulse)
+                        curr_t = curr_t+lengths(4)+spacings(4);
+                        time_axis = [time_axis, curr_t];
+                    end
+                    curr_t = curr_t + lengths(3)+spacings(3);
+                    time_axis = [time_axis, curr_t];
+                    for j = (1:reps(4)-num_x_pulse)
+                        curr_t = curr_t+lengths(4)+spacings(4);
+                        time_axis = [time_axis, curr_t];
                     end
                 end
                   %drop first point -- NOT ANYMORE
@@ -1275,7 +1277,7 @@ function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
     end
 end
 
-function generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, reps, random_seq)
+function generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, reps, random_seq, x_pulse_ratio)
 %{
 ch: channel RMD sequence is being applied
 amps: amplitude of each pulses -- there are only three pulses pi/2
@@ -1409,7 +1411,7 @@ global sampleRateInterp
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, random_seq)
+    function setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, x_pulse_ratio)
     %{
     4 types of segment:
     1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
@@ -1421,9 +1423,9 @@ global sampleRateInterp
     % set tasktable length = 2*length(random_seq)+4
     % +2 comes from the first and last holding segment and the +2 comes
     % from the first pi/2 and the next train of x-pulses.
-    % y-pulse and train of x-pulse (vice versa as well) to create DTC requires two entries in
+    % y-pulse and 2 trains of x-pulse (front of y-pulse and back of y-pulse) to create DTC requires 3 entries in
     % the task table.
-    task_table_length = 2*length(random_seq) + 4;
+    task_table_length = 3*length(random_seq) + 4;
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d', task_table_length));
     % t_idx = tasktable index
     t_idx = 1;
@@ -1453,36 +1455,33 @@ global sampleRateInterp
     
     %% set tasktable to apply random sequence
     for rand_idx = 1: length(random_seq)
-        rand_num = 0;
+        rand_num = random_seq(rand_idx);
+        num_x_pulse = 0; 
         if rand_num == 0
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(3)));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(4)));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
+            num_x_pulse = floor(reps(4)/x_pulse_ratio);
         elseif rand_num == 1
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(4)));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(3)));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
+            num_x_pulse = reps(4) - floor(reps(4)/x_pulse_ratio);
         else
-            assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1");
-        end     
+            assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1"); 
+        end
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+        t_idx = t_idx + 1;
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', num_x_pulse));
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+        inst.SendScpi(':TASK:COMP:TYPE SING');
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+        t_idx = t_idx + 1;
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 3));
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(3)));
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+        inst.SendScpi(':TASK:COMP:TYPE SING');
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+        t_idx = t_idx + 1;
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 4));
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', reps(4) - num_x_pulse));
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+        inst.SendScpi(':TASK:COMP:TYPE SING');   
     end
     
     %% set final segment to apply tasktable
@@ -1577,7 +1576,7 @@ global sampleRateInterp
     
     downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
 
-    setTask_Pulse(ch, numPulses, numSegs, reps, random_seq);
+    setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, x_pulse_ratio);
  
     fprintf('pulse sequence written \n');
 end
