@@ -267,16 +267,15 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     amps = [0.5 0.5];
     frequencies = [0 0];
-    lengths = [5e-6 5e-6];
+    lengths = [120e-6 120e-6];
     phases = [0 90];
-    mods = [1 1]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-%     reps = [1 194174];
-        reps = [1 3000];
+    reps = [1 194174];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
@@ -407,7 +406,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 0.01');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 20e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
@@ -632,11 +631,11 @@ end
                             end
                         end
                         if n == 1
-                            if i == 1
+                            if i == 2
                                 figure(8);clf;
-                                plot(real(pulse));
+                                plot(pulse);
                                 figure(9);clf;
-                                plot(f,abs(fftshift(fft(real(pulse),padded_len))));
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
                                 hold on;
                                 yline(2048);
                             end
