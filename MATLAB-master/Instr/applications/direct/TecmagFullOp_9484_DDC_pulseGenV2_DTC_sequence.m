@@ -281,7 +281,7 @@ end
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*24.84;
+                tof = -1000 *(25.5039);
                 
                 ch=1;
                 initializeAWG(ch);
