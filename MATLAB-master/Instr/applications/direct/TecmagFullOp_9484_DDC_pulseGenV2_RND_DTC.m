@@ -277,17 +277,17 @@ end
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
     spacings = [5e-6 43e-6 43e-6 43e-6];
-    index = cmdBytes(2);
-    spacings(3) = index*1e-6;
-    spacings(4) = index*1e-6;
+%     spacings(3) = index*1e-6;
+%     spacings(4) = index*1e-6;
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
     %set random seed
-    seed = 20;
+    seed = cmdBytes(2);
     % the number of repetitions to create DTC once polarization stabilizes
     DTC_rep_seq = 720;
-    x_pulse_ratio = 6;
+    x_pulse_ratio = 7;
+    fprintf("This is the number of x-pulses on the left of y pulse: %d \n", floor(reps(4)*(1/x_pulse_ratio)));
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
