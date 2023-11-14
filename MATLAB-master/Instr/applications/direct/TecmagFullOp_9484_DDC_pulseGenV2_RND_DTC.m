@@ -266,32 +266,35 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 120e-6;
+    pi_half = 54e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    amps = [0.5 0.5 0.5 0.5];
+    amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    lengths = [120e-6 120e-6 240e-6 120e-6];
-    
+    lengths = [54e-6 54e-6 108e-6 54e-6];
+    %set random seed
+    seed = cmdBytes(2);
+    fprintf("This is the random seed %d \n", seed);
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 43e-6 43e-6 43e-6];
-%     spacings(3) = index*1e-6;
-%     spacings(4) = index*1e-6;
+    spacings = [5e-6 25e-6 25e-6 25e-6];
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
-    %set random seed
-    seed = cmdBytes(2);
+
     % the number of repetitions to create DTC once polarization stabilizes
     DTC_rep_seq = 720;
-    x_pulse_ratio = 7;
-    fprintf("This is the number of x-pulses on the left of y pulse: %d \n", floor(reps(4)*(1/x_pulse_ratio)));
+    num_x_lt_pulses = 40;
+    fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
+    assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
-    random_seq = get_random_seq(DTC_rep_seq, seed);
+    n_order = 2;
+    RMD_seq_len = floor(DTC_rep_seq/(2^n_order));
+    assert(DTC_rep_seq == RMD_seq_len*(2^n_order), "DTC_rep_seq should be multiple of 2^n_order");
+    random_seq = get_n_random_seq(RMD_seq_len, seed, n_order);
     % The number of corresponding pulses from reps and DTC_
     numberOfPulses_total = reps(2) + DTC_rep_seq*(reps(3) + reps(4));
     
@@ -303,7 +306,7 @@ end
                 clearPulseDict();
                 clearBlockDict();
                 
-                generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq, x_pulse_ratio);
+                generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq, num_x_lt_pulses);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -695,32 +698,29 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_axis = [];
-                curr_t = 0;
-                for i = (1:reps(2))
-                    curr_t = curr_t + lengths(2)+spacings(2);
-                    time_axis = [time_axis, curr_t];
-                end
+                time_axis = (1:reps(2))*(lengths(2)+spacings(2));
+                curr_t = reps(2)*(lengths(2)+spacings(2));
                 for i = (1:length(random_seq))
                     rand_num = random_seq(i);
                     num_x_pulse = 0; 
                     if rand_num == 0
-                        num_x_pulse = floor(reps(4)/x_pulse_ratio);
+                        num_x_pulse = num_x_lt_pulses;
                     elseif rand_num == 1
-                        num_x_pulse = reps(4) - floor(reps(4)/x_pulse_ratio);
+                        num_x_pulse = reps(4) - num_x_lt_pulses;
                     else
                         assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1"); 
                     end
-                    for j = (1:num_x_pulse)
-                        curr_t = curr_t+lengths(4)+spacings(4);
-                        time_axis = [time_axis, curr_t];
-                    end
+                    %add time for the x pulses left of the Y pulse
+                    time_axis_added = curr_t + (1:num_x_pulse)*(lengths(4)+spacings(4));
+                    time_axis = cat(2, time_axis, time_axis_added);
+                    curr_t = curr_t + num_x_pulse*(lengths(4) + spacings(4));
+                    %add time for the Y pulse
                     curr_t = curr_t + lengths(3)+spacings(3);
                     time_axis = [time_axis, curr_t];
-                    for j = (1:reps(4)-num_x_pulse)
-                        curr_t = curr_t+lengths(4)+spacings(4);
-                        time_axis = [time_axis, curr_t];
-                    end
+                    %add time for the x pulses right of the Y pulse
+                    time_axis_added = curr_t + (1:(reps(4)-num_x_pulse))*(lengths(4)+spacings(4));
+                    time_axis = cat(2, time_axis, time_axis_added);
+                    curr_t = curr_t + (reps(4)-num_x_pulse)*(lengths(4) + spacings(4));
                 end
                   %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
@@ -1252,15 +1252,29 @@ function initializeAWG(ch)
      assert(res.ErrCode==0);
 end
 
-function random_seq = get_random_seq(RMD_seq_length, seed)
+function random_seq = get_n_random_seq(RMD_seq_length, seed, n_order)
     rng(seed);
-    random_seq = randi([0, 1], 1, RMD_seq_length);
+    rmd_block_index_seq = randi([0, 1], 1, RMD_seq_length);
+    mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
+    Un_tilda_pulse = mf_get_rmd_seq_block(0, n_order, 0, 1);
+    Un_pulse = mf_get_rmd_seq_block(1, n_order, 0, 1);
+    random_seq = [];
+    for i = (1:length(rmd_block_index_seq))
+        rmd_block_idx = rmd_block_index_seq(i);
+        if rmd_block_idx == 0
+            random_seq = cat(2, random_seq, Un_tilda_pulse);
+        elseif rmd_block_idx == 1
+            random_seq = cat(2, random_seq, Un_pulse);
+        else
+            error("rmd_block index should be 0 or 1");
+        end 
+    end
 end
 
 function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
     %{
     Generate arbitrary length n-order Thue-Morse. t1 indicates + pulse. t2
-    indicates b pulse.
+    indicates - pulse.
     pulse_t = t1 or t2
     For example,
     get_rmd_seq_block(2,5,2,3) = \tilda{U_{5}}, get_rmd_seq_block(3,5,2,3) = U_{5}
@@ -1280,7 +1294,7 @@ function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
     end
 end
 
-function generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, reps, random_seq, x_pulse_ratio)
+function generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, reps, random_seq, num_x_lt_pulses)
 %{
 ch: channel RMD sequence is being applied
 amps: amplitude of each pulses -- there are only three pulses pi/2
@@ -1414,7 +1428,7 @@ global sampleRateInterp
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, x_pulse_ratio)
+    function setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, num_x_lt_pulses)
     %{
     4 types of segment:
     1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
@@ -1461,9 +1475,9 @@ global sampleRateInterp
         rand_num = random_seq(rand_idx);
         num_x_pulse = 0; 
         if rand_num == 0
-            num_x_pulse = floor(reps(4)/x_pulse_ratio);
+            num_x_pulse = num_x_lt_pulses;
         elseif rand_num == 1
-            num_x_pulse = reps(4) - floor(reps(4)/x_pulse_ratio);
+            num_x_pulse = reps(4) - num_x_lt_pulses;
         else
             assert((rand_num == 0 | rand_num == 1), "rand_num should be 0 or 1"); 
         end
@@ -1579,7 +1593,7 @@ global sampleRateInterp
     
     downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
 
-    setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, x_pulse_ratio);
+    setTask_Pulse(ch, numPulses, numSegs, reps, random_seq, num_x_lt_pulses);
  
     fprintf('pulse sequence written \n');
 end
