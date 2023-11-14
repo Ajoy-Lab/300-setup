@@ -265,18 +265,18 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
-    amps = [0.5 0.5 0.5 0.5];
+    amps = [1 1 1 1];
     frequencies = [0 0 0 0];
-    lengths = [120-6 120e-6 240e-6 120e-6];
+    lengths = [54e-6 54e-6 108e-6 54e-6];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6 5e-6 43e-6];
+    spacings = [5e-6 25e-6 5e-6 25e-6];
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 0 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 300];
-    repeatSeq = [1 700]; % how many times to repeat the block of pulses
+    repeatSeq = [1 700]; % how ma54ny times to repeat the block of pulses
     
                 pw = cmdBytes(2)*1e-6;
                 lengths(1) = pw;
