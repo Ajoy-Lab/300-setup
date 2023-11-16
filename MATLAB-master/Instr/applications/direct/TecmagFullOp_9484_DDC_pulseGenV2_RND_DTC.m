@@ -274,7 +274,7 @@ end
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set random seed
     seed = 20;
-    lengths(3) = cmdBytes(2)*108e-6;
+    lengths(3) = 0.97*108e-6;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
@@ -284,10 +284,10 @@ end
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
-
+    reps(4) = cmdBytes(2);
     % the number of repetitions to create DTC once polarization stabilizes
     DTC_rep_seq = 720;
-    num_x_lt_pulses = 42;
+    num_x_lt_pulses = 10;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
