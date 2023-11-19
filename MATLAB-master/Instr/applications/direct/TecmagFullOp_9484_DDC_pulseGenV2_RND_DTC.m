@@ -276,7 +276,7 @@ end
     %set random seed
     seed = 5;
     tau_idx = mod(index, 20);
-    delay_tau = (1.1^tau_index)*25e-6;
+    delay_tau = (1.1^tau_idx)*25e-6;
     lengths(3) = 0.97*108e-6;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
@@ -286,6 +286,7 @@ end
     spacings = [5e-6 25e-6 25e-6 25e-6];
     spacings(3) = delay_tau;
     spacings(4) = delay_tau;
+    fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
