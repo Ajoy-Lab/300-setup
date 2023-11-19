@@ -274,7 +274,9 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set random seed
-    seed = (fix(index/5)+1) * 5;
+    seed = 5;
+    tau_idx = mod(index, 20);
+    delay_tau = (1.1^tau_index)*25e-6;
     lengths(3) = 0.97*108e-6;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
@@ -282,6 +284,8 @@ end
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
     spacings = [5e-6 25e-6 25e-6 25e-6];
+    spacings(3) = delay_tau;
+    spacings(4) = delay_tau;
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
@@ -293,7 +297,7 @@ end
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
-    n_order = mod(index, 5);
+    n_order = fix(index/20);
     fprintf("This is number of n-RMD order %d\n", n_order);
     RMD_seq_len = floor(DTC_rep_seq/(2^n_order));
     assert(DTC_rep_seq == RMD_seq_len*(2^n_order), "DTC_rep_seq should be multiple of 2^n_order");
