@@ -274,16 +274,13 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set pi-epsilon for the pi pulse
-    lengths(3) = 0.97*108e-6;
+    lengths(3) = index*1e-6;
     %set random seed
     seed = 5;
-	num_x_lt_pulses = 5 + mod(index, 6);
-    index_2 = mod(fix(index/6), 6);
-    index_3 = fix(fix(index/6)/6);
-    num_x_rt_pulses = 5 + index_2;
-    n_order = index_3;
+	num_x_lt_pulses = 40;
+    n_order = 0;
     fprintf("This is the random seed %d \n", seed);
-    fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
+    fprintf("This is the length of the Y pulse %d \n", lengths(3));
     fprintf("This is number of n-RMD order %d\n", n_order);
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -294,10 +291,8 @@ end
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 1000;
-    reps(4) = num_x_lt_pulses + num_x_rt_pulses;
+    DTC_rep_seq = 720;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
-    fprintf("This is the number of x-pulses right of the Y pulse: %d \n", num_x_rt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
