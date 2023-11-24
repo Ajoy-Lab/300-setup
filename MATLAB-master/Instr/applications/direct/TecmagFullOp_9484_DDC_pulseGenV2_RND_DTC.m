@@ -269,7 +269,7 @@ end
     pi_half = 54e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     index = cmdBytes(2);
-    amps = [1 1 1 1];
+    amps = [1 1 -1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
@@ -480,7 +480,7 @@ end
                 
                % pause(Tmax+3);
                 
-                for n = 1:700
+                for n = 1:1800
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
