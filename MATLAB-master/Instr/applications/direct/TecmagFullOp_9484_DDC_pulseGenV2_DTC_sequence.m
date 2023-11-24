@@ -285,7 +285,6 @@ end
     repeatSeq = [1 700]; % how ma54ny times to repeat the block of pulses
     
                 tof = -1000 *(25.5039);
-                tof = tof + cmdBytes(2) - 150;
                 
                 ch=1;
                 initializeAWG(ch);
