@@ -274,7 +274,7 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set random seed
-    seed = 5;
+    seed = 10;
     tau_idx = mod(index, 20);
     delay_tau = (1.1^tau_idx)*25e-6;
     lengths(3) = 0.97*108e-6;
