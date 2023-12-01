@@ -274,16 +274,17 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set random seed
-    seed = 15;
-    tau_idx = mod(index, 10);
-    delay_tau = (1 + tau_idx)*13e-6;
-    lengths(3) = (1 - 0.005*(1+tau_idx))*108e-6;
+    tau_idx = mod(index, 5);
+    seed = mod(fix(index/5), 10);
+    n_order = fix(fix(index/5)/10);
+    delay_tau = (1 + 2*tau_idx)*17e-6;
+    lengths(3) = (1 - 0.005*(1+2*tau_idx))*108e-6;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 25e-6 13e-6 13e-6];
+    spacings = [5e-6 25e-6 17e-6 17e-6];
     spacings(3) = delay_tau;
     spacings(4) = delay_tau;
     fprintf("This is x-pulse spacings %d", spacings(4));
@@ -292,13 +293,12 @@ end
     reps = [1 6000 1 300];
     % the number of repetitions to create DTC once polarization stabilizes
     DTC_rep_seq = 720;
-    num_x_lt_pulses = 40;
+    num_x_lt_pulses = 100;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
     % it will be used to indicate which segment to use when generating
     % tasktable
-    n_order = fix(index/10);
     fprintf("This is number of n-RMD order %d\n", n_order);
     RMD_seq_len = floor(DTC_rep_seq/(2^n_order));
     assert(DTC_rep_seq == RMD_seq_len*(2^n_order), "DTC_rep_seq should be multiple of 2^n_order");
@@ -375,11 +375,8 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq= 2;
+                tacq= 6;
                 fprintf("This is tacq: %d \n", tacq);
-%                 tacq=128;
-%                 tacq=64;
-%                 tacq=96;
                 
                 numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
                 loops=Tmax;
