@@ -274,19 +274,19 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [54e-6 54e-6 108e-6 54e-6];
     %set random seed
-    tau_idx = mod(index, 5);
-    seed = mod(fix(index/5), 10);
-    n_order = fix(fix(index/5)/10);
-    delay_tau = (1 + 2*tau_idx)*17e-6;
-    lengths(3) = (1 - 0.005*(1+2*tau_idx))*108e-6;
+    added_len_l = (0:3:78)*1e-6;
+    added_len_idx = mod(index, 27);
+    lengths(3) = 54e-6 + added_len_l(added_len_idx + 1);
+    seed_idx = fix(index/27);
+    seed = seed_idx+1;
+    n_order = 0;
+    
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 25e-6 17e-6 17e-6];
-    spacings(3) = delay_tau;
-    spacings(4) = delay_tau;
+    spacings = [5e-6 25e-6 25e-6 25e-6];
     fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
@@ -375,7 +375,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq= 6;
+                tacq = 12;
                 fprintf("This is tacq: %d \n", tacq);
                 
                 numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
