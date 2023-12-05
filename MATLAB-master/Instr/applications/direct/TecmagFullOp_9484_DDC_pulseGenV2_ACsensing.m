@@ -426,8 +426,8 @@ end
 %                  assert(rc.ErrCode == 0);
                  rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
                  assert(rc.ErrCode == 0);
-                 rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
-                 assert(rc.ErrCode == 0);
+%                  rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
+%                  assert(rc.ErrCode == 0);
 
 %                 rc = inst.SetAdcFramesLayotrigut(numberOfPulses*loops, readLen); %set memory of the AWG
     %                 assert(rc == 0);

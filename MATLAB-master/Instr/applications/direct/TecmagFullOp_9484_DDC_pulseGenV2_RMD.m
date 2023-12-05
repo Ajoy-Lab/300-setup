@@ -265,35 +265,55 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1'];
-    amps = [1 1];
-    frequencies = [0 0];
-    lengths = [54e-6 54e-6];
-    phases = [0 90];
-    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6];
-    markers = [1 1]; %always keep these on
-    markers2 = [0 0];
-    trigs = [0 1]; %acquire on every "pi" pulse
+    %% DEFINE PULSE LENGTH
+    pi_half = 120e-6;
+    % can start out with index = 1,2, ... 20
+    offset = 0.01*pi_half;
+    theta_a = pi_half - offset;
+    theta_b = pi_half + offset;
+    index = cmdBytes(2);
+    %% DEFINE PULSE SEQUENCE PARAMETERS
+    amps = [0.5 0.5 0.5];
+    frequencies = [0 0 0];
+    lengths = [pi_half theta_a theta_b];
+    phases = [0 90 90];
+    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    % theta_a and theta_b can have the same spacings
+    spacings = [5e-6 13e-6 13e-6];
+    markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
+    trigs = [0 1 1]; %acquire on every "pi" pulse
+    %set random seed
+    seed = 20;
+    tau_index = mod(index, 21);
+%     % random seed used to generate pseudo-random sequence (sweeping 
+    n_order = (fix(index/21)+1);
+    fprintf("This is tau_index: %d \n", tau_index);
+    fprintf("This is n_order: %d \n", n_order);
     
-    reps = [1 194174];
-    repeatSeq = [1]; % how many times to repeat the block of pulses
+    delay_tau = ((1.1^tau_index)*60 - 60 + 16)*1e-6;
+    spacings(2) = delay_tau;
+    spacings(3) = delay_tau;
+    
+    % RMD_seq length is the number of unit cells (Un \tilda(Un)) in the
+    % sequence
+    RMD_seq_length = 50000/(2^(n_order - 1));
+    
+    % generate random seq of 2s and 3s with length RMD_seq_length.
+    % it will be used to indicate which segment to use when generating
+    % tasktable
+    random_seq = get_random_seq(RMD_seq_length, seed);
+    % The number of corresponding pulses
+    numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000 *(25.5039);
-                pw = cmdBytes(2)*1e-6;
-                lengths(1) = pw;
+                tof = -1000*(25.0613);
                 
                 ch=1;
                 initializeAWG(ch);
                 clearPulseDict();
                 clearBlockDict();
                 
-                defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
-                makeBlocks({'pulsed_SL'}, ch, repeatSeq);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
+                generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, n_order, random_seq);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -349,18 +369,13 @@ end
 
                 
                 fprintf('Calculate and set data structures...\n');
-                
-                
-%                numberOfPulses_total = cmdBytes(3);
-%                reps(2) = numberOfPulses_total;
-%                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2);
 
                 
                 Tmax=cmdBytes(4);
                 
-                
-                tacq=cmdBytes(5);
+                %fix the window as 2us.
+                tacq= 4;
+                fprintf("This is tacq: %d \n", tacq);
 %                 tacq=128;
 %                 tacq=64;
 %                 tacq=96;
@@ -687,19 +702,38 @@ end
                 end
                 
                 %ivec=1:numberOfPuacqlses*loops;
-                ivec=1:length(pulseAmp);
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+spacings(2);
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
+                %creating time_axis --- need to account for the randomness
+                %create memoized get_rmd_seq_block function
+                mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
+                mf_get_rmd_seq_block.CacheSize = n_order * 2;
+                Un_tilda_pulse = mf_get_rmd_seq_block(2, n_order, 2, 3);
+                Un_pulse = mf_get_rmd_seq_block(3, n_order, 2, 3);
+                curr_t = 0;
+                time_axis = [];
+                for i = (1:length(random_seq))
+                    %each entry in random sequence corrresponds to random
+                    %block
+                    p_t = random_seq(i);
+                    U_pulse = [];
+                    if p_t == 2
+                        U_pulse = Un_tilda_pulse;
+                    elseif p_t == 3
+                        U_pulse = Un_pulse;
+                    else
+                        error("pulse type needs to be 2 or 3");
+                    end
+                    for idx = (1:length(U_pulse))
+                        curr_t = curr_t + lengths(U_pulse(idx)) + spacings(U_pulse(idx));
+                        time_axis = [time_axis, curr_t];
+                    end
+                end
+                  %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
-                relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
@@ -1226,16 +1260,51 @@ function initializeAWG(ch)
      assert(res.ErrCode==0);
 end
 
+function random_seq = get_random_seq(RMD_seq_length, seed)
+    rng(seed);
+    random_seq = randi([2, 3], 1, RMD_seq_length);
+end
 
+function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
+    %{
+    Generate arbitrary length n-order Thue-Morse. t1 indicates + pulse. t2
+    indicates b pulse.
+    pulse_t = t1 or t2
+    For example,
+    get_rmd_seq_block(2,5,2,3) = \tilda{U_{5}}, get_rmd_seq_block(3,5,2,3) = U_{5}
+    %}
+    if n == 0
+        rmd_seq = [pulse_t];
+    elseif n > 0
+        if pulse_t == t1
+            rmd_seq = cat(2, get_rmd_seq_block(t1, n-1, t1, t2), get_rmd_seq_block(t2, n-1, t1, t2));
+        elseif pulse_t == t2
+            rmd_seq = cat(2, get_rmd_seq_block(t2, n-1, t1, t2), get_rmd_seq_block(t1, n-1, t1, t2));
+        else
+            error("pulse_t must be t1 or t2 (get_rmd_seq_block function)");
+        end
+    else
+        error("input n must be integer or must be larger or equal to 0");
+    end
+end
 
-%function generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers1, markers2, trigs)
-function generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers1, trigs, repeatSeq, indices)
+function generateRMDPulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, n_order, random_seq)
+%{
+ch: channel RMD sequence is being applied
+amps: amplitude of each pulses -- there are only three pulses pi/2
+theta_a and theta_b
+frequencies: always set to 0 for all pulses
+lengths: length (in seconds) for each pulses
+phases: phases of pulses in rotating frame
+spacings: spacings after each pulse
+markers1: always 1
+trigs: triggers the digitizer
+n_order: parameter for randomess n_order = 0: random, n_order = 1 dipole, n_order = 2 quadrupolar
+%}
 global inst
 global sampleRateDAC
 global interp
 global sampleRateInterp
-global blockDict
-global pulseDict
     
     function downLoad_mrkr(ch, segMem, dacWave, mkrNum, state1, state2)
     fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
@@ -1353,72 +1422,117 @@ global pulseDict
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
+    function setTask_Pulse(ch, numPulses, numSegs, random_seq)
+    %{
+    4 types of segment:
+    1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
+    %}
     disp('setting task table')
-
+    % t_idx = tasktable index
+    t_idx = 1;
+    %% Initialize task table
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi('TASK:ZERO:ALL');
-    inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
+    % set tasktable length to length of random sequence + 3
+    % +2 comes from the first and last holding segment and the +1 comes
+    % from the first pi/2 pulse.
+    inst.SendScpi(sprintf(':TASK:COMP:LENG %d', length(random_seq)+3));
+    %% set the first holding segment
     inst.SendScpi(':TASK:COMP:ENAB CPU');
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    t_idx = t_idx + 1;
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
     inst.SendScpi(':TASK:COMP:TYPE SING');
-    x=2;
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-           inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
-           inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
-           inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
-           if (repeatSeq(y) > 1 && z==1) % if first task in a block
-               inst.SendScpi('TASK:COMP:TYPE STAR');
-               inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
-           elseif (repeatSeq(y) > 1 && z~=lenBlock) % if intermediate task in a block
-               inst.SendScpi('TASK:COMP:TYPE SEQ');
-           elseif (repeatSeq(y) > 1 && z==lenBlock) % if last task in a block
-               inst.SendScpi('TASK:COMP:TYPE END');
-           else
-               inst.SendScpi(':TASK:COMP:TYPE SING');
-           end
-           
-           inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',x+1));
-           
-           if trigs{y}(z)==1
-            inst.SendScpi('TASK:COMP:DTR ON');
-           else
-            inst.SendScpi('TASK:COMP:DTR OFF');
-           end
-           
-           x=x+1;     
-        end
+    %% set the initial pi/2 pulse
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+    t_idx = t_idx + 1;
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+    inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+    inst.SendScpi(':TASK:COMP:TYPE SING');
+    
+    %% set tasktable to apply random sequence
+    for seq_idx = 1: length(random_seq)
+        segm = random_seq(seq_idx);
+        inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+        t_idx = t_idx + 1;
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', segm));
+        inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+        inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+        inst.SendScpi(':TASK:COMP:TYPE SING');
     end
     
-    inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
+    %% set final segment to apply tasktable
+    inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
+    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',4));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
-    
     inst.SendScpi('TASK:COMP:WRITE');
     resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
     assert(resp.ErrCode==0);
     end
 
-    %%%% FUNCTION STARTS HERE %%%%
-    numBlocks = length(blockDict);
-    numPulses = 0;
-    lengthsPts = {};
-    spacingsPts = {};
-
-    for u = 1:numBlocks
-        numPulses = numPulses + length(amps{u});
-        lengthsPts{end+1} = sampleRateDAC * lengths{u};
-        spacingsPts{end+1} = sampleRateDAC * spacings{u};
+    function [I, Q, M1, Tr1] = get_square_pulse(frequency, lengthsPt, spacingsPt, amp, phase, marker, trig)
+        %{
+        Creates a square pulse that has following form.
+        (I)
+        _________
+          |     |
+          |     |
+        (amp)   | 
+          |     |
+          |     |____________
+        <------> <----------->
+        (length)  (spacing)  
+        
+        (Q)
+        _________
+          |     |
+          |     |
+        (amp)   | 
+          |     |
+          |     |____________
+        <------> <----------->
+        (length)  (spacing)
+        - ratio of (I) and (Q) controls the phase of the pulse in rotating
+        frame.
+        - M1(marker1) is turned on when the pulse is low (during spacing)
+        - Tr1(marker2) is turned on only when reading out during spacing.
+        %}
+        DClen = spacingsPt;
+        %%% make DC segment %%%
+        [tempDCi, tempDCq] = makeDC(DClen);
+        DClenreal = length(tempDCi);
+        markDC = uint8(zeros(DClenreal, 1));
+        markDC2 = uint8(zeros(DClenreal,1));
+        %%% make Pulse %%% 
+        [tempI, tempQ] = makeSqPulse(frequency, lengthsPt, amp, phase, 0);
+        pulseLenReal = length(tempI);
+        markIQ = uint8(zeros(pulseLenReal, 1) + marker);
+        markIQ2 = uint8(zeros(pulseLenReal, 1) + trig);
+        I = [tempI tempDCi]; % first row is In-phase of pulse
+        Q = [tempQ tempDCq]; % second row is Quadrature of pulse
+        M1 = [markIQ' markDC']; % third row is blanking signal (M1)
+        Tr1 = [markIQ2' markDC2'];
     end
+    
+    function segMat = assign_segMat(x, segMat, I, Q, M1, Tr1)
+        segMat{1,x} = I;
+        segMat{2,x} = Q;
+        segMat{3,x} = M1;
+        segMat{4,x} = Tr1;
+    end
+
+    %%%% FUNCTION STARTS HERE %%%%
+    numPulses = length(lengths);
+    lengthsPts = lengths * sampleRateDAC;
+    spacingsPts = spacings * sampleRateDAC;
+    
     numSegs = numPulses;
-    disp('generating RF pulse sequence')
+    disp('generating RMD RF pulse sequence')
     global segMat
     segMat = cell(4, numSegs); % added a fourth row for Marker2 (trigs)
 
@@ -1427,45 +1541,44 @@ global pulseDict
     [holdI, holdQ] = makeDC(DClen);
     markHold = uint8(zeros(DClen, 1));
     
+    %% First pulse is the initial theta/2 pulse
     x=1;
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-            DClen = spacingsPts{y}(z);
-            %%% make DC segment %%%
-            [tempDCi, tempDCq] = makeDC(DClen);
-            DClenreal = length(tempDCi);
-            markDC = uint8(zeros(DClenreal, 1));
-            markDC2 = uint8(zeros(DClenreal,1));
-            %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
-            pulseLenReal = length(tempI);
-            markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
-            markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
-            segMat{1,x} = [tempI tempDCi]; % first row is In-phase of pulse
-            segMat{2,x} = [tempQ tempDCq]; % second row is Quadrature of pulse
-            segMat{3,x} = [markIQ' markDC']; % third row is blanking signal (M1)
-            segMat{4,x} = [markIQ2' markDC2']; % fourth row is ADC Ext trig signal (M2)
-            x = x+1;
-       end
+    [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengthsPts(x), spacingsPts(x), amps(x), phases(x), markers1(x), trigs(x));
+    segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
+    
+    %%memoize get_rmd_seq_block for runtime improvment for higher n_order
+    mf_get_rmd_seq_block = memoize(@get_rmd_seq_block);
+    mf_get_rmd_seq_block.CacheSize = n_order * 2;
+    
+    %% Generate RMD sequence of n-order
+    % 2nd and 3rd indexes indicate pulses \tilda{Un} and Un.
+    
+    
+    for x = (2: numPulses)
+        RMD_seq_block = mf_get_rmd_seq_block(x, n_order, 2, 3);
+        [seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1] = deal([], [], [], []);  
+        for idx = (1: length(RMD_seq_block))
+            % p_t = pulse type (can be U+ or U-)
+            p_t = RMD_seq_block(idx);
+            [I, Q, M1, Tr1] = get_square_pulse(frequencies(p_t), lengthsPts(p_t), spacingsPts(p_t), amps(p_t), phases(p_t), markers1(x), trigs(x));
+            %% concatentate to create RMD sequence block.
+            seq_b_I = [seq_b_I, I];
+            seq_b_Q = [seq_b_Q, Q];
+            seq_b_M1 = [seq_b_M1, M1];
+            seq_b_Tr1 = [seq_b_Tr1, Tr1];
+        end
+        segMat = assign_segMat(x, segMat, seq_b_I, seq_b_Q, seq_b_M1, seq_b_Tr1);
     end
-    %%% MAKE FINAL SEGMENT %%% 
-    DClen = 64;
-    [finalI, finalQ] = makeDC(DClen);
 
     fprintf('pulse sequence generated')
  
-    downLoadIQ(ch, 1, holdI, holdQ, markHold, markHold, 1);
-    x=1;
-    for y = 1:numBlocks
-        lenBlock = length(indices{y});
-        for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
-           x=x+1;
-        end
+    for x = (1: numPulses)
+        downLoadIQ(ch, x, segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
+        x=x+1;
     end
-    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
-    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
+    downLoadIQ(ch, numPulses+1, holdI, holdQ, markHold, markHold, 1);
+
+    setTask_Pulse(ch, numPulses, numSegs, random_seq);
  
     fprintf('pulse sequence written \n');
 end
