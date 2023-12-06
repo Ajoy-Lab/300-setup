@@ -728,6 +728,14 @@ end
                     set(p1,'linewidth',0.5);
                     set(gca,'xlim',[5-8e-3,5+30e-3]);
                     plot_labels('Time [s]', 'Signal [au]');
+                    
+                    start_fig(14,[5 1]);
+                    p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
+                    set(p1,'linestyle','--');
+                    p1=plot_preliminaries(time_axis,pulseAmp.*sin(relPhase),1,'noline');
+                    set(p1,'markersize',1);
+                    set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
+                    plot_labels('Time [s]', 'Signal [au]');
 
                 catch
                     disp('Plot error occured');
