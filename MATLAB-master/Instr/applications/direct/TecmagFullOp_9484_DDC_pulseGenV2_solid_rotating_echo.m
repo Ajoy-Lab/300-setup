@@ -684,14 +684,18 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
-%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
-                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
-                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
+                time_axis = (1:reps(2))*(lengths(2) + spacings(2));
+                curr_t = reps(2) * (lengths(2) + spacings(2));
+                curr_t = curr_t + reps(3) * (lengths(3) + spacings(3));
+                time_axis_added = curr_t + (1:reps(4)) * (lengths(4) + spacings(4));
+                time_axis = cat(2, time_axis, time_axis_added);
+                curr_t = curr_t + reps(4) * (lengths(4) + spacings(4)) + reps(5) * (lengths(5) + spacings(5));
+                time_axis_added = curr_t + (1:reps(6)) * (lengths(6) + spacings(6));
+                time_axis = cat(2, time_axis, time_axis_added);
+                curr_t = curr_t + reps(6) * (lengths(6) + spacings(6));
+                phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
+                
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
