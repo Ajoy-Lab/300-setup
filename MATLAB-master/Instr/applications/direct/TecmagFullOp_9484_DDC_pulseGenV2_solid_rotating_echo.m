@@ -278,6 +278,7 @@ end
     reps = [1 6000 1 100 1 6000];
     scan_idx = cmdBytes(2);
     reps(4) = scan_idx;
+    fprintf("This is the number of x-pulse between to y-pulse: %d \n", scan_idx);
     repeatSeq = [1 1 1]; % how ma54ny times to repeat the block of pulses
     
                 tof = -1000 *(25.5039);
