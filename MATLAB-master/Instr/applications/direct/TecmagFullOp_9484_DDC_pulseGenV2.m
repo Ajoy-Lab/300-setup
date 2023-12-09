@@ -268,6 +268,7 @@ end
     amps = [1 1];
     frequencies = [0 0];
     lengths = [54e-6 54e-6];
+    lengths(1) = cmdBytes(2)*1e-6;
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
@@ -279,7 +280,7 @@ end
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000 *(25.5039);
+                tof = -1000 *(25.6253);
                 
                 ch=1;
                 initializeAWG(ch);

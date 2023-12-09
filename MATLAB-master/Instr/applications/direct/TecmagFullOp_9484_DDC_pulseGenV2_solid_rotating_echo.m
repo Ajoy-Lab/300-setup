@@ -364,6 +364,7 @@ end
 
                 
                 Tmax=cmdBytes(4);
+                fprintf("This is Tmax: %d \n", Tmax);
                 
                 
                 tacq=cmdBytes(5);
@@ -740,7 +741,8 @@ end
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
 
-                catch
+                catch EX
+                    rethrow(EX);
                     disp('Plot error occured');
                 end
                 
