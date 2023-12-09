@@ -223,7 +223,7 @@ end
 %     pulse_name = ['init_pul'];
     amps = [1];
     frequencies = [0];
-    lengths = [54e-6];
+    lengths = [56.5e-6];
     phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [50000e-6];
