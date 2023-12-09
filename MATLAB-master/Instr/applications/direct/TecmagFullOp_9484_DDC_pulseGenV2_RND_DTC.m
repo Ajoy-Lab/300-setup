@@ -266,19 +266,18 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 54e-6;
+    pi_half = 56.5e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     index = cmdBytes(2);
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    lengths = [54e-6 54e-6 108e-6 54e-6];
+    lengths = [56.5e-6 56.5e-6 113e-6 56.5e-6];
     %set random seed
-    added_len_l = (0:3:78)*1e-6;
-    added_len_idx = mod(index, 27);
-    lengths(3) = 54e-6 + added_len_l(added_len_idx + 1);
-    seed_idx = fix(index/27);
-    seed = seed_idx+1;
+    y_kick_idx = mod(index, 8)+ 1;
+    y_kick_l = (0.5:0.1:1.2)*113e-6;
+    lengths(3) = y_kick_l(y_kick_idx);
+    seed = fix(index/8) + 1; 
     n_order = 0;
     
     fprintf("This is the random seed %d \n", seed);
