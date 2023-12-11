@@ -278,7 +278,7 @@ end
     y_kick_l = (0.5:0.1:1.2)*113e-6;
     lengths(3) = y_kick_l(y_kick_idx);
     seed = fix(index/8) + 1; 
-    n_order = 1;
+    n_order = 2;
     
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
