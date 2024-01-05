@@ -281,7 +281,7 @@ end
     fprintf("This is the number of x-pulse between to y-pulse: %d \n", scan_idx);
     repeatSeq = [1 1 1]; % how ma54ny times to repeat the block of pulses
     
-                tof = -1000 *(25.5039);
+                tof = -1000 *(25.78623);
                 
                 ch=1;
                 initializeAWG(ch);
