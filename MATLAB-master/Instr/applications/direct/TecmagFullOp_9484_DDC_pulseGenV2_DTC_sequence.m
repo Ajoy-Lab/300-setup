@@ -279,7 +279,7 @@ end
     reps = [1 6000 1 300];
     repeatSeq = [1 700]; % how ma54ny times to repeat the block of pulses
     
-                tof = -1000 *(25.78623);
+                tof = -1000 *(25.746);
                 
                 ch=1;
                 initializeAWG(ch);

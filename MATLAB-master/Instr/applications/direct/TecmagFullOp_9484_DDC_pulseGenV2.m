@@ -280,7 +280,7 @@ end
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000 *(25.78623);
+                tof = -1000 *(25.746);
                 
                 ch=1;
                 initializeAWG(ch);
