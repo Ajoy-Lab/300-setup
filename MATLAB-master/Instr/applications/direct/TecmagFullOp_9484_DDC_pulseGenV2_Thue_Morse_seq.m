@@ -270,13 +270,13 @@ end
     pi = 104.10e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     index = cmdBytes(2);
-    tau_idx = mod(index ,5);
-    delay_tau = (1 + 2*tau_idx)*17e-6;
+    tau_idx = index;
+    delay_tau = (1 + tau_idx)*17e-6;
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = (1 - 0.005*(1+2*tau_idx))*pi;
+    lengths(3) = (1 - 0.005*(1+tau_idx))*pi;
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
