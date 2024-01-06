@@ -269,13 +269,11 @@ end
     pi_half = 52.05e-6;
     pi = 104.10e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    index = cmdBytes(2);
+%     index = cmdBytes(2);
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi_half pi_half pi pi_half];
-    %set random seed
-    seed = fix(index/8) + 1; 
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
