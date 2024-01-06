@@ -375,7 +375,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq = 12;
+                tacq = cmdBytes(5);
                 fprintf("This is tacq: %d \n", tacq);
                 
                 numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
