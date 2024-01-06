@@ -269,16 +269,21 @@ end
     pi_half = 52.05e-6;
     pi = 104.10e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
-%     index = cmdBytes(2);
+    index = cmdBytes(2);
+    tau_idx = mod(index ,5);
+    delay_tau = (1 + 2*tau_idx)*17e-6;
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi_half pi_half pi pi_half];
+    lengths(3) = (1 - 0.005*(1+2*tau_idx))*pi;
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 25e-6 25e-6 25e-6];
+    spacings = [5e-6 25e-6 17e-6 17e-6];
+    spacings(3) = delay_tau;
+    spacings(4) = delay_tau;
     fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
@@ -364,7 +369,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 %fix the window as 2us.
-                tacq = 12;
+                tacq = cmdBytes(5);
                 fprintf("This is tacq: %d \n", tacq);
                 
                 numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
@@ -1244,29 +1249,6 @@ function initializeAWG(ch)
      inst.SendScpi(':INIT:CONT ON');
      res = inst.SendScpi(':TRAC:DEL:ALL');
      assert(res.ErrCode==0);
-end
-
-function rmd_seq = get_rmd_seq_block(pulse_t, n, t1, t2)
-    %{
-    Generate arbitrary length n-order Thue-Morse. t1 indicates + pulse. t2
-    indicates - pulse.
-    pulse_t = t1 or t2
-    For example,
-    get_rmd_seq_block(2,5,2,3) = \tilda{U_{5}}, get_rmd_seq_block(3,5,2,3) = U_{5}
-    %}
-    if n == 0
-        rmd_seq = [pulse_t];
-    elseif n > 0
-        if pulse_t == t1
-            rmd_seq = cat(2, get_rmd_seq_block(t1, n-1, t1, t2), get_rmd_seq_block(t2, n-1, t1, t2));
-        elseif pulse_t == t2
-            rmd_seq = cat(2, get_rmd_seq_block(t2, n-1, t1, t2), get_rmd_seq_block(t1, n-1, t1, t2));
-        else
-            error("pulse_t must be t1 or t2 (get_rmd_seq_block function)");
-        end
-    else
-        error("input n must be integer or must be larger or equal to 0");
-    end
 end
 
 function generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers1, trigs, reps, random_seq, num_x_lt_pulses)
