@@ -267,8 +267,8 @@ end
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
-    pi_half = 52.05e-6;
-    pi = 104.10e-6;
+    pi_half = 50.7e-6;
+    pi = 101.4e-6;
     lengths = [pi_half pi_half pi pi_half];
 %     lengths(3) = 0.97 * 113e-6;
     phases = [0 90 0 90];
