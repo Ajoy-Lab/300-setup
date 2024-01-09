@@ -269,25 +269,17 @@ end
     pi_half = 52.05e-6;
     pi = 104.10e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    index = cmdBytes(2);
-    tau_idx = mod(index, 5);
-    seed = mod(fix(index/5), 10);
-    n_order = fix((fix(index/5)/10));
-    delay_tau = (4+ 2*tau_idx)*17e-6;
-    
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
+    seed = 0;
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = (1 - 0.005*(4+2*tau_idx))*pi;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 25e-6 17e-6 17e-6];
-    spacings(3) = delay_tau;
-    spacings(4) = delay_tau;
+    spacings = [5e-6 25e-6 25e-6 25e-6];
     fprintf("This is x-pulse spacings %d \n", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
