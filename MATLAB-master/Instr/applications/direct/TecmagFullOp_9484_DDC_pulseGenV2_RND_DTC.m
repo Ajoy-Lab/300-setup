@@ -272,7 +272,8 @@ end
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    seed = 0;
+    seed = 1;
+    n_order = 0;
     index = cmdBytes(2);
     flip_angle = index;
     lengths = [pi_half pi_half pi pi_half];
