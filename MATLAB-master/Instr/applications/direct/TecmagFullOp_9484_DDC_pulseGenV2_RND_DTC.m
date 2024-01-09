@@ -272,12 +272,11 @@ end
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    seed = 1;
-    n_order = 0;
     index = cmdBytes(2);
-    flip_angle = index;
+    seed = (fix(index/3)+1)*3;
+    n_order = mod(index, 3);
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = flip_angle*pi;
+    lengths(3) = 0.97*pi;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
