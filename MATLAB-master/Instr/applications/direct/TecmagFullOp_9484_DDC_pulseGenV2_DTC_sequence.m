@@ -270,7 +270,7 @@ end
     pi_half = 50.7e-6;
     pi = 101.4e-6;
     lengths = [pi_half pi_half pi pi_half];
-%     lengths(3) = 0.97 * 113e-6;
+    lengths(3) = cmdBytes(2) * 1e-6;
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 25e-6 25e-6 25e-6];
