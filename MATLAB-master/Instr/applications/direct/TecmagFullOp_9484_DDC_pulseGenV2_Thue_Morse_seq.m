@@ -275,7 +275,7 @@ end
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi_half pi_half pi pi_half];
     flip_angle_l = [0.5, 0.6, 0.7, (0.8:0.05:1.2)];
-    lengths(3) = flip_angle_l(index);
+    lengths(3) = flip_angle_l(index)*pi;
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite

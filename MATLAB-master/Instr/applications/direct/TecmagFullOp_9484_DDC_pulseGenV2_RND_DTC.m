@@ -278,7 +278,7 @@ end
     angle_idx = mod(fix(index/3), 12) + 1;
     seed = fix(fix(index/3)/12);
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = flip_angle_l(angle_idx);
+    lengths(3) = flip_angle_l(angle_idx)*pi;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
