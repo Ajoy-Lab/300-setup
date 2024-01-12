@@ -273,7 +273,7 @@ end
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     index = cmdBytes(2);
-    flip_angle_l = [0.5, 0.6, 0.7, (0.8:0.05:1.2)];
+    flip_angle_l = [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
     n_order = mod(index, 3);
     angle_idx = mod(fix(index/3), 12) + 1;
     seed = fix(fix(index/3)/12);
