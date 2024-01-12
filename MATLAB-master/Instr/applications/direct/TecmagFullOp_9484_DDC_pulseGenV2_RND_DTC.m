@@ -266,19 +266,19 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 50.7e-6;
-    pi = 101.4e-6;
+    pi_half = 49.4e-6;
+    pi = 98.8e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     index = cmdBytes(2);
-    tau_idx = mod(index, 5);
-    seed = mod(fix(index/5), 10);
-    n_order = fix(fix(index/5)/10);
-    delay_tau = (2+2*tau_idx)*17e-6;
+    flip_angle_l = [0.5, 0.6, 0.7, (0.8:0.05:1.2)];
+    n_order = mod(index, 3);
+    angle_idx = mod(fix(index/3), 12) + 1;
+    seed = fix(fix(index/3)/12);
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = (1-0.005*(2+2*tau_idx))*pi;
+    lengths(3) = flip_angle_l(angle_idx);
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
