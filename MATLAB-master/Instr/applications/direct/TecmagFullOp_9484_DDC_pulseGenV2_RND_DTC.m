@@ -275,8 +275,8 @@ end
     index = cmdBytes(2);
     flip_angle_l = [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
     n_order = mod(index, 3);
-    angle_idx = mod(fix(index/3), 12) + 1;
-    seed = fix(fix(index/3)/12);
+    angle_idx = mod(fix(index/3), 14) + 1;
+    seed = fix(fix(index/3)/14);
     lengths = [pi_half pi_half pi pi_half];
     lengths(3) = flip_angle_l(angle_idx)*pi;
     fprintf("This is the random seed %d \n", seed);
@@ -285,8 +285,6 @@ end
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
     spacings = [5e-6 25e-6 25e-6 25e-6];
-    spacings(3) = delay_tau;
-    spacings(4) = delay_tau;
     fprintf("This is x-pulse spacings %d \n", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
