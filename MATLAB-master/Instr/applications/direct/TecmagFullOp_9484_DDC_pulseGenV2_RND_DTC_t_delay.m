@@ -276,7 +276,7 @@ end
     n_order = 0;
     seed = 8;
     lengths = [pi_half, pi_half, pi_half, pi, pi_half];
-    lengths(3) = 0.97*pi;
+    lengths(3) = 0.98*pi;
     fprintf("This is the random seed %d \n", seed);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 90 0 90];
