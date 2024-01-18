@@ -282,7 +282,7 @@ end
     phases = [0 90 90 0 90];
     mods = [0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    t_delay_l = [50e-6, 100e-6, 200e-6, 500e-6, 1000e-6, 2000e-6, 3000e-6];
+    t_delay_l = (100:100:4500)*1e-6;
     spacings = [5e-6, 25e-6, 50e-6, 25e-6, 25e-6];
     spacings(3) = t_delay_l(index);
     fprintf("This is x-pulse spacings %d \n", spacings(4));
