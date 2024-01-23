@@ -274,7 +274,7 @@ end
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi_half pi_half pi pi_half];
-    flip_angle_l =  [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
+    flip_angle_l = [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
     lengths(3) = flip_angle_l(index)*pi;
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
@@ -284,10 +284,10 @@ end
     fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
-    reps = [1 6000 1 300];
+    reps = [1 6000 1 15];
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 720;
-    num_x_lt_pulses = 100;
+    DTC_rep_seq = 20000;
+    num_x_lt_pulses = 5;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
