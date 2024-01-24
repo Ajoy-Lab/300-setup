@@ -406,7 +406,7 @@ end
                 %inst.SendScpi(':DIG:TRIG:TYPE GATE');
                 rc = inst.SendScpi(':DIG:TRIG:SLOP NEG');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(':DIG:TRIG:LEV1 0.01');
+                rc = inst.SendScpi(':DIG:TRIG:LEV1 2.0');
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
@@ -626,6 +626,8 @@ end
                             if i == 1
                                 figure(6);clf;
                                 plot(pulse);
+                                figure(16);clf;
+                                plot(real(pulse));
                                 figure(7);clf;
                                 plot(f,abs(fftshift(fft(pulse,padded_len))));
                                 hold on;
