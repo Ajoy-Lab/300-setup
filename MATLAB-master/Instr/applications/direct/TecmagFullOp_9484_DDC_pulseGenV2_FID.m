@@ -333,7 +333,7 @@ end
                 %inst.SendScpi(':DIG:TRIG:TYPE GATE');
                 rc = inst.SendScpi(':DIG:TRIG:SLOP NEG');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(':DIG:TRIG:LEV1 2.0');
+                rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
