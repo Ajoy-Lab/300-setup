@@ -267,8 +267,8 @@ end
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
-    pi_half = 49.4e-6;
-    pi = 98.8e-6;
+    pi_half = 51e-6;
+    pi = 102e-6;
     lengths = [pi_half pi_half pi pi_half];
     lengths(3) = cmdBytes(2) * 1e-6;
     phases = [0 90 0 90];
@@ -281,7 +281,7 @@ end
     reps = [1 6000 1 300];
     repeatSeq = [1 700]; % how ma54ny times to repeat the block of pulses
     
-                tof = -1000*(25.8667);
+                tof = -1000*(26.2288);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -411,7 +411,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
