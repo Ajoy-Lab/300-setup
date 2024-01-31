@@ -234,7 +234,7 @@ end
     
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
-                tof = -1000*(26.2288);
+                tof = -1000*(25.9874);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -336,7 +336,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');

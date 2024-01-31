@@ -281,7 +281,7 @@ end
     fprintf("This is the number of x-pulse between to y-pulse: %d \n", scan_idx);
     repeatSeq = [1 1 1]; % how ma54ny times to repeat the block of pulses
     
-                tof = -1000 *(25.8667);
+                tof = -1000 *(25.9874);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -415,7 +415,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
