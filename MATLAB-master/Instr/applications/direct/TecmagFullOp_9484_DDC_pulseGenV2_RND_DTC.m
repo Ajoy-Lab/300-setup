@@ -266,8 +266,8 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 50.1e-6;
-    pi = 100.2e-6;
+    pi_half = 52.5e-6;
+    pi = 105e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];

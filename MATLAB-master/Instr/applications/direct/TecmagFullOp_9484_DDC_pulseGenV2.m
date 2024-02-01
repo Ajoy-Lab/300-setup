@@ -267,7 +267,7 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     amps = [1 1];
     frequencies = [0 0];
-    lengths = [50e-6 50e-6];
+    lengths = [52.5e-6 52.5e-6];
     lengths(1) = cmdBytes(2)*1e-6;
     fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
