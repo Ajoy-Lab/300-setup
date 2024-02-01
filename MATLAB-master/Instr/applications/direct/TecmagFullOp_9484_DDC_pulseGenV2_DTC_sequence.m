@@ -272,7 +272,7 @@ end
     lengths = [pi_half pi_half pi pi_half];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 32e-6 32e-6 32e-6];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 0 1]; %acquire on every "pi" pulse
