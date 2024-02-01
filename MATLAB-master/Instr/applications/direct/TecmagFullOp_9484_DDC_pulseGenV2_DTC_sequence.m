@@ -270,16 +270,15 @@ end
     pi_half = 52.5e-6;
     pi = 105e-6;
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = cmdBytes(2) * 1e-6;
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 25e-6 25e-6 25e-6];
+    spacings = [5e-6 32e-6 32e-6 32e-6];
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 0 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 300];
-    repeatSeq = [1 700]; % how ma54ny times to repeat the block of pulses
+    repeatSeq = [1 720]; % how ma54ny times to repeat the block of pulses
     
                 tof = -1000*(25.9874);
                 
