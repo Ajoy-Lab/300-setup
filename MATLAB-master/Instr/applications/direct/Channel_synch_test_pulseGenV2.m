@@ -190,8 +190,9 @@ repeatSeq = [1]; % how many times to repeat the block of pulses
 
 tof = -1000*(25.9874);
 
-ch=1;
+ch = 1;
 ch2 = 4;
+
 initializeAWG(ch);
 clearPulseDict();
 clearBlockDict();
@@ -199,19 +200,24 @@ clearBlockDict();
 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
 defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+% makeBlocks({'pulsed_SL'}, ch, repeatSeq);
 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
+setNCO_IQ(ch, 75.38e6+tof, 0);
+initializeAWG(ch2);
+makeBlocks({'pulsed_SL'}, ch2, repeatSeq);
+setNCO_IQ(ch2, 75.38e6+tof, 0);
+inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+inst.SendScpi(':TRIG:COUPLE ON');
+inst.SendScpi(':TRIG:CPU:MODE LOCAL');
+inst.SendScpi(':TRIG:SOUR:ENAB CPU');
+inst.SendScpi(':TRIG:SEL CPU');
+inst.SendScpi(':TRIG:STAT ON');
+resp = inst.SendScpi(':SYST:ERR?');
 
-% inst.SendScpi(sprintf(':INST:CHAN %d',ch2));
-% inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
-% %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
-% inst.SendScpi(':SOUR:VOLT MAX');
-% inst.SendScpi(':INIT:CONT ON');
-% 
-% makeBlocks({'pulsed_SL'}, ch2, repeatSeq);
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
 
-setNCO_IQ(ch, 75.38e6+tof, 0);
+
 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
 fprintf('Calculate and set data structures...\n');
 numberOfPulses_total = reps(2);
@@ -682,7 +688,7 @@ global pulseDict
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(':TASK:COMP:ENAB INT');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
@@ -796,18 +802,20 @@ function setNCO_IQ(ch, cfr, phase)
     global sampleRateInterp
     global inst
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    %first you set the DAC frequency to 2.5e9
     inst.SendScpi([':FREQ:RAST ' num2str(2.5E9)]);
     inst.SendScpi(':SOUR:INT X8');
     inst.SendScpi(':MODE DUC');
     inst.SendScpi(':IQM ONE');
     sampleRateDAC = sampleRateInterp;
+%     %Then you set the DAC frequency to 5.4e9 why?
     inst.SendScpi(sprintf(':FREQ:RAST %d', sampleRateDAC));
     inst.SendScpi('SOUR:NCO:SIXD1 ON');
     inst.SendScpi(sprintf(':SOUR:NCO:CFR1 %d',cfr));
     inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',phase));
     resp = inst.SendScpi(':OUTP ON');
     assert(resp.ErrCode==0);
-end    
+end
 
 
 function outWfm = AlignTrig2(inWfm, rising_edge, pre_trigger, post_trigger)
