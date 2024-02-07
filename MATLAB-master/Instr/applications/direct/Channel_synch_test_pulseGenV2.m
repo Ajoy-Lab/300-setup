@@ -201,13 +201,13 @@ defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
 
-inst.SendScpi(sprintf(':INST:CHAN %d',ch2));
-inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
-%fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
-inst.SendScpi(':SOUR:VOLT MAX');
-inst.SendScpi(':INIT:CONT ON');
-
-makeBlocks({'pulsed_SL'}, ch2, repeatSeq);
+% inst.SendScpi(sprintf(':INST:CHAN %d',ch2));
+% inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
+% %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
+% inst.SendScpi(':SOUR:VOLT MAX');
+% inst.SendScpi(':INIT:CONT ON');
+% 
+% makeBlocks({'pulsed_SL'}, ch2, repeatSeq);
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
 
