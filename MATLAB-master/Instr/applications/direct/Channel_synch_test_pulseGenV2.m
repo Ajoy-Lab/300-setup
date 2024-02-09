@@ -190,8 +190,8 @@ repeatSeq = [1]; % how many times to repeat the block of pulses
 
 tof = -1000*(25.9874);
 
-ch = 1;
-ch2 = 4;
+ch = 3;
+ch2 = 1;
 
 initializeAWG(ch);
 clearPulseDict();
@@ -549,6 +549,7 @@ function initializeAWG(ch)
      inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
      %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
      inst.SendScpi(':SOUR:VOLT MAX');
+     inst.SendScpi('SOUR:FUNC:MODE TASK');
      inst.SendScpi(':INIT:CONT ON');
      res = inst.SendScpi(':TRAC:DEL:ALL');
      assert(res.ErrCode==0);
