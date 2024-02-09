@@ -203,7 +203,7 @@ defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2)
 
 % makeBlocks({'pulsed_SL'}, ch, repeatSeq);
 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
-setNCO_IQ(ch, 75.38e6+tof, 0);
+% setNCO_IQ(ch, 75.38e6+tof, 0);
 initializeAWG(ch2);
 makeBlocks({'pulsed_SL'}, ch2, repeatSeq);
 setNCO_IQ(ch2, 75.38e6+tof, 0);
