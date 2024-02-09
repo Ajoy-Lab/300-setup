@@ -1687,39 +1687,5 @@ function clearBlockDict()
     global blockDict
     blockDict = containers.Map;
 end
-
-function makeBlocks(blockNames, channel, repeatSeq)
-    
-    global blockDict
-    
-    indices = {};
-    amps = {};
-    frequencies = {};
-    lengthsTime = {};
-    phases = {};
-    waitTimes = {};
-    reps = {};
-    markers = {};
-    trigs = {};
-
-    blockProps = 0;
-    for x = 1:length(blockNames)
-        name = blockNames{x}
-        blockProps = blockDict(name);
-        indices{end+1} = blockProps(:, 1);
-        amps{end+1} = blockProps(:, 2);
-        frequencies{end+1} = blockProps(:, 3);
-        lengthsTime{end+1} = blockProps(:, 4);
-        phases{end+1} = blockProps(:, 5);
-        waitTimes{end+1} = blockProps(:, 6);
-        reps{end+1} = blockProps(:, 7);
-        markers{end+1} = blockProps(:, 8);
-        trigs{end+1} = blockProps(:, 9);
-
-    end
-    disp('block made, passed to pulse gen')
-    generatePulseSeqIQ(channel, amps, frequencies, lengthsTime, phases, waitTimes, reps, markers, trigs, repeatSeq, indices);
-    
-end
  
  

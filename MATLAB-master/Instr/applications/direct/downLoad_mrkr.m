@@ -4,6 +4,7 @@ function downLoad_mrkr(ch, segMem, state1, state2, inst)
     myMkr = uint8(state1 + 2*state2);
     
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi(':TRAC:FORM U16');
     inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
     
     myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));

@@ -294,8 +294,6 @@ end
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
                 defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
@@ -1219,130 +1217,13 @@ end
 
 
 
-%function generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers1, markers2, trigs)
 function generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers1, trigs, repeatSeq, indices)
 global inst
 global sampleRateDAC
 global interp
 global sampleRateInterp
 global blockDict
-global pulseDict
-    
-    function downLoad_mrkr(ch, segMem, dacWave, mkrNum, state1, state2)
-    fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
-    
-    myMkr = uint8(state1 + 2*state2);
-    
-    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-    inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
-    
-    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));
-
-    res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
-    assert(res.ErrCode == 0);
-    
-    inst.SendScpi(sprintf(':MARK:SEL %d',1));
-    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
-    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
-    inst.SendScpi(':MARK:VOLT:OFFS 0.25');
-    inst.SendScpi(':MARK:STAT ON');
-    
-    inst.SendScpi(sprintf(':MARK:SEL %d',2));
-    inst.SendScpi(':MARK:VOLT:PTOP 1.0');
-    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
-    inst.SendScpi(':MARK:VOLT:OFFS 0.0');
-    inst.SendScpi(':MARK:STAT ON');
-    
-    end
-
-    function downLoadIQ(ch, segMem, dacWaveI, dacWaveQ, markerState1, markerState2, mkrNum)
-        disp(sprintf('Downloading waveform to channel %s, segment %s', num2str(ch), num2str(segMem)))
-
-        dacWaveIQ = [dacWaveI; dacWaveQ];
-        dacWaveIQ = dacWaveIQ(:)';
-        inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-        inst.SendScpi(':TRAC:FORM U16');
-        inst.SendScpi(sprintf(':TRAC:DEF %d, %d',segMem, length(dacWaveIQ)));
-        inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
-
-%         res = inst.WriteBinaryData(':TRAC:DATA 0,', dacWaveIQ)
-%         %assert(res.ErrCode==0);
-        
-        % Download the binary data to segment
-        prefix = ':TRAC:DATA 0,';
-        
-        global bits
-        if (bits==16)
-            myWfm = uint16(dacWaveIQ);
-            myWfm = typecast(myWfm, 'uint8');
-        else
-            myWfm = uint8(dacWaveIQ);
-        end
-        
-        res = inst.WriteBinaryData(prefix, myWfm);
-        
-        downLoad_mrkr(ch, segMem, myWfm, mkrNum, markerState1, markerState2)
-    end   
-
-    function [mydcI, mydcQ] = makeDC(length)
-
-    
-    segLen = 64*round(length/64); %must be a multiple of 64
-    
-    max_dac = 2^16-1;
-    half_dac = floor(max_dac/2);
-    
-    dacWave = zeros(1, segLen) + half_dac;
-    
-    mydcI = dacWave;
-    mydcQ = dacWave;
-    
-    end 
-
-    function [myWaveI, myWaveQ] = makeSqPulse(modFreq, pulseLen, amplitude, phase, mods)
-        
-        ampI = amplitude;
-        ampQ = amplitude;
-
-        segLen = 32*round(pulseLen/32); %must be a multiple of 32
-        cycles = segLen * modFreq / sampleRateDAC;
-        time = linspace(0, segLen-1, segLen);
-        omega = 2 * pi * cycles;
-    
-        
-        %disp('pulse modulation freq = ' + sampleRateDAC*cycles/segLen)
-        if mods==1
-            timeGauss = linspace(-segLen/2, segLen/2, segLen);
-            sigma = segLen/6;
-            modWave = exp(-0.5*(timeGauss/sigma).^2);
-
-        elseif mods==2
-            timeCosh = linspace(-segLen/2, segLen/2, segLen);
-            tau = 2.355/1.76*segLen/6;
-            modWave = cosh(timeCosh./tau).^-2;
-        
-        elseif mods==3
-            timeHerm = linspace(-segLen/2, segLen/2, segLen);
-            sigma = segLen/6;
-            factor = 0.667;
-            modWave = (1-factor*0.5*(timeHerm/sigma).^2).*exp(-0.5*(timeHerm/sigma).^2);
-        
-        else
-            modWave = 1;
-            
-        end
-        disp(sprintf('pulse segment length = %d points, actual time= %d', segLen, segLen/sampleRateDAC))
-        max_dac = 2^16-1;
-        half_dac = floor(max_dac/2);
-
-        dacWave = ampI*cos(omega*time/segLen + pi*phase/180);
-        dacWaveI = (dacWave.*modWave + 1)*half_dac;
-        myWaveI = dacWaveI;
-        
-        dacWave = ampQ*sin(omega*time/segLen + pi*phase/180);
-        dacWaveQ = (dacWave.*modWave + 1)*half_dac;
-        myWaveQ = dacWaveQ;
-    end 
+global pulseDict    
     
     function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
     disp('setting task table')
@@ -1429,7 +1310,7 @@ global pulseDict
             markDC = uint8(zeros(DClenreal, 1));
             markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
+            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0, sampleRateDAC);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
             markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
@@ -1446,16 +1327,19 @@ global pulseDict
 
     fprintf('pulse sequence generated')
  
-    downLoadIQ(ch, 1, holdI, holdQ, markHold, markHold, 1);
+    downLoadIQ(ch, 1, holdI, holdQ, inst);
+    downLoad_mrkr(ch, 1, markHold, markHold, inst);
     x=1;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
         for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
+           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, inst);
+           downLoad_mrkr(ch, indices{y}(z), segMat{3,x}, segMat{4,x}, inst);
            x=x+1;
         end
     end
-    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
+    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, inst);
+    downLoad_mrkr(ch, length(pulseDict)+2, markHold, markHold, inst);
     setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
  
     fprintf('pulse sequence written \n');

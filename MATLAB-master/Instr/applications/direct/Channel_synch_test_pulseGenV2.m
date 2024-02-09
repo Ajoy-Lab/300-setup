@@ -174,9 +174,26 @@ fprintf('ADC Configured\n');
 fprintf('Clocks synced\n');
                 
 %% case 2: generating pulse sequence
+% initalize Tabor PB as a container
+PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
+% 2*(channel number) + (marker number) will be PB's key
+ch2 = 3;
+mrkr = 1;
+idx = 2*ch2 + mrkr;
+% initalize PB array element -- first column indicates low or high
+PB_seg1 = zeros(2, 2);
+PB_seg1(1, 2) = 10e-6;
+PB_seg1(2, 1) = 1;
+PB_seg1(2, 2) = 15e-6;
+PB(idx) = PB_seg1;
+% download PB
+initializeAWG(ch2);
+generate_PB(PB, sampleRateDAC, inst);
+
+
 amps = [1 1];
 frequencies = [0 0];
-lengths = [50.5e-6 50.5e-6];
+lengths = [1e-6 50.5e-6];
 fprintf("This is the length of the first pulse %d \n", lengths(1));
 phases = [0 90];
 mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
@@ -190,8 +207,8 @@ repeatSeq = [1]; % how many times to repeat the block of pulses
 
 tof = -1000*(25.9874);
 
-ch = 3;
-ch2 = 1;
+ch = 1;
+
 
 initializeAWG(ch);
 clearPulseDict();
@@ -668,7 +685,7 @@ global pulseDict
 
     fprintf('pulse sequence generated')
  
-    downLoadIQ(ch, 1, holdI, holdQ, inst);
+%     downLoadIQ(ch, 1, holdI, holdQ, inst);
     downLoad_mrkr(ch, 1, markHold, markHold, inst);
     x=1;
     for y = 1:numBlocks
