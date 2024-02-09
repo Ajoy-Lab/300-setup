@@ -306,7 +306,7 @@ end
     numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(25.0613);
+                tof = -1000*(26.02763);
                 
                 ch=1;
                 initializeAWG(ch);

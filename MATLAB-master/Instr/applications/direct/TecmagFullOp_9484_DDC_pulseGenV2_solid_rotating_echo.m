@@ -283,7 +283,7 @@ end
     fprintf("This is the length of the 2nd x-pulse: %d \n", lengths(5));
     repeatSeq = [1 1 1]; % how ma54ny times to repeat the block of pulses
     
-                tof = -1000 *(25.9874);
+                tof = -1000*(26.02763);
                 
                 ch=1;
                 initializeAWG(ch);
