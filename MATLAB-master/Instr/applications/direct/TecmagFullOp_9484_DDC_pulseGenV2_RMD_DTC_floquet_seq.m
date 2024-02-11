@@ -266,8 +266,8 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 52.5e-6;
-    pi = 105e-6;
+    pi_half = 49.25e-6;
+    pi = 98.5e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     index = cmdBytes(2);
     amps = [1 1 1 1];
@@ -280,14 +280,14 @@ end
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 25e-6 25e-6 25e-6];
+    spacings = [5e-6 38e-6 38e-6 38e-6];
     fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
-    reps = [1 6000 1 15];
+    reps = [1 6000 1 300];
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 20000;
-    num_x_lt_pulses = 5;
+    DTC_rep_seq = 720;
+    num_x_lt_pulses = 100;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
     % generate random seq of 2s and 3s with length RMD_seq_length.
