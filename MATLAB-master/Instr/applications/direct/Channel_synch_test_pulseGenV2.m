@@ -176,18 +176,19 @@ fprintf('Clocks synced\n');
 %% case 2: generating pulse sequence
 % initalize Tabor PB as a container
 PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
-% 2*(channel number) + (marker number) will be PB's key
-ch2 = 3;
-mrkr = 1;
-idx = 2*ch2 + mrkr;
+ch3 = 3;
 % initalize PB array element -- first column indicates low or high
+% currently ONLY supports one marker per channel for this PB
+% will need a segment counter once we change the channel as channel 3 and 4
+% share the same segments which means that segments used in 4 should be
+% different
 PB_seg1 = zeros(2, 2);
-PB_seg1(1, 2) = 10e-6;
+PB_seg1(1, 2) = 100e-6;
 PB_seg1(2, 1) = 1;
-PB_seg1(2, 2) = 15e-6;
+PB_seg1(2, 2) = 150e-6;
 PB(idx) = PB_seg1;
 % download PB
-initializeAWG(ch2);
+initializeAWG(ch3);
 generate_PB(PB, sampleRateDAC, inst);
 
 
@@ -685,7 +686,7 @@ global pulseDict
 
     fprintf('pulse sequence generated')
  
-%     downLoadIQ(ch, 1, holdI, holdQ, inst);
+    downLoadIQ(ch, 1, holdI, holdQ, inst);
     downLoad_mrkr(ch, 1, markHold, markHold, inst);
     x=1;
     for y = 1:numBlocks

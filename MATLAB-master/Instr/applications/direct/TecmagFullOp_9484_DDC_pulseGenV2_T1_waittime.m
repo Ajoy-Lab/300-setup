@@ -12,6 +12,7 @@ sampleRate = 2700e6;
 global sampleRateDAC
 sampleRateDAC = 9e9;
 global inst
+
 global interp
 global pulseDict
 global blockDict
@@ -263,21 +264,19 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    tic
-%     pulse_name = ['init_pul', 'theta1'];
-    amps = [1 1];
-    frequencies = [0 0];
-    lengths = [52.5e-6 52.5e-6];
-    lengths(1) = cmdBytes(2)*1e-6;
-    fprintf("This is the length of the first pulse %d \n", lengths(1));
-    phases = [0 90];
-    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6];
-    markers = [1 1]; %always keep these on
-    markers2 = [0 0];
-    trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 194174];
+%     pulse_name = ['init_pul', 'theta1'];
+    amps = [1 1 1];
+    frequencies = [0 0 0];
+    lengths = [50.5e-6 50.5e-6 50.5e-6];
+    phases = [0 90 90];
+    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [5e-6 43e-6 43e-6];
+    markers = [1 1 1]; %always keep these on
+    markers2 = [0 0 0];
+    trigs = [0 1 1]; %acquire on every "pi" pulse
+    
+    reps = [1 100000 100000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
@@ -290,7 +289,8 @@ end
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
                 defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                defPulse('theta2', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                defBlock('pulsed_SL', {'init_pul','theta1', 'theta2'}, reps(1:3), markers(1:3), trigs(1:3));
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
@@ -354,7 +354,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2);
+                numberOfPulses_total = reps(2)+reps(3);
 
                 
                 Tmax=cmdBytes(4);
@@ -441,7 +441,6 @@ end
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
                 assert(rc.ErrCode == 0);
-                toc
                
 %                 rc = inst.SetAdcCaptureEnable(on);
 %                 assert(rc == 0);
@@ -460,16 +459,15 @@ end
                 
                 %inst.SendScpi(':DIG:INIT ON');
                 inst.SendScpi(sprintf(':DIG:CHAN 2'))
-                fprintf('Triggering pulse sequence\n');
-                rc = inst.SendScpi('*TRG');
-                
+%                 fprintf('Triggering pulse sequence\n');
+%                 rc = inst.SendScpi('*TRG');
                 assert(rc.ErrCode == 0);
                 
                 n=0;
                 
                % pause(Tmax+3);
                 
-                for n = 1:700
+                for n = 1:3000
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
@@ -1241,7 +1239,123 @@ global sampleRateInterp
 global blockDict
 global pulseDict
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
+    function downLoad_mrkr(ch, segMem, dacWave, mkrNum, state1, state2)
+    fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
+    
+    myMkr = uint8(state1 + 2*state2);
+    
+    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+    inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
+    
+    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr));
+
+    res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
+    assert(res.ErrCode == 0);
+    
+    inst.SendScpi(sprintf(':MARK:SEL %d',1));
+    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
+    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
+    inst.SendScpi(':MARK:VOLT:OFFS 0.25');
+    inst.SendScpi(':MARK:STAT ON');
+    
+    inst.SendScpi(sprintf(':MARK:SEL %d',2));
+    inst.SendScpi(':MARK:VOLT:PTOP 1.0');
+    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
+    inst.SendScpi(':MARK:VOLT:OFFS 0.0');
+    inst.SendScpi(':MARK:STAT ON');
+    
+    end
+
+    function downLoadIQ(ch, segMem, dacWaveI, dacWaveQ, markerState1, markerState2, mkrNum)
+        disp(sprintf('Downloading waveform to channel %s, segment %s', num2str(ch), num2str(segMem)))
+
+        dacWaveIQ = [dacWaveI; dacWaveQ];
+        dacWaveIQ = dacWaveIQ(:)';
+        inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+        inst.SendScpi(':TRAC:FORM U16');
+        inst.SendScpi(sprintf(':TRAC:DEF %d, %d',segMem, length(dacWaveIQ)));
+        inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
+
+%         res = inst.WriteBinaryData(':TRAC:DATA 0,', dacWaveIQ)
+%         %assert(res.ErrCode==0);
+        
+        % Download the binary data to segment
+        prefix = ':TRAC:DATA 0,';
+        
+        global bits
+        if (bits==16)
+            myWfm = uint16(dacWaveIQ);
+            myWfm = typecast(myWfm, 'uint8');
+        else
+            myWfm = uint8(dacWaveIQ);
+        end
+        
+        res = inst.WriteBinaryData(prefix, myWfm);
+        
+        downLoad_mrkr(ch, segMem, myWfm, mkrNum, markerState1, markerState2)
+    end   
+
+    function [mydcI, mydcQ] = makeDC(length)
+
+    
+    segLen = 64*round(length/64); %must be a multiple of 64
+    
+    max_dac = 2^16-1;
+    half_dac = floor(max_dac/2);
+    
+    dacWave = zeros(1, segLen) + half_dac;
+    
+    mydcI = dacWave;
+    mydcQ = dacWave;
+    
+    end 
+
+    function [myWaveI, myWaveQ] = makeSqPulse(modFreq, pulseLen, amplitude, phase, mods)
+        
+        ampI = amplitude;
+        ampQ = amplitude;
+
+        segLen = 32*round(pulseLen/32); %must be a multiple of 32
+        cycles = segLen * modFreq / sampleRateDAC;
+        time = linspace(0, segLen-1, segLen);
+        omega = 2 * pi * cycles;
+    
+        
+        %disp('pulse modulation freq = ' + sampleRateDAC*cycles/segLen)
+        if mods==1
+            timeGauss = linspace(-segLen/2, segLen/2, segLen);
+            sigma = segLen/6;
+            modWave = exp(-0.5*(timeGauss/sigma).^2);
+
+        elseif mods==2
+            timeCosh = linspace(-segLen/2, segLen/2, segLen);
+            tau = 2.355/1.76*segLen/6;
+            modWave = cosh(timeCosh./tau).^-2;
+        
+        elseif mods==3
+            timeHerm = linspace(-segLen/2, segLen/2, segLen);
+            sigma = segLen/6;
+            factor = 0.667;
+            modWave = (1-factor*0.5*(timeHerm/sigma).^2).*exp(-0.5*(timeHerm/sigma).^2);
+        
+        else
+            modWave = 1;
+            
+        end
+        disp(sprintf('pulse segment length = %d points, actual time= %d', segLen, segLen/sampleRateDAC))
+        max_dac = 2^16-1;
+        half_dac = floor(max_dac/2);
+
+        dacWave = ampI*cos(omega*time/segLen + pi*phase/180);
+        dacWaveI = (dacWave.*modWave + 1)*half_dac;
+        myWaveI = dacWaveI;
+        
+        dacWave = ampQ*sin(omega*time/segLen + pi*phase/180);
+        dacWaveQ = (dacWave.*modWave + 1)*half_dac;
+        myWaveQ = dacWaveQ;
+    end 
+    
+    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num)
     disp('setting task table')
 
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
@@ -1249,7 +1363,7 @@ global pulseDict
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(sprintf(':TASK:COMP:ENAB TRG%d', trig_num));
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
@@ -1326,7 +1440,7 @@ global pulseDict
             markDC = uint8(zeros(DClenreal, 1));
             markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0, sampleRateDAC);
+            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
             markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
@@ -1343,23 +1457,31 @@ global pulseDict
 
     fprintf('pulse sequence generated')
  
-    downLoadIQ(ch, 1, holdI, holdQ, inst);
-    downLoad_mrkr(ch, 1, markHold, markHold, inst);
+    downLoadIQ(ch, 1, holdI, holdQ, markHold, markHold, 1);
     x=1;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
         for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, inst);
-           downLoad_mrkr(ch, indices{y}(z), segMat{3,x}, segMat{4,x}, inst);
+           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
            x=x+1;
         end
     end
-    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, inst);
-    downLoad_mrkr(ch, length(pulseDict)+2, markHold, markHold, inst);
-    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
+    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
+    trig_num = 2;
+    voltage_level = 1.0;
+    set_trig(trig_num,voltage_level);
+    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num);
  
     fprintf('pulse sequence written \n');
 end
+
+function set_trig(trig_num, voltage_level)
+    global inst
+    inst.SendScpi(sprintf(':TRIG:ACTIVE:SEL TRG%d', trig_num));
+    inst.SendScpi(sprintf(':TRIG:LEV %.3f', voltage_level));
+    inst.SendScpi(':TRIG:ACTIVE:STAT ON');
+end
+
 
 function setNCO_IQ(ch, cfr, phase)
     global sampleRateDAC
