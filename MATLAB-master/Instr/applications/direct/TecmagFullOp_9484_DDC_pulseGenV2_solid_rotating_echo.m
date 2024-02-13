@@ -265,11 +265,11 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
-    pi_half = 50.5e-6;
-    pi = 101e-6;
+    pi_half = 49.25e-6;
+    pi = 98.5e-6;
     amps = [1 1 1 1 -1 1];
     frequencies = [0 0 0 0 0 0];
-    lengths = [pi_half pi_half pi_half pi_half pi_half pi_half];
+    lengths = [pi_half 50.5e-6 pi_half 50.5e-6 50.5e-6 50.5e-6];
     phases = [0 90 0 90 90 90];
     mods = [0 0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 38e-6 5e-6 38e-6 43e-6 38e-6];
@@ -278,8 +278,6 @@ end
     trigs = [0 1 0 1 0 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 99 1 6000];
-    scan_idx = cmdBytes(2);
-    lengths(5) = scan_idx*pi;
     fprintf("This is the length of the 2nd x-pulse: %d \n", lengths(5));
     repeatSeq = [1 1 1]; % how ma54ny times to repeat the block of pulses
     
