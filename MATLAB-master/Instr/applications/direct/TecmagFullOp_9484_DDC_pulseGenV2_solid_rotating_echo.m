@@ -269,7 +269,7 @@ end
     pi = 98.5e-6;
     amps = [1 1 1 1 -1 1];
     frequencies = [0 0 0 0 0 0];
-    lengths = [pi_half 50.5e-6 pi_half 50.5e-6 50.5e-6 50.5e-6];
+    lengths = [pi_half pi_half pi_half pi_half pi_half pi_half];
     phases = [0 90 0 90 90 90];
     mods = [0 0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 38e-6 5e-6 38e-6 43e-6 38e-6];
