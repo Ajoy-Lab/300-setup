@@ -1,16 +1,17 @@
 function generate_PB(PB, sampleRateDAC, inst)
 %need to have them divisible by 32
-% keys(PB): indicate channel and the number of a marker
+% keys(PB): indicates channel
 % values(PB): 2D array where the first column indicate 0s or 1s and 2nd
 % column indicates the duration of those pulses.
-    function setTask_PB(ch, num_ms_l, on_or_off, inst)
+    function setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst)
         inst.SendScpi(sprintf(':INST:CHAN %d',ch));
         inst.SendScpi('TASK:ZERO:ALL');
-        %number of tasks
+        %number of tasks: 2 from initial and final holding segment
         num_tasks = length(find(num_ms_l))+length(num_ms_l) + 2;
         %task index: t_idx
         t_idx = 1;
-        inst.SendScpi(sprintf(':TASK:COMP:LENG %d', num_tasks)); % this should be more general?
+        % inital holding segment
+        inst.SendScpi(sprintf(':TASK:COMP:LENG %d', num_tasks));
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
         t_idx = t_idx + 1;
         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
@@ -18,25 +19,32 @@ function generate_PB(PB, sampleRateDAC, inst)
         inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3));
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
         inst.SendScpi(':TASK:COMP:TYPE SING');
-        for seg_idx = 1:length(num_ms_l)
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            if on_or_off(seg_idx) == 0
-                inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
-                fprintf("assign task with repetitive positive 1ms");
-            else
-                inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2));
-                fprintf("assign task with repetitive negative 1ms");
+        seg_idx = 1;
+        for idx = 1:length(num_ms_l)
+            if num_ms_l(idx) > 0
+                inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+                t_idx = t_idx + 1;
+                if on_or_off(idx) == 0
+                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
+                    fprintf("assign task with repetitive positive 1ms \n");
+                else
+                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2));
+                    fprintf("assign task with repetitive negative 1ms \n");
+                end
+                inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', num_ms_l(idx)));
+                inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+                inst.SendScpi(':TASK:COMP:TYPE SING');
             end
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', num_ms_l(seg_idx)));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
-            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
-            t_idx = t_idx + 1;
-            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', seg_idx+3));
-            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
-            inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
-            inst.SendScpi(':TASK:COMP:TYPE SING');
+            %whenever there is a need for an additional segment
+            if is_mult_ms(idx) == 0
+                inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
+                t_idx = t_idx + 1;
+                inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', seg_idx+3));
+                inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', 1));
+                inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
+                inst.SendScpi(':TASK:COMP:TYPE SING');
+                seg_idx = seg_idx + 1; 
+            end
         end
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
@@ -50,10 +58,15 @@ k = keys(PB);
 assert(length(PB) == 1, "Tabor PB only supports one channel");
 for i = 1: length(PB)
     %get channel and marker number
-    key = k{i};
-    PSeq = PB(key);
+    ch = k{i};
+    PSeq = PB(ch);
+    % num_ms_l indicates how much 1ms each low or high signal contains
     num_ms_l = [];
+    % on_or_off indicates whether the signal from the marker is low or high
     on_or_off = [];
+    % is_mult_ms indicates whether the low or high signal is multiple of
+    % 1ms, if it isn't then download one more segment.
+    is_mult_ms = [];
     %first store 1ms segment ON and OFF semgnet for the 1st marker
     segMem = 1;
     [I, Q] = makeDC(1e-3*sampleRateDAC);
@@ -74,7 +87,8 @@ for i = 1: length(PB)
     downLoadIQ(ch, segMem, holdI, holdQ, inst);
     downLoad_mrkr(ch, segMem, markHold, markHold, inst);
     segMem = segMem + 1;
-    for j = 1 : length(PB)
+    for j = 1 : length(PSeq)
+        on_or_off(end+1) = PSeq(j,1);
         mrker_time = PSeq(j,2);
         if mrker_time >= 1e-3
             num_ms = floor(mrker_time/1e-3);
@@ -83,16 +97,20 @@ for i = 1: length(PB)
         else
             num_ms_l(end+1) = 0;
         end
-        len_seg = 64*round(sampleRateDAC*mrker_time/64);
-        new_seg = uint8(PSeq(j,1)) * uint8(ones(1, len_seg));
-        on_or_off(end+1) = PSeq(j,1);
-        mrkr2_seg = uint8(zeros(1, len_seg));
-        [I, Q] = makeDC(len_seg);
-        downLoadIQ(ch, segMem, I, Q, inst);
-        downLoad_mrkr(ch, segMem, new_seg, mrkr2_seg, inst);
-        segMem = segMem + 1;
-    setTask_PB(ch, num_ms_l, on_or_off, inst);
+        if mrker_time == 0
+            is_mult_ms(end+1) = 1;
+        else
+            is_mult_ms(end+1) = 0;
+            len_seg = 64*round(sampleRateDAC*mrker_time/64);
+            new_seg = uint8(PSeq(j,1)) * uint8(ones(1, len_seg));
+            mrkr2_seg = uint8(zeros(1, len_seg));
+            [I, Q] = makeDC(len_seg);
+            downLoadIQ(ch, segMem, I, Q, inst);
+            downLoad_mrkr(ch, segMem, new_seg, mrkr2_seg, inst);
+            segMem = segMem + 1;
+        end
     end
+    setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst);
 end
 
 end
