@@ -184,7 +184,7 @@ ch2 = 3;
 % different
 PB_seg1 = zeros(4, 2);
 PB_seg1(1, 1) = 0;
-PB_seg1(1, 2) = 2.5e-3;
+PB_seg1(1, 2) = 1e-6;
 PB_seg1(2, 1) = 1;
 PB_seg1(2, 2) = 1.5e-3;
 PB_seg1(3, 1) = 0;
@@ -212,7 +212,7 @@ reps = [1 10000];
 repeatSeq = [1]; % how many times to repeat the block of pulses
 
 tof = -1000*(25.9874);
-setNCO_IQ(ch2, 75.38e6+tof, 0);
+setNCO_IQ(ch2, 0, 0);
 ch = 1;
 
 
@@ -220,21 +220,22 @@ ch = 1;
 clearPulseDict();
 clearBlockDict();
 
-% defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-% defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-% defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
-% 
-% % makeBlocks({'pulsed_SL'}, ch, repeatSeq);
-% makeBlocks({'pulsed_SL'}, ch, repeatSeq);
-% setNCO_IQ(ch, 75.38e6+tof, 0);
+defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
+defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
 
-% inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-% inst.SendScpi(':TRIG:COUPLE ON');
-% inst.SendScpi(':TRIG:CPU:MODE LOCAL');
-% inst.SendScpi(':TRIG:SOUR:ENAB CPU');
-% inst.SendScpi(':TRIG:SEL CPU');
-% inst.SendScpi(':TRIG:STAT ON');
-% resp = inst.SendScpi(':SYST:ERR?');
+initializeAWG(ch);
+% makeBlocks({'pulsed_SL'}, ch, repeatSeq);
+makeBlocks({'pulsed_SL'}, ch, repeatSeq);
+setNCO_IQ(ch, 75.38e6+tof, 0);
+
+inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+inst.SendScpi(':TRIG:COUPLE ON');
+inst.SendScpi(':TRIG:CPU:MODE LOCAL');
+inst.SendScpi(':TRIG:SOUR:ENAB CPU');
+inst.SendScpi(':TRIG:SEL CPU');
+inst.SendScpi(':TRIG:STAT ON');
+resp = inst.SendScpi(':SYST:ERR?');
 
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);

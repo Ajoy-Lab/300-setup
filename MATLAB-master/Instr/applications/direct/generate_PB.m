@@ -15,7 +15,7 @@ function generate_PB(PB, sampleRateDAC, inst)
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
         t_idx = t_idx + 1;
         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-        inst.SendScpi(':TASK:COMP:ENAB CPU');
+        inst.SendScpi(':TASK:COMP:ENAB INT');
         inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3));
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
         inst.SendScpi(':TASK:COMP:TYPE SING');
