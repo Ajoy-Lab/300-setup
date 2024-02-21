@@ -130,46 +130,10 @@ end
 %     assert(res.ErrCode == 0);
     
     fprintf('Reset complete\n');
+    fprintf('initializing Tektronix AFG 31000\n');
+    tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
     
-    
-%     % ---------------------------------------------------------------------
-%     % RF Pulse Config
-%     % ---------------------------------------------------------------------
-%     
-%     
-%     amps = [1.0 1.0];
-%     frequencies = [0 0];
-%     lengths = [60e-6 60e-6];
-%     phases = [0 90];
-%     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-%     spacings = [100e-6 43e-6];
-%     reps = [1 194174];
-%     markers = [1 1]; %always keep these on
-%     markers2 = [0 0];
-%     trigs = [0 1]; %acquire on every "pi" pulse
-%     repeatSeq = [1];
-
-    
-    % ---------------------------------------------------------------------
-    % ADC Config
-    % ---------------------------------------------------------------------
-    
-    %inst.SendScpi(':DIG:MODE DUAL');
-    
-    %inst.SendScpi(sprintf(':DIG:CHAN CH%d', adcChanInd)); 
-    
-    %inst.SendScpi(':DIG:DDC:MODE COMP');
-    % inst.SendScpi(':DIG:DDC:CFR2 0.0');
-    %  inst.SendScpi(':DIG:DDC:PHAS2 90.0');
-   
-    %inst.SendScpi(sprintf(':DIG:FREQ %g', sampleRate));
-    
-    %inst.SendScpi(':DIG:CHAN:RANG LOW');
-    
-    % Enable acquisition in the digitizer's channels  
-    %inst.SendScpi(':DIG:CHAN:STAT ENAB');
-    
-    %fprintf('ADC Configured\n');
+    fprintf("Tektronix Initialization complete\n");
     
     %% Measurement Loop
     u2 = udp(remoteAddr, 'RemotePort', remotePort, 'LocalPort', localPort);
@@ -257,17 +221,35 @@ end
     
     fprintf('ADC Configured\n');
     fprintf('Clocks synced\n');
-                
+    tek.output_off()            
             case 2 % Aquire on trig
                 
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
+    fprintf("setting up pulse blaster sequence\n");
+    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
+    AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
+    ch3 = 3;
     
-%     pulse_name = ['init_pul', 'theta1'];
+    %%set PB parameter
+    PB_seg1 = zeros(2, 2);
+    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(100e-6, 150e-6);
+    
+    %%set AC field parameter
+    [AC_dict("freq"), AC_dict("Vpp"), ...
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 2, 0, 0);
+    PB(ch3) = PB_seg1;
+    initializeAWG(ch3);
+    fprintf("downloading pulseblaster sequence \n");
+    generate_PB(PB, sampleRateDAC, inst);
+    fprintf("PB download finished \n");
+    setNCO_IQ(ch3, 0, 0)
+    
     amps = [0.5 0.5];
     frequencies = [0 0];
-    lengths = [120e-6 120e-6];
+    lengths = [51.75e-6 51.75e-6];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6];
@@ -280,7 +262,7 @@ end
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*24.84;
+                tof = -1000*(26.14833);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -295,57 +277,16 @@ end
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
-                inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
+                fprintf("snyching Tabor's PB and Pseq \n");
+                inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+                inst.SendScpi(':TRIG:COUPLE ON');
+                inst.SendScpi(':TRIG:CPU:MODE LOCAL');
+                inst.SendScpi(':TRIG:SOUR:ENAB CPU');
+                inst.SendScpi(':TRIG:SEL CPU');
+                inst.SendScpi(':TRIG:STAT ON');
+                resp = inst.SendScpi(':SYST:ERR?');
                 
-% %                 need to modify Marker #2 to show up during acquisition
-%                 % ## final segment which will contain the marker
-%                 chNum = 1;
-%                 segNum = 4;
-%                 
-%                 % ## how long the "on" portion needs to be
-%                 onLength = 10e-6;
-%                 
-%                 % ## when does the marker start after the last pulse
-%                 buffer = 10e-6;
-%                 
-%                 % ## select the final segment
-%                 cmd = sprintf(':INST:CHAN %d',chNum);
-%                 inst.SendScpi(cmd);
-%                 cmd = sprintf(':TRAC:SEL %d',segNum);
-%                 inst.SendScpi(cmd);
-%                 
-%                 % ## get the length of the segment
-%                 query = inst.SendScpi(':TRAC:DEF?');
-%                 segLen = pfunc.netStrToStr(query.RespStr);
-%                 mkrsegment_length = str2num(segLen);
-% %                 mkrsegment_length = floor(mkrsegment_length/4);
-%                 
-%                 % ## make a new segment
-%                 mkr_vector_2 = zeros(mkrsegment_length,1);
-%                 mkr_vector_1 = zeros(mkrsegment_length,1);
-%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
-%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
-%                 
-%                 % ## make the marker
-% %                 mkr_vector_on = ones(onLength_points,1);
-%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
-%                 % proteus.inst.timeout = 30000
-%                 
-%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
-%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
-% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
-%                 mkr_vector = uint8(mkr_vector);
-%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
-%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
-%                 
-% %                 % % # Set normal timeout
-% %                 % proteus.inst.timeout = 10000
-% %                 cmd = ':MARK:SEL 1';
-% %                 inst.SendScpi(cmd);
-% %                 cmd = ':MARK:STAT ON';
-% %                 inst.SendScpi(cmd);
-% %                 % proteus.checkForError()
-
+                inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
                 fprintf('Calculate and set data structures...\n');
                 
@@ -405,7 +346,7 @@ end
                 %inst.SendScpi(':DIG:TRIG:TYPE GATE');
                 rc = inst.SendScpi(':DIG:TRIG:SLOP NEG');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(':DIG:TRIG:LEV1 0.01');
+                rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
@@ -440,21 +381,18 @@ end
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
                
-%                 rc = inst.SetAdcCaptureEnable(on);
-%                 assert(rc == 0);
-
-%                 resp1 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp1 = strtrim(pfunc.netStrToStr(resp1.RespStr));
-%                 pause(0.1);
-%                 resp2 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp2 = strtrim(pfunc.netStrToStr(resp2.RespStr));
-%                 pause(0.1);
-%                 resp3 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
-%                 resp3 = strtrim(pfunc.netStrToStr(resp3.RespStr));
+                fprintf("set Tektronix 31000 as burst mode \n");
+                ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
+                tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
+                    AC_dict("DC_offset"), AC_dict("phase"), ncycles);
+                fprintf("setting done\n");
+                
                 
                 
             case 3 % Measure
                 inst.SendScpi(sprintf(':DIG:CHAN 2'));
+                fprintf('Triggering pulse sequence\n');
+                rc = inst.SendScpi('*TRG');
                 assert(rc.ErrCode == 0);
                 
                 n=0;
@@ -1214,6 +1152,7 @@ function initializeAWG(ch)
      inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
      %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
      inst.SendScpi(':SOUR:VOLT MAX');
+     inst.SendScpi('SOUR:FUNC:MODE TASK');
      inst.SendScpi(':INIT:CONT ON');
      res = inst.SendScpi(':TRAC:DEL:ALL');
      assert(res.ErrCode==0);
@@ -1345,7 +1284,7 @@ global pulseDict
         myWaveQ = dacWaveQ;
     end 
     
-    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num)
+    function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
     disp('setting task table')
 
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
@@ -1353,7 +1292,7 @@ global pulseDict
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(sprintf(':TASK:COMP:ENAB TRG%d', trig_num));
+    inst.SendScpi(':TASK:COMP:ENAB INT');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
@@ -1457,10 +1396,7 @@ global pulseDict
         end
     end
     downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
-    trig_num = 2;
-    voltage_level = 1.0;
-    set_trig(trig_num,voltage_level);
-    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq, trig_num);
+    setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
  
     fprintf('pulse sequence written \n');
 end
