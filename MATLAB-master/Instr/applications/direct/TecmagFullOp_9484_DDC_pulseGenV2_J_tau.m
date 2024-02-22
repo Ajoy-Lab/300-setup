@@ -291,8 +291,7 @@ end
     end
                 
                 
-                tof = -1000*cmdBytes(2);
-                tof = -1000*(25.0613);
+                tof = -1000*(26.1081);
                 
                 ch=1;
                 initializeAWG(ch);

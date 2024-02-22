@@ -305,7 +305,7 @@ end
     numberOfPulses_total = reps(2) + DTC_rep_seq*(reps(3) + reps(4));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.14833);
+                tof = -1000*(26.1081);
                 
                 ch=1;
                 initializeAWG(ch);
