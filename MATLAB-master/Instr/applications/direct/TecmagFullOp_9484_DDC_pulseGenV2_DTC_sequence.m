@@ -288,7 +288,7 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defPulse('theta1', amps(2), mods(1), lengths(2), phases(2), spacings(2));
                 defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
                 defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));

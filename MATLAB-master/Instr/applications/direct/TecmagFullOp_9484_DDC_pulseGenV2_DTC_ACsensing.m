@@ -227,6 +227,10 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
+    
+    idx = cmdBytes(2);
+    Vpp_l = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1];
+    
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
@@ -235,11 +239,11 @@ end
     %%set PB parameter
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(100e-6, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
     
     %%set AC field parameter
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 2, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, Vpp_l(idx), 0, 90);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
@@ -247,19 +251,20 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0)
     
-    amps = [0.5 0.5];
-    frequencies = [0 0];
-    lengths = [51.75e-6 51.75e-6];
-    phases = [0 90];
-    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6];
-    markers = [1 1]; %always keep these on
-    markers2 = [0 0];
-    trigs = [0 1]; %acquire on every "pi" pulse
+    amps = [1 1 1 1];
+    frequencies = [0 0 0 0];
+    pi_half = 50.5e-6;
+    pi = 101e-6;
+    lengths = [pi_half pi_half pi pi_half];
+    phases = [0 90 0 90];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [5e-6 36e-6 36e-6 36e-6];
+    markers = [1 1 1 1]; %always keep these on
+    markers2 = [0 0 0 0];
+    trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-%     reps = [1 194174];
-    reps = [1 350000];
-    repeatSeq = [1]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 300];
+    repeatSeq = [1 720]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(26.1081);
@@ -270,11 +275,12 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defPulse('theta1', amps(2), mods(1), lengths(2), phases(2), spacings(2));
+                defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
-                makeBlocks({'pulsed_SL'}, ch, repeatSeq);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
-                %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
+                defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
+                makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 fprintf("snyching Tabor's PB and Pseq \n");
@@ -294,7 +300,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2);
+                numberOfPulses_total = reps(2)+(reps(3) + reps(4))*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -382,7 +388,7 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
+                ncycles = round(120*AC_dict("freq"));
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
                     AC_dict("DC_offset"), AC_dict("phase"), ncycles);
                 fprintf("setting done\n");
@@ -619,13 +625,16 @@ end
                 end
                 
                 %ivec=1:numberOfPuacqlses*loops;
-                ivec=1:length(pulseAmp);
-                
-                %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+spacings(2);
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
+                time_axis = (1:reps(2))*(lengths(2)+spacings(2));
+                curr_t = reps(2)*(lengths(2)+spacings(2));
+                for i = (1:repeatSeq(2))
+                    curr_t = curr_t + lengths(3) + spacings(3);
+                    time_axis(end+1) = curr_t;
+                    added_time_axis = (1:reps(4))*(lengths(4)+spacings(4));
+                    added_time_axis = curr_t + added_time_axis;
+                    time_axis = cat(2, time_axis, added_time_axis);
+                    curr_t = curr_t + reps(4)*(lengths(4)+spacings(4));
+                end
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
