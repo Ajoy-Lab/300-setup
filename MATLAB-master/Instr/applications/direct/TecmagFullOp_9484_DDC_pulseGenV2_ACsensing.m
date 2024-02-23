@@ -235,11 +235,11 @@ end
     %%set PB parameter
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(100e-6, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
     
     %%set AC field parameter
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 2, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 1, 0, 0);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
@@ -247,12 +247,12 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0)
     
-    amps = [0.5 0.5];
+    amps = [1 1];
     frequencies = [0 0];
-    lengths = [51.75e-6 51.75e-6];
+    lengths = [50.5e-6 50.5e-6];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6];
+    spacings = [5e-6 36e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
