@@ -244,7 +244,7 @@ end
     %%set AC field parameter
     fprintf(sprintf("This Vpp voltage: %d", Vpp_l(idx)));
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, Vpp_l(idx), 0, 90);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(19.1571, Vpp_l(idx), 0, 90);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
@@ -256,7 +256,7 @@ end
     frequencies = [0 0 0 0];
     pi_half = 50.5e-6;
     pi = 101e-6;
-    lengths = [pi_half pi_half 0.98*pi pi_half];
+    lengths = [pi_half pi_half 1.14*pi pi_half];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
@@ -266,6 +266,9 @@ end
     
     reps = [1 6000 1 300];
     repeatSeq = [1 720]; % how many times to repeat the block of pulses
+    AC_dict("freq") = 1/(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    AC_freq = AC_dict("freq");
+    fprintf(sprintf("This is AC frequency: %d", AC_freq));
     
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(26.1081);
