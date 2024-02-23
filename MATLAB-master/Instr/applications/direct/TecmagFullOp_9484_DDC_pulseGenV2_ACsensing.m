@@ -239,7 +239,7 @@ end
     
     %%set AC field parameter
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 1, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 1, 0, 90);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
