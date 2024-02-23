@@ -275,7 +275,7 @@ end
     spacings = [5e-6 36e-6 36e-6 36e-6];
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
-    trigs = [0 1 0 1]; %acquire on every "pi" pulse
+    trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 300];
     repeatSeq = [1 720]; % how ma54ny times to repeat the block of pulses
@@ -354,7 +354,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+reps(4)*repeatSeq(2);
+                numberOfPulses_total = reps(2)+(reps(3) + reps(4))*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -678,17 +678,20 @@ end
                 
                 %ivec=1:numberOfPuacqlses*loops;
                 ivec=1:length(pulseAmp);
-                delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
-                
-                %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+delay2+(tacq+2+4+2)*1e-6;
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
+                time_axis = (1:reps(2))*(lengths(2)+spacings(2));
+                curr_t = reps(2)*(lengths(2)+spacings(2));
+                for i = (1:repeatSeq(2))
+                    curr_t = curr_t + lengths(3) + spacings(3);
+                    time_axis(end+1) = curr_t;
+                    added_time_axis = (1:reps(4))*(lengths(4)+spacings(4));
+                    added_time_axis = curr_t + added_time_axis;
+                    time_axis = cat(2, time_axis, added_time_axis);
+                    curr_t = curr_t + reps(4)*(lengths(4)+spacings(4));
+                end
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
-                        phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
-                        relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
+                phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
+                relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
