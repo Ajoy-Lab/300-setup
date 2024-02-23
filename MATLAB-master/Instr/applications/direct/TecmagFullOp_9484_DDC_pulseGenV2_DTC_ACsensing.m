@@ -271,7 +271,8 @@ end
     
     reps = [1 6000 1 300];
     repeatSeq = [1 720]; % how many times to repeat the block of pulses
-    AC_dict("freq") = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    % resonance frequency
+    % AC_dict("freq") = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
     AC_freq = AC_dict("freq");
     Vpp =  AC_dict("Vpp");
     DC_offset = AC_dict("DC_offset");
