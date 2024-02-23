@@ -229,7 +229,11 @@ end
     % ---------------------------------------------------------------------
     
     idx = cmdBytes(2);
-    Vpp_l = [1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1];
+    Vpp_idx = mod(cmdBytes(2),10)+1;
+    Vpp_l = (0.1:0.1:1);
+    freq_idx = fix(cmdBytes(2)/10)+1;
+    freq_l = (500:500:5000);
+    
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -242,9 +246,10 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
     
     %%set AC field parameter
-    fprintf(sprintf("This Vpp voltage: %d", Vpp_l(idx)));
+    
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(19.1571, Vpp_l(idx), 0, 90);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(freq_idx), Vpp_l(Vpp_idx), 0, 0);
+    
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
@@ -256,7 +261,7 @@ end
     frequencies = [0 0 0 0];
     pi_half = 50.5e-6;
     pi = 101e-6;
-    lengths = [pi_half pi_half 1.14*pi pi_half];
+    lengths = [pi_half pi_half pi pi_half];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
@@ -266,9 +271,16 @@ end
     
     reps = [1 6000 1 300];
     repeatSeq = [1 720]; % how many times to repeat the block of pulses
-    AC_dict("freq") = 1/(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    AC_dict("freq") = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
     AC_freq = AC_dict("freq");
-    fprintf(sprintf("This is AC frequency: %d", AC_freq));
+    Vpp =  AC_dict("Vpp");
+    DC_offset = AC_dict("DC_offset");
+    AC_phase = AC_dict("phase");
+    
+    fprintf(sprintf("This is AC frequency: %d \n", AC_freq));
+    fprintf(sprintf("This AC Vpp voltage: %d \n", Vpp));
+    fprintf(sprintf("This is AC DC offset: %d \n", DC_offset));
+    fprintf(sprintf("This AC phase: %d \n", AC_phase));
     
 %                 tof = -1000*cmdBytes(2);
                 tof = -1000*(26.1081);
@@ -358,7 +370,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
@@ -392,7 +404,7 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = round(120*AC_dict("freq"));
+                ncycles = min(1e6, round(120*AC_dict("freq")));
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
                     AC_dict("DC_offset"), AC_dict("phase"), ncycles);
                 fprintf("setting done\n");
