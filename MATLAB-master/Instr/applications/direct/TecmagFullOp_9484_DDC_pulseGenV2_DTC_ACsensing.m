@@ -242,6 +242,7 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
     
     %%set AC field parameter
+    fprintf(sprintf("This Vpp voltage: %d", Vpp_l(idx)));
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, Vpp_l(idx), 0, 90);
     PB(ch3) = PB_seg1;
@@ -255,7 +256,7 @@ end
     frequencies = [0 0 0 0];
     pi_half = 50.5e-6;
     pi = 101e-6;
-    lengths = [pi_half pi_half pi pi_half];
+    lengths = [pi_half pi_half 0.98*pi pi_half];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
