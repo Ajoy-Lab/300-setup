@@ -239,7 +239,7 @@ end
     %%set PB parameter
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(0.545193, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(1.84628, 150e-6);
     
     %%set AC field parameter
     
@@ -401,7 +401,7 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = min(1e6, round(120*AC_dict("freq")));
+                ncycles = min(1e6, round(60*AC_dict("freq")));
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
                     AC_dict("DC_offset"), AC_dict("phase"), ncycles);
                 fprintf("setting done\n");
