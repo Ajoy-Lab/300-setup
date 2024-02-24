@@ -229,10 +229,6 @@ end
     % ---------------------------------------------------------------------
     
     idx = cmdBytes(2);
-    Vpp_idx = mod(cmdBytes(2),10)+1;
-    Vpp_l = (0.1:0.1:1);
-    freq_idx = fix(cmdBytes(2)/10)+1;
-    freq_l = (500:500:5000);
     
     
     fprintf("setting up pulse blaster sequence\n");
@@ -243,12 +239,12 @@ end
     %%set PB parameter
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(0.545193, 150e-6);
     
     %%set AC field parameter
     
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(freq_idx), Vpp_l(Vpp_idx), 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(19.1666, 1, 0, 90);
     
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
