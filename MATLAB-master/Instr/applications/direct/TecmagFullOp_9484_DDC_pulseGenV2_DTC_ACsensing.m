@@ -229,6 +229,10 @@ end
     % ---------------------------------------------------------------------
     
     idx = cmdBytes(2);
+    ac_idx = mod(idx, 10)+1;
+    y_angle_idx = fix(idx/10)+1;
+    AC_Vpp_l = (0.5:0.1:1.4);
+    Y_angle_l = (1:0.01:1.05);
     
     
     fprintf("setting up pulse blaster sequence\n");
@@ -241,10 +245,7 @@ end
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(0.545193, 150e-6);
     
-    %%set AC field parameter
-    
-    [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(19.1666, 1, 0, 90);
+
     
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
@@ -258,6 +259,8 @@ end
     pi_half = 51.25e-6;
     pi = 102.5e-6;
     lengths = [pi_half pi_half pi pi_half];
+    lengths(3) = Y_angle_l(y_angle_idx)*pi;
+    
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
@@ -268,7 +271,10 @@ end
     reps = [1 6000 1 300];
     repeatSeq = [1 720]; % how many times to repeat the block of pulses
     % resonance frequency
-    % AC_dict("freq") = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    %%set AC field parameter
+    reso_freq = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    [AC_dict("freq"), AC_dict("Vpp"), ...
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(reso_freq, AC_Vpp_l(ac_idx), 0, 90);
     AC_freq = AC_dict("freq");
     Vpp =  AC_dict("Vpp");
     DC_offset = AC_dict("DC_offset");

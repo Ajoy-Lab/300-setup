@@ -285,7 +285,7 @@ end
     % the number of repetitions to create DTC once polarization stabilizes
     % encode the data into micromotion -- need to run pi-shift to the
     % applied pulses
-    encoding_seq = str_to_0s_and_1s("Experimental Observation of Temporal Disorder in Spatiotemporal Order.");
+    encoding_seq = str_to_0s_and_1s('Experimental Observation of Temporal Disorder in Spatiotemporal Order.');
     encoding_seq(encoding_seq == 0) = -1;
     random_seq = [];
     for i = (1:length(encoding_seq))
