@@ -272,7 +272,7 @@ end
     repeatSeq = [1 720]; % how many times to repeat the block of pulses
     % resonance frequency
     %%set AC field parameter
-    reso_freq = 1/2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+    reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(reso_freq, AC_Vpp_l(ac_idx), 0, 90);
     AC_freq = AC_dict("freq");
