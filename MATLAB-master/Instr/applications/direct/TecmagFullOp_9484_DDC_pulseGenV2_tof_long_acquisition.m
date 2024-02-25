@@ -267,7 +267,7 @@ end
 %     pulse_name = ['init_pul', 'theta1'];
     amps = [1 1 1];
     frequencies = [0 0 0];
-    lengths = [50.5e-6 50.5e-6 50.5e-6];
+    lengths = [51.25e-6 51.25e-6 51.25e-6];
     phases = [0 90 90];
     mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 43e-6 43e-6];

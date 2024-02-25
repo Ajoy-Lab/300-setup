@@ -239,7 +239,7 @@ end
     %%set PB parameter
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(1.84628, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(0.545193, 150e-6);
     
     %%set AC field parameter
     
@@ -255,8 +255,8 @@ end
     
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
-    pi_half = 50.5e-6;
-    pi = 101e-6;
+    pi_half = 51.25e-6;
+    pi = 102.5e-6;
     lengths = [pi_half pi_half pi pi_half];
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
