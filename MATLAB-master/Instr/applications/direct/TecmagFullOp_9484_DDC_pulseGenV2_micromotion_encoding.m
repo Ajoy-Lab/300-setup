@@ -266,10 +266,9 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 102.5e-6;
-    pi = 51.25e-6;
+    pi_half = 51.25e-6; 
+    pi = 102.5e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    index = cmdBytes(2);
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
