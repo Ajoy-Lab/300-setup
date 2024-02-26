@@ -233,6 +233,7 @@ end
     pi_half = 51.25e-6;
     pi = 102.5e-6;
     lengths = [pi_half pi_half pi pi_half];
+    lengths(3) = 1.02*pi;
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
@@ -256,6 +257,7 @@ end
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
+    fprintf(sprintf("This is AC start time: %d \n", start_time));
     
 
     
