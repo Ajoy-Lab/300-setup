@@ -269,9 +269,9 @@ end
     % resonance frequency
     %%set AC field parameter
     freq_idx = cmdBytes(2);
-    freq_offset = cat(2, [-500, -200, -100, -50, -10], (-10:1:-1), (-1:0.1:1) ,(1:1:10), [0, 10, 50, 100, 200, 500]);
+    freq_offset = cat(2, [-500, -200, -100, -50, -10], (-10:1:-2), (-1:0.1:1) ,(2:1:10), [0, 10, 50, 100, 200, 500]);
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq = reso_freq + freq_offset(idx);
+    freq = reso_freq + freq_offset(freq_idx);
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(freq, 1, 0, 90);
     AC_freq = AC_dict("freq");
