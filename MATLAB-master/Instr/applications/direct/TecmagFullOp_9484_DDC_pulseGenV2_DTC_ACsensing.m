@@ -241,7 +241,7 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 5];
+    reps = [1 6000 1 10];
     repeatSeq = [1 2500]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
