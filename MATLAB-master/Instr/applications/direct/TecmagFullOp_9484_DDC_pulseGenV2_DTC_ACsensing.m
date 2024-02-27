@@ -233,7 +233,6 @@ end
     pi_half = 51.25e-6;
     pi = 102.5e-6;
     lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = 1.02*pi;
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
