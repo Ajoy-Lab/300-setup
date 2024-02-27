@@ -277,8 +277,8 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 10];
-    repeatSeq = [1 1500]; % how ma54ny times to repeat the block of pulses
+    reps = [1 6000 1 5];
+    repeatSeq = [1 2500]; % how ma54ny times to repeat the block of pulses
     
                 tof = -1000*(26.1081);
                 
