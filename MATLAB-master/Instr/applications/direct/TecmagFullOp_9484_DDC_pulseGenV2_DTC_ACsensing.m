@@ -230,8 +230,9 @@ end
     
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
-    pi_half = 51.25e-6;
-    pi = 102.5e-6;
+    pi = cmdBytes(3)*1e-6;
+    pi_half = pi/2;
+    fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
     
     phases = [0 90 0 90];
@@ -246,7 +247,6 @@ end
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
-    AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     
     %%set PB parameter
@@ -268,25 +268,29 @@ end
     setNCO_IQ(ch3, 0, 0)
     % resonance frequency
     %%set AC field parameter
-    freq_idx = cmdBytes(2);
-    freq_offset = cat(2, [-500, -200, -100, -50, -10], (-10:1:-2), (-1:0.1:1) ,(2:1:10), [0, 10, 50, 100, 200, 500]);
+    idx = cmdBytes(2)-1;
+    freq_idx = mod(idx,23)+1;
+    amp_idx = fix(idx/23)+1;
+    
+    %%freq_offset = cat(2, [-500, -200, -100, -50, -10], (-10:1:-2), (-1:0.1:1) ,(2:1:10), [0, 10, 50, 100, 200, 500]);
+    freq_offset = cat(2,[-10,-1],(-0.9:0.1:0.9),[1,10]);
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     freq = reso_freq + freq_offset(freq_idx);
-    [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq, 1, 0, 90);
-    AC_freq = AC_dict("freq");
-    Vpp =  AC_dict("Vpp");
-    DC_offset = AC_dict("DC_offset");
-    AC_phase = AC_dict("phase");
+    AC_amp = [0.001,0.01,0.03,0.1,0.3,1];
+
+    AC_dict.freq = freq;
+    AC_dict.Vpp = AC_amp(amp_idx);
+    AC_dict.DC_offset = 0;
+    AC_dict.phase = 90;
     
-    fprintf(sprintf("This is AC frequency: %d \n", AC_freq));
-    fprintf(sprintf("This AC Vpp voltage: %d \n", Vpp));
-    fprintf(sprintf("This is AC DC offset: %d \n", DC_offset));
-    fprintf(sprintf("This AC phase: %d \n", AC_phase));
+    fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
+    fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
+    fprintf(sprintf("This is AC DC offset: %d \n", AC_dict.DC_offset));
+    fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
-                
+                tof = cmdBytes(6);
+                fprintf(sprintf("This is tof: %d", tof));
                 ch=1;
                 initializeAWG(ch);
                 clearPulseDict();
@@ -406,9 +410,9 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = min(1e6, round(60*AC_dict("freq")));
-                tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
-                    AC_dict("DC_offset"), AC_dict("phase"), ncycles);
+                ncycles = min(1e6, round(60*AC_dict.freq));
+                tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
+                    AC_dict.DC_offset, AC_dict.phase, ncycles);
                 fprintf("setting done\n");
                 
                 
@@ -699,7 +703,8 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
+                    'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
