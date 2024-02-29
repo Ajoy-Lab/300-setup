@@ -266,8 +266,7 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 51.25e-6;
-    pi = 102.5-6;
+    pi = cmdBytes(3)*1e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
@@ -305,7 +304,7 @@ end
     numberOfPulses_total = reps(2) + DTC_rep_seq*(reps(3) + reps(4));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);

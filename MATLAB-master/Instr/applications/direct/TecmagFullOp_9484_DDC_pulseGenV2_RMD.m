@@ -266,16 +266,16 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 120e-6;
+    pi = cmdBytes(3)*1e-6;
     % can start out with index = 1,2, ... 20
-    offset = 0.01*pi_half;
-    theta_a = pi_half - offset;
-    theta_b = pi_half + offset;
+    offset = 0.01*pi/2;
+    theta_a = pi/2 - offset;
+    theta_b = pi/2 + offset;
     index = cmdBytes(2);
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    amps = [0.5 0.5 0.5];
+    amps = [1 1 1];
     frequencies = [0 0 0];
-    lengths = [pi_half theta_a theta_b];
+    lengths = [pi/2 theta_a theta_b];
     phases = [0 90 90];
     mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % theta_a and theta_b can have the same spacings
@@ -306,7 +306,7 @@ end
     numberOfPulses_total = (2^n_order) * RMD_seq_length;
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);

@@ -265,6 +265,7 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1'];
+    pi = cmdBytes(3)*1e-6;
     amps = [1 1 1];
     frequencies = [0 0 0];
     lengths = [51.25e-6 51.25e-6 51.25e-6];
@@ -279,7 +280,7 @@ end
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081) + cmdBytes(2);
+                tof = cmdBytes(6) + cmdBytes(2);
                 
                 ch=1;
                 initializeAWG(ch);

@@ -265,11 +265,10 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
-    pi_half = 49.25e-6;
-    pi = 98.5e-6;
+    pi = cmdBytes(3)*1e-6;
     amps = [1 1 1 1 -1 1];
     frequencies = [0 0 0 0 0 0];
-    lengths = [pi_half pi_half pi_half pi_half pi_half pi_half];
+    lengths = [pi/2 pi/2 pi/2 pi/2 pi/2 pi/2];
     phases = [0 90 0 90 90 90];
     mods = [0 0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 38e-6 5e-6 38e-6 43e-6 38e-6];

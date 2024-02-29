@@ -265,10 +265,10 @@ end
     % ---------------------------------------------------------------------
     tic
 %     pulse_name = ['init_pul', 'theta1'];
+    pi = cmdBytes(3)*1e-6;
     amps = [1 1];
     frequencies = [0 0];
-    lengths = [51.25e-6 51.25e-6];
-    lengths(1) = cmdBytes(2)*1e-6;
+    lengths = [pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
@@ -281,7 +281,7 @@ end
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);

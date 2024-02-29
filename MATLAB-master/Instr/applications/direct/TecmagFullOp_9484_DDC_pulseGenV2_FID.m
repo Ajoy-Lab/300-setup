@@ -221,10 +221,10 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul'];
+    pi = cmdBytes(3)*1e-6;
     amps = [1];
     frequencies = [0];
-    lengths = [56.5e-6];
-    lengths(1) = cmdBytes(2)*1e-6;
+    lengths = [pi/2];
     phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [50000e-6];
@@ -234,7 +234,7 @@ end
     
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);

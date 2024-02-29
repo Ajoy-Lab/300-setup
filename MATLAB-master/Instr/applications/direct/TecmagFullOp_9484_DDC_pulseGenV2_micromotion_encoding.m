@@ -266,13 +266,12 @@ end
     
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
-    pi_half = 51.25e-6; 
-    pi = 102.5e-6;
+    pi = cmdBytes(3)*1e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    lengths = [pi_half pi_half pi pi_half];
+    lengths = [pi/2 pi/2 pi pi/2];
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -304,7 +303,7 @@ end
     numberOfPulses_total = reps(2) + DTC_rep_seq*(reps(3) + reps(4));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);
