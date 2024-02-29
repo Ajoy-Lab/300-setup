@@ -269,19 +269,18 @@ end
     % resonance frequency
     %%set AC field parameter
     idx = cmdBytes(2)-1;
-    freq_idx = mod(idx,23)+1;
-    amp_idx = fix(idx/23)+1;
+    freq_idx = mod(idx,13)+1;
+    phase_idx = fix(idx/13)+1;
     
-    %%freq_offset = cat(2, [-500, -200, -100, -50, -10], (-10:1:-2), (-1:0.1:1) ,(2:1:10), [0, 10, 50, 100, 200, 500]);
-    freq_offset = cat(2,[-10,-1],(-0.9:0.1:0.9),[1,10]);
+    freq_offset = cat(2,[-10],(-0.5:0.1:0.5),[10]);
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     freq = reso_freq + freq_offset(freq_idx);
-    AC_amp = [0.001,0.01,0.03,0.1,0.3,1];
-
-    AC_dict.freq = freq;
-    AC_dict.Vpp = AC_amp(amp_idx);
+    AC_phase = [0, 1, 5, 45, 85, 90, 91, 135, 179, 180, 185, 265, 270];
+    
+    AC_dict.freq = reso_freq-0.2; %freq;
+    AC_dict.Vpp = 1; 
     AC_dict.DC_offset = 0;
-    AC_dict.phase = 90;
+    AC_dict.phase = AC_phase(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
