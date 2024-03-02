@@ -232,6 +232,12 @@ end
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
+    idx = cmdBytes(2)-1;
+    freq_idx = mod(idx,18)+1;
+    pi_idx = fix(idx/18)+1;
+    pi_multiplier = [0.94:0.005:1.06];
+    pi = pi*pi_multiplier(pi_idx); 
+    
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
     
@@ -243,7 +249,7 @@ end
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 10];
-    repeatSeq = [1 3000]; % how many times to repeat the block of pulses
+    repeatSeq = [1 12000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -268,19 +274,20 @@ end
     setNCO_IQ(ch3, 0, 0)
     % resonance frequency
     %%set AC field parameter
-    idx = cmdBytes(2)-1;
-    freq_idx = mod(idx,13)+1;
-    phase_idx = fix(idx/13)+1;
     
-    freq_offset = cat(2,[-10],(-0.5:0.1:0.5),[10]);
+    
+    freq_offset = cat(2,[0,-20,-5],(-0.8:0.1:0.4), [5, 20]);
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     freq = reso_freq + freq_offset(freq_idx);
-    AC_phase = [0, 1, 5, 45, 85, 90, 91, 135, 179, 180, 185, 265, 270];
     
-    AC_dict.freq = reso_freq-0.2; %freq;
+    
+    AC_dict.freq = freq;
     AC_dict.Vpp = 1; 
+    if freq_idx == 1
+        AC_dict.Vpp = 0;
+    end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = AC_phase(phase_idx);
+    AC_dict.phase = 90;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
@@ -410,8 +417,10 @@ end
                
                 fprintf("set Tektronix 31000 as burst mode \n");
                 ncycles = min(1e6, round(60*AC_dict.freq));
-                tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
-                    AC_dict.DC_offset, AC_dict.phase, ncycles);
+                if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
+                    tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
+                        AC_dict.DC_offset, AC_dict.phase, ncycles);
+                end
                 fprintf("setting done\n");
                 
                 
