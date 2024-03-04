@@ -232,11 +232,7 @@ end
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
-    idx = cmdBytes(2)-1;
-    freq_idx = mod(idx,18)+1;
-    pi_idx = fix(idx/18)+1;
-    pi_multiplier = [0.94:0.005:1.06];
-    pi = pi*pi_multiplier(pi_idx); 
+   
     
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
@@ -276,14 +272,15 @@ end
     %%set AC field parameter
     
     
-    freq_offset = cat(2,[0,-20,-5],(-0.8:0.1:0.4), [5, 20]);
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq = reso_freq + freq_offset(freq_idx);
+    freq = reso_freq;
     
+    idx = cmdBytes(2)-1;
+    AC_idx = mod(idx,2)+1;
     
-    AC_dict.freq = freq;
-    AC_dict.Vpp = 1; 
-    if freq_idx == 1
+    AC_dict.freq = reso_freq;
+    AC_dict.Vpp = 0.001; 
+    if AC_idx == 1
         AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
