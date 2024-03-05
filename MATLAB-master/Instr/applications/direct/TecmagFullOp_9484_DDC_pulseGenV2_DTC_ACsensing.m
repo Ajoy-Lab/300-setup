@@ -280,7 +280,7 @@ end
     
     freq_idx = mod(idx,21)+1;
     freq_offset = cat(2,[0,0,-20,-10],(-0.8:0.1:0.6),[10,20]);
-    freq = reso_freq+freq_offset;
+    freq = reso_freq+freq_offset(freq_idx);
     
   
     vpp_idx = fix(idx/21)+1;
