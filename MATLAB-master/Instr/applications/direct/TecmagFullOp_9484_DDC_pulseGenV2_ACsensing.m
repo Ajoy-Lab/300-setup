@@ -232,21 +232,6 @@ end
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     
-    %%set PB parameter
-    PB_seg1 = zeros(2, 2);
-    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(2, 150e-6);
-    
-    %%set AC field parameter
-    [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(3000, 1, 0, 90);
-    PB(ch3) = PB_seg1;
-    initializeAWG(ch3);
-    fprintf("downloading pulseblaster sequence \n");
-    generate_PB(PB, sampleRateDAC, inst);
-    fprintf("PB download finished \n");
-    setNCO_IQ(ch3, 0, 0)
-    
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
@@ -259,8 +244,27 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 350000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
+    
+    
+    %%set PB parameter
+    start_time = 2;
+    PB_seg1 = zeros(2, 2);
+    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
+    
+    %%set AC field parameter
+%     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
+    center_freq = 5000;
+    [AC_dict("freq"), AC_dict("Vpp"), ...
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.2, 0, 0);
+    PB(ch3) = PB_seg1;
+    initializeAWG(ch3);
+    fprintf("downloading pulseblaster sequence \n");
+    generate_PB(PB, sampleRateDAC, inst);
+    fprintf("PB download finished \n");
+    setNCO_IQ(ch3, 0, 0)
     
 %                 tof = -1000*cmdBytes(2);
                 tof = cmdBytes(6);
@@ -672,8 +676,10 @@ end
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
                 % Save data
+                % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
+                    'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
