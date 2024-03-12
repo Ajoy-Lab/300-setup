@@ -844,7 +844,9 @@ inst.SendScpi(':SOUR:FUNC:MODE TASK');
 
 res = inst.SendScpi(':OUTP ON');
 assert(res.ErrCode == 0);
-Pines_write('6');
+for iter = (1:10)
+    Pines_write(2021, '6');
+end 
                 
             case 7 % Play MW chirp waveform
                 
@@ -873,7 +875,9 @@ Pines_write('6');
                 assert(res.ErrCode == 0);
                 
                 fprintf('Waveform generated and playing\n');
-                Pines_write('7');
+                for iter = (1:10)
+                    Pines_write(2022, '7');
+                end
                 
             case 8
                 
