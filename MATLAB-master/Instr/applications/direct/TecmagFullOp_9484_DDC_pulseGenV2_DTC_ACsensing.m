@@ -234,8 +234,8 @@ end
     pi_half = pi/2;
    
     idx = cmdBytes(2)-1;
-    pi_idx = fix(idx/21)+1;
-    pi_multiplier = [1,1,1.05,1.05,0.95,0.95, 1.07, 1.07];
+    pi_idx = mod(fix(idx/21),2)+1;
+    pi_multiplier = [1.05,0.95];
     pi = pi*pi_multiplier(pi_idx);
     
     fprintf(sprintf("This is pi: %d", pi));
@@ -283,8 +283,8 @@ end
     freq = reso_freq+freq_offset(freq_idx);
     
   
-    vpp_idx = fix(idx/168)+1;
-    vpp = [0.3,0.03,0.003];
+    vpp_idx = fix(idx/42)+1;
+    vpp = [0.03,0.003];
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp(vpp_idx); 
     if freq_idx < 3
@@ -844,6 +844,7 @@ inst.SendScpi(':SOUR:FUNC:MODE TASK');
 
 res = inst.SendScpi(':OUTP ON');
 assert(res.ErrCode == 0);
+Pines_write('6');
                 
             case 7 % Play MW chirp waveform
                 
@@ -872,6 +873,7 @@ assert(res.ErrCode == 0);
                 assert(res.ErrCode == 0);
                 
                 fprintf('Waveform generated and playing\n');
+                Pines_write('7');
                 
             case 8
                 

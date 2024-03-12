@@ -904,6 +904,7 @@ inst.SendScpi(':SOUR:FUNC:MODE TASK');
 
 res = inst.SendScpi(':OUTP ON');
 assert(res.ErrCode == 0);
+Pines_write('6');
                 
             case 7 % Play MW chirp waveform
                 
@@ -932,6 +933,7 @@ assert(res.ErrCode == 0);
                 assert(res.ErrCode == 0);
                 
                 fprintf('Waveform generated and playing\n');
+                Pines_write('7');
                 
             case 8
                 

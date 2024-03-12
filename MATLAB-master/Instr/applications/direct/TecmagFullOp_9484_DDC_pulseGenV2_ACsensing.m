@@ -256,7 +256,7 @@ end
     
     %%set AC field parameter
 %     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
-    center_freq = 5000;
+    center_freq = 100;
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.2, 0, 0);
     PB(ch3) = PB_seg1;
@@ -807,6 +807,7 @@ inst.SendScpi(':SOUR:FUNC:MODE TASK');
 
 res = inst.SendScpi(':OUTP ON');
 assert(res.ErrCode == 0);
+Pines_write('6');
                 
             case 7 % Play MW chirp waveform
                 
@@ -835,6 +836,7 @@ assert(res.ErrCode == 0);
                 assert(res.ErrCode == 0);
                 
                 fprintf('Waveform generated and playing\n');
+                Pines_write('7');
                 
             case 8
                 
