@@ -683,7 +683,8 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','lengths',...
+                    'phases','spacings','reps','trigs','repeatSeq');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
