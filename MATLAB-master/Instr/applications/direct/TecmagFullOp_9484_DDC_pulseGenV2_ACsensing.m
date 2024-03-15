@@ -682,6 +682,7 @@ end
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
                     'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
+                tek.output_off() 
                 
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');

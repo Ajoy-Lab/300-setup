@@ -272,12 +272,12 @@ end
     fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6];
+    spacings = [36e-6 36e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 194174];
+    reps = [1 1e6];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);

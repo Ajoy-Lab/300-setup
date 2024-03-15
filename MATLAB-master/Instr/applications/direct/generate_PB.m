@@ -69,7 +69,8 @@ for i = 1: length(PB)
     is_mult_ms = [];
     %first store 1ms segment ON and OFF semgnet for the 1st marker
     segMem = 1;
-    [I, Q] = makeDC(1e-3*sampleRateDAC);
+    one_ms = round_to_DAC_freq(1e-3, sampleRateDAC, 64);
+    [I, Q] = makeDC(one_ms*sampleRateDAC);
     seg_1ms_off = uint8(zeros(1, length(I)));
     seg_1ms_on = uint8(ones(1, length(I)));
     %create segment with 1ms off
@@ -90,10 +91,10 @@ for i = 1: length(PB)
     for j = 1 : length(PSeq)
         on_or_off(end+1) = PSeq(j,1);
         mrker_time = PSeq(j,2);
-        if mrker_time >= 1e-3
-            num_ms = floor(mrker_time/1e-3);
+        if mrker_time >= one_ms
+            num_ms = floor(mrker_time/one_ms);
             num_ms_l(end+1) = num_ms;
-            mrker_time = mrker_time - num_ms*1e-3;
+            mrker_time = mrker_time - num_ms*one_ms;
         else
             num_ms_l(end+1) = 0;
         end

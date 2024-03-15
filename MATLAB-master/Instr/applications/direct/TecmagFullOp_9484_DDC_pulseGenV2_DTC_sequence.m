@@ -265,13 +265,16 @@ end
     % ---------------------------------------------------------------------
     
 %     pulse_name = ['init_pul', 'theta1', 'gamma', 'theta2'];
+    sampleRateDAC_freq = 675000000;
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     lengths = [50e-6 50e-6 pi 50e-6];
+    lengths = round_to_DAC_freq(lengths, sampleRateDAC_freq, 64);
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
@@ -293,6 +296,7 @@ end
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
                 defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));

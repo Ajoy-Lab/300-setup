@@ -227,23 +227,25 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    
+    sampleRateDAC_freq = 675000000; 
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
    
-    idx = cmdBytes(2)-1;
-    pi_idx = mod(fix(idx/21),2)+1;
-    pi_multiplier = [1.05,0.95];
-    pi = pi*pi_multiplier(pi_idx);
+%     idx = cmdBytes(2)-1;
+%     pi_idx = mod(fix(idx/21),2)+1;
+%     pi_multiplier = [1.05,0.95];
+%     pi = pi*pi_multiplier(pi_idx);
     
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
@@ -259,9 +261,10 @@ end
     start_time = lengths(1) + spacings(1) + ...
         (lengths(2) + spacings(2))*reps(2) + lengths(3)/2 +...
         (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4))*60;
+        
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 1e-3+1e-6);
     fprintf(sprintf("This is AC start time: %d \n", start_time));
     
 
@@ -278,20 +281,22 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    freq_idx = mod(idx,21)+1;
-    freq_offset = cat(2,[0,0,-20,-10],(-0.8:0.1:0.6),[10,20]);
-    freq = reso_freq+freq_offset(freq_idx);
-    
-  
-    vpp_idx = fix(idx/42)+1;
-    vpp = [0.03,0.003];
-    AC_dict.freq = freq;
-    AC_dict.Vpp = vpp(vpp_idx); 
-    if freq_idx < 3
-        AC_dict.Vpp = 0;
-    end
+%     freq_idx = mod(idx,21)+1;
+%     freq_offset = cat(2,[0,0,-20,-10],(-0.8:0.1:0.6),[10,20]);
+%     freq = reso_freq+freq_offset(freq_idx);
+%     
+%   
+%     vpp_idx = fix(idx/42)+1;
+%     vpp = [0.03,0.003];
+%     AC_dict.freq = freq;
+%     AC_dict.Vpp = vpp(vpp_idx);
+    AC_dict.freq = reso_freq;
+    AC_dict.Vpp = 1;
+%     if freq_idx < 3
+%         AC_dict.Vpp = 0;
+%     end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = 90;
+    AC_dict.phase = -90;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
@@ -313,9 +318,10 @@ end
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
                 defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
-                    
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 fprintf("snyching Tabor's PB and Pseq \n");
+                
                 inst.SendScpi(sprintf(':INST:CHAN %d',ch));
                 inst.SendScpi(':TRIG:COUPLE ON');
                 inst.SendScpi(':TRIG:CPU:MODE LOCAL');
@@ -718,6 +724,7 @@ end
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
                     'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
+                tek.output_off() 
                 
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
