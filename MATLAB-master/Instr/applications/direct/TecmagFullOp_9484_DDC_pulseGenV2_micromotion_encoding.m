@@ -264,7 +264,7 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     
-%     pulse_name = ['init_pul', 'theta1'];
+    sampleRateDAC_freq = 675000000; 
     %% DEFINE PULSE LENGTH
     pi = cmdBytes(3)*1e-6;
     %% DEFINE PULSE SEQUENCE PARAMETERS
@@ -272,11 +272,13 @@ end
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi/2 pi/2 pi pi/2];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
     spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     fprintf("This is x-pulse spacings %d", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
@@ -284,7 +286,7 @@ end
     % the number of repetitions to create DTC once polarization stabilizes
     % encode the data into micromotion -- need to run pi-shift to the
     % applied pulses
-    encoding_seq = str_to_0s_and_1s('Experimental Observation of Temporal Disorder in Spatiotemporal Order.');
+    encoding_seq = str_to_0s_and_1s('Experimental Observation of Temporal Disorder in Spatiotemporal Order: a UCB/MPI-PKS collaboration  ');
     encoding_seq(encoding_seq == 0) = -1;
     random_seq = [];
     for i = (1:length(encoding_seq))
@@ -311,7 +313,7 @@ end
                 clearBlockDict();
                 
                 generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq, num_x_lt_pulses);
-                    
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 fprintf('Calculate and set data structures...\n');
@@ -718,7 +720,8 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','lengths',...
+                    'phases','spacings','reps','trigs');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
