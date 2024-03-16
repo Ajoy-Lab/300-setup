@@ -233,10 +233,10 @@ end
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
    
-%     idx = cmdBytes(2)-1;
-%     pi_idx = mod(fix(idx/21),2)+1;
-%     pi_multiplier = [1.05,0.95];
-%     pi = pi*pi_multiplier(pi_idx);
+    idx = cmdBytes(2)-1;
+    pi_idx = mod(fix(idx/43),3)+1;
+    pi_multiplier = [1, 1.02,0.98];
+    pi = pi*pi_multiplier(pi_idx);
     
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
@@ -281,20 +281,20 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-%     freq_idx = mod(idx,21)+1;
-%     freq_offset = cat(2,[0,0,-20,-10],(-0.8:0.1:0.6),[10,20]);
-%     freq = reso_freq+freq_offset(freq_idx);
-%     
-%   
-%     vpp_idx = fix(idx/42)+1;
-%     vpp = [0.03,0.003];
-%     AC_dict.freq = freq;
-%     AC_dict.Vpp = vpp(vpp_idx);
+    freq_idx = mod(idx,21)+1;
+    freq_offset = cat(2,[0,0],(-20:2:-2),(-1:0.1:1),(2:2:20));
+    freq = reso_freq+freq_offset(freq_idx);
+    
+  
+    vpp_idx = fix(idx/129)+1;
+    vpp = [0.3,0.1,0.03];
+    AC_dict.freq = freq;
+    AC_dict.Vpp = vpp(vpp_idx);
     AC_dict.freq = reso_freq;
     AC_dict.Vpp = 1;
-%     if freq_idx < 3
-%         AC_dict.Vpp = 0;
-%     end
+    if freq_idx<3
+        AC_dict.Vpp = 0;
+    end
     AC_dict.DC_offset = 0;
     AC_dict.phase = -90;
     
