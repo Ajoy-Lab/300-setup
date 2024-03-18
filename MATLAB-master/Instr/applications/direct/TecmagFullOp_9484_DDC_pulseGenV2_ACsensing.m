@@ -236,15 +236,17 @@ end
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
     lengths = [pi/2 pi/2];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 200000];
+    reps = [1 1000000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -256,7 +258,7 @@ end
     
     %%set AC field parameter
 %     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
-    center_freq = 100;
+    center_freq = 5000;
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.2, 0, 0);
     PB(ch3) = PB_seg1;
