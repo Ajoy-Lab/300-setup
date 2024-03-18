@@ -227,6 +227,7 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
+    sampleRateDAC_freq = 675000000;
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
@@ -282,7 +283,7 @@ end
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
-                    
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 fprintf("snyching Tabor's PB and Pseq \n");
                 inst.SendScpi(sprintf(':INST:CHAN %d',ch));
