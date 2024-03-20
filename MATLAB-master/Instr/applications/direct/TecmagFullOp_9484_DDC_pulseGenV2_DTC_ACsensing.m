@@ -286,7 +286,7 @@ end
     freq = reso_freq;%+freq_offset(freq_idx);
     
   
-    vpp_idx = idx;%fix(idx/43)+1;
+    vpp_idx = idx+1;%fix(idx/43)+1;
     vpp = [0,0,0,0,0.3,0,0];
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp(vpp_idx);
