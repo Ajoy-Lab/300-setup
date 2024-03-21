@@ -281,16 +281,16 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    freq_idx = mod(idx,13)+1;
-    freq_offset = cat(2,[0,0],(-0.5:0.1:0.5));
+    freq_idx = mod(idx,3)+1;
+    freq_offset = [0,-10,10];%cat(2,[0,0],(-0.5:0.1:0.5));
     freq = reso_freq+freq_offset(freq_idx);
     
   
-    vpp_idx = fix(idx/13)+1;
-    vpp = cat(2,3*(0.01:0.01:0.1));
+    vpp_idx = fix(idx/3)+1;
+    vpp = [0.03,0.1,0.3];%cat(2,3*(0.01:0.02:0.1));
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp(vpp_idx);
-    if freq_idx < 3
+    if freq_idx == 1
         AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
