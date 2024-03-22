@@ -264,7 +264,7 @@ end
         
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 1e-3+1e-6);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 100e-6);
     fprintf(sprintf("This is AC start time: %d \n", start_time));
     
 
@@ -281,20 +281,16 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    freq_idx = mod(idx,3)+1;
-    freq_offset = [0,-10,10];%cat(2,[0,0],(-0.5:0.1:0.5));
-    freq = reso_freq+freq_offset(freq_idx);
+    vpp_idx = mod(idx, 9)+1;
+    vpp = [0, 0.03, 0.06, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5];%cat(2,3*(0.01:0.02:0.1));
+    phase_idx = fix(idx/9)+1;
+    phase_l = (-90:30:90);
+    freq = reso_freq;
     
-  
-    vpp_idx = fix(idx/3)+1;
-    vpp = [0.03,0.1,0.3];%cat(2,3*(0.01:0.02:0.1));
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp(vpp_idx);
-    if freq_idx == 1
-        AC_dict.Vpp = 0;
-    end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = -90;
+    AC_dict.phase = phase_l(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
