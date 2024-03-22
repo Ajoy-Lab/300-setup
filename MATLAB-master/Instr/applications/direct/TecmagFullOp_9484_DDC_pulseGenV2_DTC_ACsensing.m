@@ -277,14 +277,21 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    vpp = 0.5;
-    phase_l = (0:5:90);
-    freq = reso_freq;
+    freq_offset_idx = mod(idx,43)+1;
+    freq_offset = cat(2,[0,0],(-20:4:-4),(-1.5:0.1:1.5),(4:4:20));
+    freq_mult_idx = mod(fix(idx/43),5)+1;
+    freq_multiplier = [1/4,1/2,1,2,4];
+    freq = reso_freq*freq_multiplier(freq_mult_idx) + freq_offset(freq_offset_idx);
+    vpp_idx = fix(idx/(43*5))+1;
+    vpp = [0.03,0.3];
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = vpp;
+    AC_dict.Vpp = vpp(vpp_idx);
+    if freq_offset_idx < 3
+        AC_dict.Vpp = 0;
+    end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = phase_l(idx);
+    AC_dict.phase = -90;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
