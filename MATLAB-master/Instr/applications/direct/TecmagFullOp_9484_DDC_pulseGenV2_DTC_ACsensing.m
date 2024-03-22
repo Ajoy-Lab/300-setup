@@ -233,10 +233,7 @@ end
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
    
-    idx = cmdBytes(2)-1;
-%     pi_idx = mod(fix(idx/43),3)+1;
-%     pi_multiplier = [1, 1.02,0.98];
-%     pi = pi*pi_multiplier(pi_idx);
+    idx = cmdBytes(2);
     
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
@@ -280,17 +277,14 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    
-    vpp_idx = mod(idx, 9)+1;
-    vpp = [0, 0.03, 0.06, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5];%cat(2,3*(0.01:0.02:0.1));
-    phase_idx = fix(idx/9)+1;
-    phase_l = (-90:30:90);
+    vpp = 0.5;
+    phase_l = (0:5:90);
     freq = reso_freq;
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = vpp(vpp_idx);
+    AC_dict.Vpp = vpp;
     AC_dict.DC_offset = 0;
-    AC_dict.phase = phase_l(phase_idx);
+    AC_dict.phase = phase_l(idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
