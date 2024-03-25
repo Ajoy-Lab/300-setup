@@ -233,7 +233,7 @@ end
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
    
-    idx = cmdBytes(2);
+    idx = cmdBytes(2)-1;
     
     fprintf(sprintf("This is pi: %d", pi));
     lengths = [pi_half pi_half pi pi_half];
@@ -283,7 +283,7 @@ end
     freq_multiplier = [1/4,1/2,1,2,4];
     freq = reso_freq*freq_multiplier(freq_mult_idx) + freq_offset(freq_offset_idx);
     vpp_idx = fix(idx/(43*5))+1;
-    vpp = [0.03,0.3];
+    vpp = [0.1,0.5];
     
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp(vpp_idx);
