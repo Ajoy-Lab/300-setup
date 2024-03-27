@@ -240,15 +240,17 @@ end
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 90];
-    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6 36e-6 36e-6];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    spacing_idx = fix(idx/23)+1;
+    x_spacing = (300e-6:120e-6:1260e-6);
+    spacings = [5e-6 36e-6 x_spacing(spacing_idx) x_spacing(spacing_idx)];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 16];
-    repeatSeq = [1 16000]; % how many times to repeat the block of pulses
+    repeatSeq = [1 2000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -277,18 +279,16 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq_offset_idx = mod(idx,43)+1;
-    freq_offset = cat(2,[0,0],(-20:4:-4),(-1.5:0.1:1.5),(4:4:20));
-    freq_mult_idx = mod(fix(idx/43),5)+1;
-    freq_multiplier = [1/4,1/2,1,2,4];
-    freq = reso_freq*freq_multiplier(freq_mult_idx) + freq_offset(freq_offset_idx);
-    vpp_idx = fix(idx/(43*5))+1;
-    vpp = [0.1,0.5];
+    freq_offset_idx = mod(idx,23)+1;
+    freq_offset = cat(2,[0,0],(-1:0.1:1));
+
+    freq = reso_freq + freq_offset(freq_offset_idx);
+    vpp = 0.3;
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = vpp(vpp_idx);
+    AC_dict.Vpp = vpp;
     if freq_offset_idx < 3
-        AC_dict.Vpp = 0;
+         AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
     AC_dict.phase = -90;
