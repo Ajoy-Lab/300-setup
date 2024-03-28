@@ -241,9 +241,7 @@ end
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacing_idx = fix(idx/23)+1;
-    x_spacing = (300e-6:120e-6:1260e-6);
-    spacings = [5e-6 36e-6 x_spacing(spacing_idx) x_spacing(spacing_idx)];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
@@ -279,19 +277,20 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq_offset_idx = mod(idx,23)+1;
-    freq_offset = cat(2,[0,0],(-1:0.1:1));
-
-    freq = reso_freq + freq_offset(freq_offset_idx);
-    vpp = 0.3;
+    phase_idx = mod(idx, 39)+1;
+    vpp_idx = fix(idx/39)+1;
+    phase_l = cat(2, [0, 0],(-180:10:180));
+    vpp_l = [0.3, 0.6, 0.9];
+    
+    freq = reso_freq;
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = vpp;
-    if freq_offset_idx < 3
+    AC_dict.Vpp = vpp_l(vpp_idx);
+    if phase_idx < 3
          AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = -90;
+    AC_dict.phase = phase_l(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
