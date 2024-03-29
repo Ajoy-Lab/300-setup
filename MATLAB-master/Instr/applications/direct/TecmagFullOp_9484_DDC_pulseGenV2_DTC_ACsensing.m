@@ -247,7 +247,7 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 16];
+    reps = [1 6000 1 30];
     repeatSeq = [1 2000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
@@ -277,12 +277,13 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    phase_idx = mod(idx, 39)+1;
-    vpp_idx = fix(idx/39)+1;
-    phase_l = cat(2, [0, 0],(-180:10:180));
-    vpp_l = [0.3, 0.6, 0.9];
+    freq_idx = mod(idx, 23) + 1;
+    freq_offset = cat(2, [0,0],(-1:0.1:1));
     
-    freq = reso_freq;
+    vpp_idx = fix(idx/23) + 1;
+    vpp_l = 3*(0.02:0.02:0.1);
+    
+    freq = reso_freq + freq_offset(freq_idx);
     
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp_l(vpp_idx);
@@ -290,7 +291,7 @@ end
          AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = phase_l(phase_idx);
+    AC_dict.phase = -90;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
