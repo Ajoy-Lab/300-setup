@@ -263,7 +263,7 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    
+    sampleRateDAC_freq = 675000000;
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi = cmdBytes(3)*1e-6;
@@ -273,19 +273,19 @@ end
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     lengths = [pi/2 pi/2 pi pi/2];
-    flip_angle_l = [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
-    lengths(3) = flip_angle_l(index)*pi;
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 38e-6 38e-6 38e-6];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
     fprintf("This is x-pulse spacings %d", spacings(4));
+    spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 720;
+    DTC_rep_seq = 490;
     num_x_lt_pulses = 100;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
@@ -297,7 +297,7 @@ end
     numberOfPulses_total = reps(2) + DTC_rep_seq*(reps(3) + reps(4));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = -1000*(26.1081);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -305,7 +305,7 @@ end
                 clearBlockDict();
                 
                 generate_RND_DTC_PulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, reps, random_seq, num_x_lt_pulses);
-                    
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
