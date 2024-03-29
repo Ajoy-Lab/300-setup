@@ -287,7 +287,7 @@ end
     
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp_l(vpp_idx);
-    if phase_idx < 3
+    if freq_idx < 3
          AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
