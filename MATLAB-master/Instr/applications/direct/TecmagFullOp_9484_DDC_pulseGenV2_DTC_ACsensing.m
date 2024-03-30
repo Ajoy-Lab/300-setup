@@ -247,8 +247,8 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 30];
-    repeatSeq = [1 2000]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 16];
+    repeatSeq = [1 16000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -277,16 +277,17 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq_idx = mod(idx, 23) + 1;
-    freq_offset = cat(2, [0,0],(-1:0.1:1));
+    freq_idx = mod(idx, 13) + 1;
+    freq_offset = cat(2, [0,0],(-1:0.2:1));
     
-    vpp_idx = fix(idx/23) + 1;
-    vpp_l = 3*(0.02:0.02:0.1);
+    vpp_idx = mod(fix(idx/13),6) + 1;
+    vpp_l = (0.01:0.03:0.16);
     
     freq = reso_freq + freq_offset(freq_idx);
     
     AC_dict.freq = freq;
     AC_dict.Vpp = vpp_l(vpp_idx);
+    
     if freq_idx < 3
          AC_dict.Vpp = 0;
     end
