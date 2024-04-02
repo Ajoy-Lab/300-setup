@@ -247,7 +247,7 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 16];
+    reps = [1 6000 1 32];
     repeatSeq = [1 16000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
@@ -280,8 +280,8 @@ end
     freq_idx = mod(idx, 13) + 1;
     freq_offset = cat(2, [0,0],(-1:0.2:1));
     
-    vpp_idx = mod(fix(idx/13),6) + 1;
-    vpp_l = (0.01:0.03:0.16);
+    vpp_idx = fix(idx/13) + 1;
+    vpp_l = (0.01:0.02:0.17);
     
     freq = reso_freq + freq_offset(freq_idx);
     
