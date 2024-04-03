@@ -304,8 +304,9 @@ end
     markers2 = cat(2, markers2, repmat(markers2(end),1, num_extra_slots));
     trigs = cat(2, trigs, repmat(trigs(end),1, num_extra_slots));
     reps = cat(2, reps, repmat(reps(end),1, num_extra_slots));
-    reps(end) = mod(num_x_pulses, 1e6);
-    
+    if mod(num_x_pulses, 1e6) ~= 0
+        reps(end) = mod(num_x_pulses, 1e6);
+    end
 %                 tof = -1000*cmdBytes(2);
                 tof = cmdBytes(6) + freq_offset_l(freq_idx);
                 
