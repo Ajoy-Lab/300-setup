@@ -264,14 +264,16 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     
-%     pulse_name = ['init_pul', 'theta1'];
+    sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     amps = [1 1 1];
     frequencies = [0 0 0];
-    lengths = [51.25e-6 51.25e-6 51.25e-6];
+    lengths = [pi/2 pi/2 pi/2];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90 90];
     mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 43e-6 43e-6];
+    spacings = [5e-6 36e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1 1]; %always keep these on
     markers2 = [0 0 0];
     trigs = [0 1 1]; %acquire on every "pi" pulse
@@ -294,7 +296,7 @@ end
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
-                    
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
@@ -467,7 +469,7 @@ end
                 
                % pause(Tmax+3);
                 
-                for n = 1:3000
+                for n = 1:6000
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
