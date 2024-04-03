@@ -263,26 +263,50 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    
+    index = cmdBytes(2);
+    freq_idx = mod(index, 26)+1;
+    angle_idx = fix(index/26)+1;
+    freq_offset_l = (0:200:5000);
+    angle_l = (90:-15:15);
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
-    amps = [1 1 1];
-    frequencies = [0 0 0];
-    lengths = [pi/2 pi/2 pi/2];
-    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    phases = [0 90 90];
-    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6 36e-6];
-    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
-    markers = [1 1 1]; %always keep these on
-    markers2 = [0 0 0];
-    trigs = [0 1 1]; %acquire on every "pi" pulse
+    flip_angle = (angle_l(angle_idx)/180)*pi;
+    fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
+    fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
     
-    reps = [1 1000000 1000000];
-    repeatSeq = [1]; % how many times to repeat the block of pulses
+    % initialize parameters
+    lengths = [pi/2  flip_angle];
+    spacings = [5e-6 36e-6];
+    amps = [1 1];
+    phases = [0 90];
+    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    markers = [1 1]; %always keep these on
+    markers2 = [0 0];
+    trigs = [0 1]; %acquire on every "pi" pulse
+    reps = [1 1000000];
+    repeatSeq = [1];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
+    
+    
+    % fix the number of pi/2 pulses to 2e6
+    num_x_pulses = (lengths(1)+spacings(2))*2e6/((lengths(2)+spacings(2)));
+    num_extra_slots = ceil(num_x_pulses/1e6)-1;
+    
+    % append extra slots to generate equal-length puleses
+    amps = cat(2, amps, repmat(amps(end),1, num_extra_slots));
+    spacings = cat(2, spacings, repmat(spacings(end), 1,num_extra_slots));
+    lengths = cat(2, lengths, repmat(lengths(end), 1, num_extra_slots));
+    phases = cat(2, phases, repmat(phases(end), 1, num_extra_slots));
+    mods = cat(2, mods, repmat(mods(end),1, num_extra_slots));
+    markers = cat(2, markers, repmat(markers(end),1, num_extra_slots));
+    markers2 = cat(2, markers2, repmat(markers2(end),1, num_extra_slots));
+    trigs = cat(2, trigs, repmat(trigs(end),1, num_extra_slots));
+    reps = cat(2, reps, repmat(reps(end),1, num_extra_slots));
+    reps(end) = mod(num_x_pulses, 1e6);
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + cmdBytes(2);
+                tof = cmdBytes(6) + freq_offset_l(freq_idx);
                 
                 ch=1;
                 initializeAWG(ch);
