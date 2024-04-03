@@ -291,6 +291,7 @@ end
     
     % fix the number of pi/2 pulses to 2e6
     num_x_pulses = (lengths(1)+spacings(2))*2e6/((lengths(2)+spacings(2)));
+    num_slots = ceil(num_x_pulses/1e6);
     num_extra_slots = ceil(num_x_pulses/1e6)-1;
     
     % append extra slots to generate equal-length puleses
@@ -314,9 +315,12 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-                defPulse('theta2', amps(3), mods(3), lengths(3), phases(3), spacings(3));
-                defBlock('pulsed_SL', {'init_pul','theta1', 'theta2'}, reps(1:3), markers(1:3), trigs(1:3));
+                block_dict = {'init_pul'};
+                for theta_idx = (1: num_slots)
+                   defPulse(sprintf('theta%i',theta_idx), amps(theta_idx+1), mods(theta_idx+1), lengths(theta_idx+1), phases(theta_idx+1), spacings(theta_idx+1));
+                   block_dict{end+1} = sprintf('theta%i',theta_idx);
+                end
+                defBlock('pulsed_SL', block_dict, reps(1:num_slots+1), markers(1:num_slots+1), trigs(1:num_slots+1));
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
@@ -380,7 +384,12 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+reps(3);
+                
+                numberOfPulses_total = 0;
+                for i = (2:length(reps))
+                    numberOfPulses_total = numberOfPulses_total + reps(i);
+                end
+                
 
                 
                 Tmax=cmdBytes(4);
