@@ -264,6 +264,7 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     index = cmdBytes(2);
+    Tmax = cmdBytes(4);
     freq_idx = mod(index, 26)+1;
     angle_idx = fix(index/26)+1;
     freq_offset_l = (0:200:5000);
@@ -291,6 +292,8 @@ end
     
     % fix the number of pi/2 pulses to 2e6
     num_x_pulses = (lengths(1)+spacings(2))*2e6/((lengths(2)+spacings(2)));
+    % round up to the nearest Tmax to help with processing
+    num_x_pulses = ceil(num_x_pulses/Tmax)*Tmax;
     num_slots = ceil(num_x_pulses/1e6);
     num_extra_slots = ceil(num_x_pulses/1e6)-1;
     
@@ -390,10 +393,6 @@ end
                 for i = (2:length(reps))
                     numberOfPulses_total = numberOfPulses_total + reps(i);
                 end
-                
-
-                
-                Tmax=cmdBytes(4);
                 
                 
                 tacq=cmdBytes(5);
