@@ -285,7 +285,7 @@ end
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     reps = [1 6000 1 300];
     % the number of repetitions to create DTC once polarization stabilizes
-    DTC_rep_seq = 490;
+    DTC_rep_seq = 665;
     num_x_lt_pulses = 100;
     fprintf("This is the number of x-pulses left of the Y pulse: %d \n", num_x_lt_pulses);
     assert(num_x_lt_pulses < reps(4), "number of x-pulses applied, left of the Y pulse should be less than all x pulses in a block");
