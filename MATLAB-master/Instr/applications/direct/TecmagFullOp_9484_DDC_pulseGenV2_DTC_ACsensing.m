@@ -242,7 +242,7 @@ end
     phases = [0 90 0 90 90];
     mods = [0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     y_spacing_idx = fix(idx/13)+1;
-    y_spacing = (36e-6:20e-6:216e-6);
+    y_spacing = (36e-6:20e-6:136e-6);
     spacings = [5e-6 36e-6 y_spacing(y_spacing_idx) 36e-6 y_spacing(y_spacing_idx)];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1 1]; %always keep these on
@@ -285,7 +285,7 @@ end
     freq = reso_freq + freq_offset(freq_idx);
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = 0;%0.1;
+    AC_dict.Vpp = 0.1;
     
     if freq_idx < 3
         AC_dict.Vpp = 0;
