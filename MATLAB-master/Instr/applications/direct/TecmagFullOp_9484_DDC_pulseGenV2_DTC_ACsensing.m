@@ -228,29 +228,27 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     sampleRateDAC_freq = 675000000; 
-    amps = [1 1 1 1 1];
-    frequencies = [0 0 0 0 0];
+    amps = [1 1 1 1];
+    frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
    
     idx = cmdBytes(2)-1;
     
     fprintf(sprintf("This is pi: %d", pi));
-    lengths = [pi_half pi_half pi pi_half pi_half];
+    lengths = [pi_half pi_half pi pi_half];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
-    phases = [0 90 0 90 90];
-    mods = [0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    y_spacing_idx = fix(idx/13)+1;
-    y_spacing = (36e-6:20e-6:136e-6);
-    spacings = [5e-6 36e-6 y_spacing(y_spacing_idx) 36e-6 y_spacing(y_spacing_idx)];
+    phases = [0 90 0 90];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    spacings = [5e-6 36e-6 36e-6 36e-6];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
-    markers = [1 1 1 1 1]; %always keep these on
-    markers2 = [0 0 0 0 0];
-    trigs = [0 1 1 1 1]; %acquire on every pulse (except initial tip)
+    markers = [1 1 1 1]; %always keep these on
+    markers2 = [0 0 0 0];
+    trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 15 1];
-    repeatSeq = [1 8000]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 300];
+    repeatSeq = [1 720]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -259,7 +257,7 @@ end
     %%set PB parameter
     start_time = lengths(1) + spacings(1) + ...
         (lengths(2) + spacings(2))*reps(2) + lengths(3)/2 +...
-        (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4) + lengths(5) + spacings(5))*60;
+        (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4))*60;
         
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
@@ -278,17 +276,20 @@ end
     %%set AC field parameter
     
     
-    reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)) + reps(5)*(lengths(5) + spacings(5))));
+    reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     freq_idx = mod(idx, 13) + 1;
     freq_offset = cat(2, [0,0],(-1:0.2:1));
+    
+    vpp_idx = fix(idx/13) + 1;
+    vpp_l = (0.01:0.02:0.17);
     
     freq = reso_freq + freq_offset(freq_idx);
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = 0.1;
+    AC_dict.Vpp = 0;%vpp_l(vpp_idx);
     
     if freq_idx < 3
-        AC_dict.Vpp = 0;
+         AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
     AC_dict.phase = -90;
@@ -310,9 +311,8 @@ end
                 defPulse('theta1', amps(2), mods(1), lengths(2), phases(2), spacings(2));
                 defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
                 defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
-                defPulse('theta2f', amps(5), mods(5), lengths(5), phases(5), spacings(5));
                 defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
-                defBlock('DTC', {'gamma','theta2','theta2f'}, reps(3:5), markers(3:5), trigs(3:5));
+                defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
                 assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
@@ -334,7 +334,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+(reps(3) + reps(4) + reps(5))*repeatSeq(2);
+                numberOfPulses_total = reps(2)+(reps(3) + reps(4))*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -668,9 +668,8 @@ end
                     time_axis(end+1) = curr_t;
                     added_time_axis = (1:reps(4))*(lengths(4)+spacings(4));
                     added_time_axis = curr_t + added_time_axis;
-                    added_time_axis(end+1) = added_time_axis(end) + lengths(5)+spacings(5);
                     time_axis = cat(2, time_axis, added_time_axis);
-                    curr_t = curr_t + reps(4)*(lengths(4)+spacings(4)) + lengths(5)+spacings(5);
+                    curr_t = curr_t + reps(4)*(lengths(4)+spacings(4));
                 end
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
