@@ -247,19 +247,28 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 300];
-    repeatSeq = [1 720]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 16];
+    repeatSeq = [1 5000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;
     
-    %%set PB parameter
-    start_time = lengths(1) + spacings(1) + ...
-        (lengths(2) + spacings(2))*reps(2) + lengths(3)/2 +...
-        (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4))*60;
+    % Y-pulse spacing
+    T = (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4));
+    
+    % set PB parameter
+    AC_phase_start_time = lengths(1) + spacings(1) + ...
+               (lengths(2) + spacings(2))*reps(2) + lengths(3)/2;
+           
+    num_periods = floor(AC_phase_start_time/T);
+    
+    start_time = AC_phase_start_time - (num_periods)*T;
         
     PB_seg1 = zeros(2, 2);
+    
+    % Below means that PB outputs 0V for duration start_time
+    % and PB outputs 2.7V (TTL +) for 100e-6
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 100e-6);
     fprintf(sprintf("This is AC start time: %d \n", start_time));
@@ -277,16 +286,18 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq_idx = mod(idx, 13) + 1;
-    freq_offset = cat(2, [0,0],(-1:0.2:1));
-    
-    vpp_idx = fix(idx/13) + 1;
-    vpp_l = (0.01:0.02:0.17);
-    
+    freq_idx = mod(idx, 11) + 1;
+    freq_offset = cat(2, [0,0],(-0.8:0.2:0.8));
     freq = reso_freq + freq_offset(freq_idx);
     
+    vpp_idx = fix(idx/11) + 1;
+    vpp_l = (0.02:0.02:1);
+    
+    fprintf(sprintf("This is AC frequency offset: %d \n", freq_offset(freq_idx)));
+    fprintf(sprintf("This is set Vpp: %d \n", vpp_l(vpp_idx)));
+    
     AC_dict.freq = freq;
-    AC_dict.Vpp = 0;%vpp_l(vpp_idx);
+    AC_dict.Vpp = vpp_l(vpp_idx);
     
     if freq_idx < 3
          AC_dict.Vpp = 0;
