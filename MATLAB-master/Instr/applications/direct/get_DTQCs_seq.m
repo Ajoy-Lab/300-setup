@@ -39,9 +39,9 @@ function [rem_l, seg_idx_l] = get_DTQCs_seq(sampleRateDAC, granularity, y_pulse_
     % generate the full pulse sequence
     num_x_pulse_l = [];
     % first segment is shortest DC segment
-    [y_seg_idx, x_seg_idx] = deal(1, 2);
+    [y_seg_idx, x_seg_idx] = deal(2, 3);
     % rem_seg_idx is segment index that corresponds to the last index
-    rem_seg_idx = 3;
+    rem_seg_idx = 4;
     
     seg_idx_l = [];
     rem_l = [];

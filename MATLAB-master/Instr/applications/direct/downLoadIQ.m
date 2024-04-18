@@ -1,5 +1,5 @@
 function downLoadIQ(ch, segMem, dacWaveI, dacWaveQ, inst)
-    fprintf(sprintf('Downloading waveform to channel %s, segment %s', num2str(ch), num2str(segMem)));
+    fprintf(sprintf('Downloading waveform to channel %s, segment %s \n', num2str(ch), num2str(segMem)));
 
     dacWaveIQ = [dacWaveI; dacWaveQ];
     dacWaveIQ = dacWaveIQ(:)';

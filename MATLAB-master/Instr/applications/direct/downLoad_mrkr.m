@@ -1,5 +1,5 @@
 function downLoad_mrkr(ch, segMem, state1, state2, inst)
-    fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
+    fprintf('Downloading marker to channel %s, segment %s \n', num2str(ch), num2str(segMem))
     
     myMkr = uint8(state1 + 2*state2);
     
