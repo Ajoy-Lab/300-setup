@@ -45,6 +45,7 @@ function [rem_l, seg_idx_l] = get_DTQCs_seq(sampleRateDAC, granularity, y_pulse_
     
     seg_idx_l = [];
     rem_l = [];
+    t_unit = granularity * vpa(1/sampleRateDAC);
     for idx = (1:length(Y_l) - 1)
         Y_spacing = Y_l(idx+1, 1) - Y_l(idx, 2);
         % add y-pulse
@@ -55,8 +56,13 @@ function [rem_l, seg_idx_l] = get_DTQCs_seq(sampleRateDAC, granularity, y_pulse_
         
         % add remainder
         rem = mod(Y_spacing, x_seg_len);
-        seg_idx_l = [seg_idx_l; rem_seg_idx, 1];
-        rem_seg_idx = rem_seg_idx + 1;
-        rem_l(end+1) = rem;
+        rem = round_to_DAC_freq(rem, sampleRateDAC, granularity);
+        
+        % if remainder is close to 0
+        if rem >= t_unit
+            seg_idx_l = [seg_idx_l; rem_seg_idx, 1];
+            rem_l = [rem_l ; rem_seg_idx, rem];
+            rem_seg_idx = rem_seg_idx + 1;
+        end
     end
 end
