@@ -271,17 +271,17 @@ end
     index = cmdBytes(2);
     
     %% DEFINE PULSE SEQUENCE PARAMETERS
-    amps = [1 1 1];
-    frequencies = [0 0 0];
-    lengths = [pi/2 pi pi/2];
+    amps = [1 1 1 1];
+    frequencies = [0 0 0 0];
+    lengths = [pi/2 pi pi/2 pi/2];
     lengths = round_to_DAC_freq(lengths, sampleRateDAC_freq, 64);
-    phases = [0 0 90];
-    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    phases = [0 0 90 90];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     
-    spacings = [5e-6 36e-6 36e-6];
+    spacings = [5e-6 36e-6 36e-6 5e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
-    markers = [1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
-    trigs = [0 1 1];
+    markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
+    trigs = [0 1 1 0];
     
     [T1, T2] = deal(2.0e-3, 2.4e-3);
     seq_time = 5;
@@ -1240,7 +1240,7 @@ global sampleRateDAC
 global interp
 global sampleRateInterp 
     
-    function setTask_Pulse(ch, numPulses, numSegs, seg_idx_l)
+    function setTask_Pulse(ch, rem_l, seg_idx_l)
     %{
     4 types of segment:
     1: pi/2, 2: pi/2(1-0.1), 3: pi/2(1+0.1), 4: holding (64pts)
@@ -1347,7 +1347,7 @@ global sampleRateInterp
     %%%% FUNCTION STARTS HERE %%%%
     % Holding segment, initial y-pulse, x-pulse, pi y-pulse, all the
     % remainder segments
-    numSegs = 1 + length(lengths)+ length(rem_l);
+    numSegs = 1 + length(lengths);
     lengthsPts = lengths * sampleRateDAC;
     spacingsPts = spacings * sampleRateDAC;
     
@@ -1355,66 +1355,34 @@ global sampleRateInterp
     global segMat
     segMat = cell(4, numSegs); % added a fourth row for Marker2 (trigs)
     
-    %% First pulse is the initial theta/2 pulse
-    x = 1;
-    fprintf("%d \n", x);
-    [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengthsPts(x), spacingsPts(x), amps(x), phases(x), markers1(x), trigs(x));
-    segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
-    
     %% Download 2nd and 3rd pulse.
-    for x = (2: 3)
+    for x = (1: 4)
         fprintf("%d \n", x);
         [I, Q, M1, Tr1] = get_square_pulse(frequencies(x), lengthsPts(x), spacingsPts(x), amps(x), phases(x), markers1(x), trigs(x));
         segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
     end
     
-    %% TODO: NEED to download the remaining segment
+    x = numSegs;
     
-    %% NEED TO CHANGE PLANS
-    % I cant be downloading segments for all the remainder -- seems like
-    % memory error keeps happening after I download ~ 1600 segments
-    % planning to do the heavy loading in the task table
-    % simply going to repeat DC segment multiple times
-    % 
-    for idx = (1: length(rem_l))
-        x = rem_l(idx, 1);
-        fprintf("%d \n", x);
-        rem_pts_raw = rem_l(idx, 2) * sampleRateDAC;
-        if rem_pts_raw ~= round(rem_pts_raw) 
-            fprintf("This is the case when raw pts are different: %d \n", rem_pts_raw);
-        end
-        rem_pts = int32(rem_pts_raw);
-        if rem_pts < (lengthsPts(1) + spacingsPts(1))
-            DClen = rem_pts;
-            [holdI, holdQ] = makeDC(DClen);
-            markHold = uint8(zeros(DClen, 1));
-            segMat = assign_segMat(x, segMat, holdI, holdQ, markHold, markHold);
-        else
-            % amplifier is on: 1, digitizer's trigger is off: 0
-            [I, Q, M1, Tr1] = get_square_pulse(frequencies(3), lengthsPts(3), (rem_pts - lengthsPts(3)), amps(3), phases(3), 1, 0);
-            segMat = assign_segMat(x, segMat, I, Q, M1, Tr1);
-        end
-    end
-    
-    %% Lastly, MAKE HOLDING SEGMENT  
+    %% Lastly, MAKE HOLDING DC SEGMENT  
     DClen = 64;
     [holdI, holdQ] = makeDC(DClen);
     markHold = uint8(zeros(DClen, 1));
     segMat = assign_segMat(x, segMat, holdI, holdQ, markHold, markHold);
     
+    %% DOWNLOAD ALL SEGMENTS
     fprintf('pulse sequence generated')
- 
     for x = (1: numSegs)
-        if x == 1654
-            fprintf("This is the buggy point");
-        else
-            downLoadIQ(ch, x, segMat{1,x}, segMat{2,x}, inst);
-            downLoad_mrkr(ch, x, segMat{3,x}, segMat{4,x}, inst);
-        end
-        
+        downLoadIQ(ch, x, segMat{1,x}, segMat{2,x}, inst);
+        downLoad_mrkr(ch, x, segMat{3,x}, segMat{4,x}, inst);
     end
-
-    setTask_Pulse(ch, numPulses, numSegs, random_seq);
+    % NEED TO CHANGE PLANS
+    % I cant be downloading segments for all the remainder -- seems like
+    % memory error keeps happening after I download ~ 1600 segments
+    % planning to do the heavy loading in the task table
+    % simply going to repeat DC segment multiple times
+    %% TODO: generate tasktable that can map content from 
+    setTask_Pulse(ch, rem_l, seg_idx_l);
  
     fprintf('pulse sequence written \n');
 end
