@@ -1,6 +1,6 @@
 function seg_idx_l = get_DTQCs_seq(sampleRateDAC, granularity, lengths, spacings, T1, T2, seq_time)
     % y-segment length
-    fprintf("generating segment list for DTQC with period T1: %.6f, T2: %.6f\n",T1, T2);
+    fprintf("generating segment list for DTQC with period T1: %.6f, T2: %.6f ...\n",T1, T2);
     assert (lengths(2) == 2*lengths(1), "lengths(2) must be y-pulse");
     y_seg_len = lengths(2) + spacings(2);
     y_seg_len = round_to_DAC_freq(y_seg_len, sampleRateDAC, granularity);

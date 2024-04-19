@@ -130,46 +130,9 @@ end
 %     assert(res.ErrCode == 0);
     
     fprintf('Reset complete\n');
-    
-    
-%     % ---------------------------------------------------------------------
-%     % RF Pulse Config
-%     % ---------------------------------------------------------------------
-%     
-%     
-%     amps = [1.0 1.0];
-%     frequencies = [0 0];
-%     lengths = [60e-6 60e-6];
-%     phases = [0 90];
-%     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-%     spacings = [100e-6 43e-6];
-%     reps = [1 194174];
-%     markers = [1 1]; %always keep these on
-%     markers2 = [0 0];
-%     trigs = [0 1]; %acquire on every "pi" pulse
-%     repeatSeq = [1];
-
-    
-    % ---------------------------------------------------------------------
-    % ADC Config
-    % ---------------------------------------------------------------------
-    
-    %inst.SendScpi(':DIG:MODE DUAL');
-    
-    %inst.SendScpi(sprintf(':DIG:CHAN CH%d', adcChanInd)); 
-    
-    %inst.SendScpi(':DIG:DDC:MODE COMP');
-    % inst.SendScpi(':DIG:DDC:CFR2 0.0');
-    %  inst.SendScpi(':DIG:DDC:PHAS2 90.0');
-   
-    %inst.SendScpi(sprintf(':DIG:FREQ %g', sampleRate));
-    
-    %inst.SendScpi(':DIG:CHAN:RANG LOW');
-    
-    % Enable acquisition in the digitizer's channels  
-    %inst.SendScpi(':DIG:CHAN:STAT ENAB');
-    
-    %fprintf('ADC Configured\n');
+    fprintf('initializing Tektronix AFG 31000\n');
+    tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
+    fprintf("Tektronix Initialization complete\n");
     
     %% Measurement Loop
     u2 = udp(remoteAddr, 'RemotePort', remotePort, 'LocalPort', localPort);
@@ -257,6 +220,7 @@ end
     
     fprintf('ADC Configured\n');
     fprintf('Clocks synced\n');
+    tek.output_off();
                 
             case 2 % Aquire on trig
                 
@@ -284,10 +248,42 @@ end
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
     trigs = [0 1 1 0];
     
-    [T1, T2] = deal(2.0e-3, 2.4e-3);
-    seq_time = 5;
+    T_arr = round_to_DAC_freq([2.0e-3, 2.4e-3], sampleRateDAC_freq, granularity);
+    [T1, T2] = deal(T_arr(1), T_arr(2));
+    
+    seq_time = 10;
     % rounding happens in the "get_DTQCs_seq" function
     seg_idx_l = get_DTQCs_seq(sampleRateDAC_freq, granularity, lengths, spacings, T1, T2, seq_time);
+    
+    fprintf("setting up pulse blaster sequence\n");
+    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
+    ch3 = 3;
+    PB_seg1 = zeros(2, 2);
+    start_time = lengths(1) + spacings(1) + ...
+               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2) + spacings(2) + lengths(2)/2 + 100*T2;
+    
+    % Below means that PB outputs 0V for duration start_time
+    % and PB outputs 2.7V (TTL +) for 100e-6
+    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 100e-6);
+    fprintf(sprintf("This is AC start time: %d \n", start_time));
+    PB(ch3) = PB_seg1;
+    initializeAWG(ch3);
+    fprintf("downloading pulseblaster sequence \n");
+    generate_PB(PB, sampleRateDAC, inst);
+    fprintf("PB download finished \n");
+    setNCO_IQ(ch3, 0, 0);
+    
+    freq = 1/T2;
+    AC_dict.freq = freq;
+    AC_dict.DC_offset = 0;
+    AC_dict.Vpp = 0.5;
+    AC_dict.phase = -90;
+    fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
+    fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
+    fprintf(sprintf("This is AC DC offset: %d \n", AC_dict.DC_offset));
+    fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
+    
     
     % The number of readout windows 2nd and 3rd segment are only ones that
     % have readout window.
@@ -297,6 +293,7 @@ end
            numberOfPulses_total = numberOfPulses_total + seg_idx_l(i, 2);
         end
     end
+    fprintf("This is the number of total readout window: %d \n", numberOfPulses_total);
     
                 tof = cmdBytes(6);
                 
@@ -306,8 +303,19 @@ end
                 clearBlockDict();
                 
                 generateDTQCseqIQ(ch, amps, frequencies, lengths, phases, spacings, markers, trigs, seg_idx_l, num_init_spin_lock);
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
+                fprintf("snyching Tabor's PB and Pseq \n");
+                
+                inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+                inst.SendScpi(':TRIG:COUPLE ON');
+                inst.SendScpi(':TRIG:CPU:MODE LOCAL');
+                inst.SendScpi(':TRIG:SOUR:ENAB CPU');
+                inst.SendScpi(':TRIG:SEL CPU');
+                inst.SendScpi(':TRIG:STAT ON');
+                resp = inst.SendScpi(':SYST:ERR?');
+                
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
                 fprintf('Calculate and set data structures...\n');
@@ -386,6 +394,14 @@ end
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
                 assert(rc.ErrCode == 0);
+                
+                fprintf("set Tektronix 31000 as burst mode \n");
+                ncycles = min(1e6, round(60*AC_dict.freq));
+                if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
+                    tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
+                        AC_dict.DC_offset, AC_dict.phase, ncycles);
+                end
+                fprintf("setting done\n");
                
 %                 rc = inst.SetAdcCaptureEnable(on);
 %                 assert(rc == 0);
@@ -705,8 +721,10 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
+                    'phases','spacings','num_init_spin_lock','trigs','start_time');
                 fprintf('Save complete\n');
+                tek.output_off()
                 
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
@@ -1190,6 +1208,7 @@ function initializeAWG(ch)
      inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
      %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
      inst.SendScpi(':SOUR:VOLT MAX');
+     inst.SendScpi('SOUR:FUNC:MODE TASK');
      inst.SendScpi(':INIT:CONT ON');
      res = inst.SendScpi(':TRAC:DEL:ALL');
      assert(res.ErrCode==0);
@@ -1257,7 +1276,7 @@ global sampleRateInterp
     % from the first pi/2 y-pulse and num_init_spin_lock of pi/2 x-pulse
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d', length(seg_idx_l)+4));
     %% set the first holding segment
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(':TASK:COMP:ENAB INT');
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
     t_idx = t_idx + 1;
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',5));
