@@ -232,7 +232,7 @@ end
     
     %% DEFINE PULSE LENGTH
     pi = cmdBytes(3)*1e-6;
-    index = cmdBytes(2);
+    index = cmdBytes(2)-1;
     
     %% DEFINE PULSE SEQUENCE PARAMETERS
     amps = [1 1 1 1];
@@ -259,8 +259,38 @@ end
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;
     PB_seg1 = zeros(2, 2);
-    start_time = lengths(1) + spacings(1) + ...
-               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2) + spacings(2) + lengths(2)/2 + 100*T2;
+    
+    reson_freq_1 = 1/(2*T1);
+    reson_freq_2 = 1/(2*T2);
+    reson_freq_3 = 1/(2*6*T1);
+    
+    freq_idx = mod(index,23) + 1;
+    phase_idx = mod(fix(index/23), 4) + 1;
+    Vpp_idx = fix(fix(index/23)/4)+1;
+    freq_l = cat(2, [0,0], (-0.9:0.3:0.9)+reson_freq_1,(-0.9:0.3:0.9)+reson_freq_2, (-0.9:0.3:0.9)+reson_freq_3);
+    phase_l = [0, 30, 60, 90];
+    Vpp_l = [0.2, 0.5, 0.8];
+    fprintf("This is frequency index: %d \n", freq_idx);
+    fprintf("This is phase index: %d \n", phase_idx);
+    fprintf("This is Vpp index: %d \n", Vpp_idx);
+    [Vpp, phase, freq] = deal(Vpp_l(Vpp_idx), phase_l(phase_idx), freq_l(freq_idx));
+    
+    
+    if freq_idx <= 2
+        Vpp = 0;
+    elseif (3 <= freq_idx) && (freq_idx <= 9)
+        start_time = lengths(1) + spacings(1) + ...
+               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
+    elseif (10 <= freq_idx) && (freq_idx <= 16)
+        start_time = lengths(1) + spacings(1) + ...
+               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2) + spacings(2) + lengths(2)/2;
+    elseif (17 <= freq_idx) && (freq_idx <= 23)
+        start_time = lengths(1) + spacings(1) + ...
+               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
+    else
+        start_time = 0;
+        assert(start_time ~= 0, "freq_idx must be between 1 and 23");
+    end
     
     % Below means that PB outputs 0V for duration start_time
     % and PB outputs 2.7V (TTL +) for 100e-6
@@ -274,11 +304,11 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0);
     
-    freq = 1/T2;
+    
     AC_dict.freq = freq;
     AC_dict.DC_offset = 0;
-    AC_dict.Vpp = 0.5;
-    AC_dict.phase = -90;
+    AC_dict.phase = phase;
+    AC_dict.Vpp = Vpp;
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
     fprintf(sprintf("This is AC DC offset: %d \n", AC_dict.DC_offset));
@@ -722,7 +752,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
-                    'phases','spacings','num_init_spin_lock','trigs','start_time');
+                    'phases','spacings','num_init_spin_lock','trigs','start_time','T1','T2');
                 fprintf('Save complete\n');
                 tek.output_off()
                 
