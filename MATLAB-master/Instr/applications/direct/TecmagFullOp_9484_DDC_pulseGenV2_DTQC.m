@@ -278,6 +278,8 @@ end
     
     if freq_idx <= 2
         Vpp = 0;
+        start_time = lengths(1) + spacings(1) + ...
+               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
     elseif (3 <= freq_idx) && (freq_idx <= 9)
         start_time = lengths(1) + spacings(1) + ...
                (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
