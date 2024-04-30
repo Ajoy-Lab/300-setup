@@ -269,11 +269,12 @@ end
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
-    lengths = [50e-6 50e-6 pi 50e-6];
+    lengths = [pi/2 pi/2 pi pi/2];
     lengths = round_to_DAC_freq(lengths, sampleRateDAC_freq, 64);
     phases = [0 90 0 90];
-    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6 36e-6 36e-6];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    idx = cmdBytes(2)-1;
+    spacings = [5e-6 25e-6 25e-6 25e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];

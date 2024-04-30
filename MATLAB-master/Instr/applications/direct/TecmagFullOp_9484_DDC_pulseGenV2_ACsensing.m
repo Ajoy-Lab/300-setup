@@ -247,7 +247,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 1000000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -261,7 +261,7 @@ end
 %     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
     center_freq = 5000;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.2, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.7, 0, 0);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
