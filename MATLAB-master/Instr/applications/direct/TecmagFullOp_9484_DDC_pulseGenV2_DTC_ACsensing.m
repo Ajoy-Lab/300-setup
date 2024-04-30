@@ -239,9 +239,20 @@ end
     lengths = [pi_half pi_half pi pi_half];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
+    AC_on_l = [0, 0, 1, 1];
+    spacings_l = cat(2, (25e-6:2e-6:37e-6),(39e-6:4e-6:200e-6));
+    AC_idx = mod(idx, 4)+1;
+    spacing_idx = fix(idx/4)+1;
+    
+    AC_on = AC_on_l(AC_idx);
+    x_spacing = spacings_l(spacing_idx);
+    fprintf(sprintf("This is AC on: %d \n", AC_on));
+    fprintf(sprintf("This is x-pulse spacing : %d \n", x_spacing));
+    
+    
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = [5e-6 x_spacing x_spacing x_spacing];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
@@ -286,20 +297,13 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq_idx = mod(idx, 11) + 1;
-    freq_offset = cat(2, [0,0],(-0.8:0.2:0.8));
-    freq = reso_freq + freq_offset(freq_idx);
-    
-    vpp_idx = fix(idx/11) + 1;
-    vpp_l = (0.02:0.02:1);
-    
-    fprintf(sprintf("This is AC frequency offset: %d \n", freq_offset(freq_idx)));
-    fprintf(sprintf("This is set Vpp: %d \n", vpp_l(vpp_idx)));
+    freq = reso_freq;
     
     AC_dict.freq = freq;
-    AC_dict.Vpp = vpp_l(vpp_idx);
     
-    if freq_idx < 3
+    if AC_on
+         AC_dict.Vpp = 0.3;
+    else
          AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
@@ -310,7 +314,6 @@ end
     fprintf(sprintf("This is AC DC offset: %d \n", AC_dict.DC_offset));
     fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
     
-%                 tof = -1000*cmdBytes(2);
                 tof = cmdBytes(6);
                 fprintf(sprintf("This is tof: %d", tof));
                 ch=1;
@@ -360,37 +363,12 @@ end
                 loops=Tmax;
                     
                 readLen = round2((tacq+2)*1e-6*2.7/(16*1e-9),96)-96;
-%                  readLen = round2((tacq+2)*1e-6/(13.27*1e-9),96)-96;
-                 %readLen = round2((tacq+2)*1e-6/(16*1e-9),96)-96;
-                 %readLen = round2((tacq)*1e-6/1e-9,96)-96;
-%                 readLen = 33888; % round2((tacq+2)*1e-6/1e-9,96)-96 %constraint: has to be multiple of 96, add 4 of deadtime %number of points in a frame
-                  %readLen = 16896; % for tacq=16
-%                 readLen = 65856; % for tacq=64
-%                 readLen = 129888; % for tacq=128
-
-%                 readLen = 66912; % actual tacq=64
-%                 readLen = 131040;
-%                 readLen = 129600;
-%                 readLen = 126912; % actual tacq=128
-%                 readLen = 97920; % for tacq=96
                 
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
                 assert(rc.ErrCode == 0);
                 
                 inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd));
-                %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
-                %assert(rc.ErrCode == 0);
-                %rc = inst.SendScpi(sprintf(':DIG:TRIG:SELF %f', 0.025)); %0.025 
-                %assert(rc.ErrCode == 0);
-                %rc = inst.SendScpi(sprintf(':DIG:TRIG:AWG:TDEL %f', lengths(2) + 8e-6));
-                %assert(rc.ErrCode == 0);
-                
-                %inst.SendScpi(sprintf(':DIG:CHAN 1'))
-                %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
-                %assert(rc.ErrCode == 0);
-%                 rc = inst.SendScpi(sprintf(':DIG:TRIG:AWG:TDEL %f', 0));
-%                 assert(rc.ErrCode == 0);
                 
                 rc = inst.SendScpi(':DIG:TRIG:SOUR EXT'); %digChan
                 assert(rc.ErrCode == 0);
@@ -403,29 +381,8 @@ end
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
-                
-                %netArray = NET.createArray('System.UInt16', 2* readLen*numberOfPulses); %total array -- all memory needed
-                
-%                 rc = inst.SetAdcAcquisitionEn(on,off);
-%                 assert(rc == 0);
-
-                % Setup frames layout    
-
-                
-%                  rc = inst.SendScpi(':DIG:ACQ:CAPT 1,-1');   
-%                  assert(rc.ErrCode == 0);
-%                  rc = inst.SendScpi(':DIG:ACQ:ZERO 1,-1');
-%                  assert(rc.ErrCode == 0);
                  rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
                  assert(rc.ErrCode == 0);
-%                  rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
-%                  assert(rc.ErrCode == 0);
-
-%                 rc = inst.SetAdcFramesLayotrigut(numberOfPulses*loops, readLen); %set memory of the AWG
-    %                 assert(rc == 0);
-%                  rc = resp = inst.SendScpi(':DIG:DATA:FORM?');
-%                  assert(rc == 0);
-%                  resp = strtrim(pfunc.netStrToStr(resp.RespStr));
     
                 fprintf('Waiting... Listen for Shuttle\n');
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
