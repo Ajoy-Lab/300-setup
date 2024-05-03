@@ -247,7 +247,9 @@ end
     markers2 = [0 0 0 0 0 0];
     trigs = [0 1 0 0 0 1]; %acquire during spin locks
     
-    nflips = idx+1;
+    nflips_l = [1 2 5 8 17 32 33 34 65 100];
+    nflips_idx = mod(idx,10)+1;
+    nflips = nflips_l(nflips_idx);
     
     reps = [1 6000 1 nflips 1 6000];
     repeatSeq = [1 1 1]; % how many times to repeat the block of pulses; in this case should always be 1
@@ -287,26 +289,18 @@ end
     % resonance frequency
     %%set AC field parameter
     
-    
     reso_freq = 1/(2*T);
-    freq_idx = mod(idx, 11) + 1;
-    freq_offset = cat(2, [0,0],(-0.8:0.2:0.8));
     freq = reso_freq;
     
-    vpp_idx = fix(idx/11) + 1;
-    vpp_l = (0.02:0.02:1);
-    
-    fprintf(sprintf("This is AC frequency offset: %d \n", freq_offset(freq_idx)));
-    fprintf(sprintf("This is set Vpp: %d \n", vpp_l(vpp_idx)));
+    phase_idx = fix(idx/10)+1;
+    phase_l = (-180:10:180);
     
     AC_dict.freq = freq;
+    
     AC_dict.Vpp = 0.3;
     
-%     if freq_idx < 3
-%          AC_dict.Vpp = 0;
-%     end
     AC_dict.DC_offset = 0;
-    AC_dict.phase = 0;
+    AC_dict.phase = phase_l(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));

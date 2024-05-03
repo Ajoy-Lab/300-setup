@@ -236,29 +236,33 @@ end
     idx = cmdBytes(2)-1;
     
     fprintf(sprintf("This is pi: %d", pi));
-    lengths = [pi_half pi_half pi pi_half];
+    
+    theta_l = pi*[1/4 1/3 1/2 2/3];
+    theta_idx = fix(idx/32)+1;
+    theta_length = theta_l(theta_idx);
+    
+    lengths = [pi_half pi_half pi theta_length];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
-    AC_on_l = [0, 0, 1, 1];
-    spacings_l = cat(2, (25e-6:2e-6:37e-6),(39e-6:4e-6:200e-6));
-    AC_idx = mod(idx, 4)+1;
-    spacing_idx = fix(idx/4)+1;
-    
+    AC_idx = mod(idx,4)+1;
+    AC_on_l = [0 1 0 1];
     AC_on = AC_on_l(AC_idx);
-    x_spacing = spacings_l(spacing_idx);
     fprintf(sprintf("This is AC on: %d \n", AC_on));
-    fprintf(sprintf("This is x-pulse spacing : %d \n", x_spacing));
     
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 x_spacing x_spacing x_spacing];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 6000 1 16];
+    N_l = [4 5 6 7 13 14 15 16];
+    N_idx = mod(fix(idx/4),8)+1;
+    N = N_l(N_idx);
+    
+    reps = [1 6000 1 N];
     repeatSeq = [1 5000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
