@@ -237,18 +237,8 @@ end
     
     fprintf(sprintf("This is pi: %d", pi));
     
-    theta_l = pi*[1/4 1/3 1/2 2/3];
-    theta_idx = fix(idx/32)+1;
-    theta_length = theta_l(theta_idx);
-    
-    lengths = [pi_half pi_half pi theta_length];
+    lengths = [pi_half pi_half pi pi_half];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    
-    AC_idx = mod(idx,4)+1;
-    AC_on_l = [0 1 0 1];
-    AC_on = AC_on_l(AC_idx);
-    fprintf(sprintf("This is AC on: %d \n", AC_on));
-    
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -258,12 +248,9 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    N_l = [4 5 6 7 13 14 15 16];
-    N_idx = mod(fix(idx/4),8)+1;
-    N = N_l(N_idx);
     
-    reps = [1 6000 1 N];
-    repeatSeq = [1 5000]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 16];
+    repeatSeq = [1 16000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -301,14 +288,18 @@ end
     
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    freq = reso_freq;
     
+    freq_idx = mod(idx, 13) + 1;
+    freq_offset = cat(2, [0, 0], (-1:0.2:1));
+    
+    vpp_idx = mod(fix(idx/13), 6) + 1;
+    vpp_l = (0.01:0.03:0.16);
+    freq = reso_freq + freq_offset(freq_idx);
     AC_dict.freq = freq;
     
-    if AC_on
-         AC_dict.Vpp = 0.3;
-    else
-         AC_dict.Vpp = 0;
+    AC_dict.Vpp = vpp_l(vpp_idx);
+    if freq_idx < 3
+        AC_dict.Vpp = 0;
     end
     AC_dict.DC_offset = 0;
     AC_dict.phase = -90;
