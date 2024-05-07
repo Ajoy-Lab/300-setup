@@ -292,8 +292,8 @@ end
     freq_idx = mod(idx, 13) + 1;
     freq_offset = cat(2, [0, 0], (-1:0.2:1));
     
-    vpp_idx = mod(fix(idx/13), 6) + 1;
-    vpp_l = (0.01:0.03:0.16);
+    vpp_idx = mod(fix(idx/13), 5) + 1;
+    vpp_l = (0.19:0.03:0.31);
     freq = reso_freq + freq_offset(freq_idx);
     AC_dict.freq = freq;
     
