@@ -232,9 +232,6 @@ end
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
-   
-    idx = cmdBytes(2)-1;
-    
     fprintf(sprintf("This is pi: %d", pi));
     
     lengths = [pi_half pi_half pi pi_half];
@@ -289,18 +286,8 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    freq_idx = mod(idx, 13) + 1;
-    freq_offset = cat(2, [0, 0], (-1:0.2:1));
-    
-    vpp_idx = mod(fix(idx/13), 5) + 1;
-    vpp_l = (0.19:0.03:0.31);
-    freq = reso_freq + freq_offset(freq_idx);
-    AC_dict.freq = freq;
-    
-    AC_dict.Vpp = vpp_l(vpp_idx);
-    if freq_idx < 3
-        AC_dict.Vpp = 0;
-    end
+    AC_dict.freq = reso_freq;
+    AC_dict.Vpp = cmdBytes(2);
     AC_dict.DC_offset = 0;
     AC_dict.phase = -90;
     
