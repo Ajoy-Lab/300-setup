@@ -247,8 +247,8 @@ end
     markers2 = [0 0 0 0 0 0];
     trigs = [0 1 0 0 0 1]; %acquire during spin locks
     
-    nflips_l = [1 2 5 8 17 32 33 34 65 100];
-    nflips_idx = mod(idx,10)+1;
+    nflips_l = [1 65];
+    nflips_idx = mod(idx,2)+1;
     nflips = nflips_l(nflips_idx);
     
     reps = [1 6000 1 nflips 1 6000];
@@ -292,15 +292,15 @@ end
     reso_freq = 1/(2*T);
     freq = reso_freq;
     
-    phase_idx = fix(idx/10)+1;
-    phase_l = (-180:10:180);
+    Vpp_idx = fix(idx/2)+1;
+    Vpp_l = 10.^(-3:0.25:0);
     
     AC_dict.freq = freq;
     
-    AC_dict.Vpp = 0.3;
+    AC_dict.Vpp = Vpp_l(Vpp_idx);
     
     AC_dict.DC_offset = 0;
-    AC_dict.phase = phase_l(phase_idx);
+    AC_dict.phase = 0;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
