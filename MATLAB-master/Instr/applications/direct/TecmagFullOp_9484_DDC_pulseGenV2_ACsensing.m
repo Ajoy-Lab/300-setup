@@ -259,9 +259,9 @@ end
     
     %%set AC field parameter
 %     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
-    center_freq = 5000;
+    center_freq = 100;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.7, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 1, 0, 0);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
