@@ -247,7 +247,7 @@ end
     
     
     reps = [1 6000 1 4];
-    repeatSeq = [1 32000*2]; % how many times to repeat the block of pulses
+    repeatSeq = [1 32000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -287,20 +287,21 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
    
     
-    AC_dict.freq = reso_freq-0.1;
+    AC_dict.freq = reso_freq;
     
     idx = cmdBytes(2)-1;
-    AC_on = mod(idx,5)>0;
-    vpp_idx = idx - fix(idx/5); 
-    vpp_l = (0.006:0.014:1);
-    if AC_on
-        AC_dict.Vpp = vpp_l(vpp_idx);
-    else
+    phase_idx = mod(idx,39)+1;
+    vpp_idx = fix(idx/39)+1;
+    phase_l = cat(2, [0, 0], (-180:10:180));
+    vpp_l = [0.05, 0.1, 0.15];
+    if phase_idx <= 2
         AC_dict.Vpp = 0;
+    else
+        AC_dict.Vpp = vpp_l(vpp_idx);
     end
     
     AC_dict.DC_offset = 0;
-    AC_dict.phase = -90;
+    AC_dict.phase = phase_l(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
