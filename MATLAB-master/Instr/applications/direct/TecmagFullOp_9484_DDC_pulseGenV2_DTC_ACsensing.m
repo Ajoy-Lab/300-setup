@@ -247,7 +247,7 @@ end
     
     
     reps = [1 6000 1 4];
-    repeatSeq = [1 32000]; % how many times to repeat the block of pulses
+    repeatSeq = [1 64000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
