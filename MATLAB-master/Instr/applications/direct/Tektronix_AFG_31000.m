@@ -15,13 +15,22 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, "*RST");
         end
 
-        function burst_mode_trig_sinwave(obj, freq, Vpp, DC_offset, phase, ncycles)
+        function burst_mode_trig_sinwave(obj, freq, Vpp, DC_offset, phase, ncycles, add_external)
             %{
             1. Sets Tektronix device to burst mode, waiting for a trigger
             2. Once trigger comes, output a sine wave with given Vpp, freq,
                phase, DCoffset and phase
             %}
             % set trigger souce
+
+            if nargin < 7
+                add_external = false;
+            end
+            
+            if add_external
+                fprintf(obj.gpib_obj, 'SOURce1:COMBine:FEED "EXTernal"');
+            end 
+            
             fprintf(obj.gpib_obj, "TRIG:SLOP POS");
             fprintf(obj.gpib_obj, "TRIG:SEQ:SOUR EXT");
             
@@ -42,7 +51,6 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("PHASE:ADJUST %dDEG", phase));
             
         end
-        
         
         function burst_mode_DC(obj, voltage)
             %{

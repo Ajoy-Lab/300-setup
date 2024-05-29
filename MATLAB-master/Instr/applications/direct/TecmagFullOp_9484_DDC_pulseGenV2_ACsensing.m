@@ -258,10 +258,16 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     
     %%set AC field parameter
-%     center_freq = 1/((lengths(2) + spacings(2))*4)-0.97;
-    center_freq = 100;
+    idx = cmdBytes(2)-1;
+    
+    center_freq = 1/((lengths(2) + spacings(2))*4);
+    freq_l = [100 300 1000 3000 10000 30000 100000];
+    freq_idx = fix(idx/19)+1;
+    vpp_l = cat(2, (0.001:0.001:0.01), (0.02:0.01:0.1));
+    vpp_idx = mod(idx,19)+1;
+    DC_offset = (-0.9:0.2:0.9);
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 1, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.1, DC_offset(idx+1), 0);
     PB(ch3) = PB_seg1;
     initializeAWG(ch3);
     fprintf("downloading pulseblaster sequence \n");
@@ -356,7 +362,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 6e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
@@ -392,7 +398,7 @@ end
                 fprintf("set Tektronix 31000 as burst mode \n");
                 ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
-                    AC_dict("DC_offset"), AC_dict("phase"), ncycles);
+                    AC_dict("DC_offset"), AC_dict("phase"), ncycles, true);
                 fprintf("setting done\n");
                 
                 
