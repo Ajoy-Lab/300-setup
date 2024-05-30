@@ -176,7 +176,7 @@ fprintf('Clocks synced\n');
 %% case 2: generating pulse sequence
 % initalize Tabor PB as a container
 PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
-ch2 = 3;
+ch3 = 3;
 % initalize PB array element -- first column indicates low or high
 % currently ONLY supports one marker per channel for this PB
 % will need a segment counter once we change the channel as channel 3 and 4
@@ -184,16 +184,29 @@ ch2 = 3;
 % different
 PB_seg1 = zeros(4, 2);
 PB_seg1(1, 1) = 0;
-PB_seg1(1, 2) = 1e-6;
+PB_seg1(1, 2) = 3e-3;
 PB_seg1(2, 1) = 1;
-PB_seg1(2, 2) = 10e-6;
+PB_seg1(2, 2) = 1e-3;
 PB_seg1(3, 1) = 0;
 PB_seg1(3, 2) = 2e-3;
 PB_seg1(4, 1) = 1;
 PB_seg1(4, 2) = 1.5e-3;
-PB(ch2) = PB_seg1;
+PB(ch3) = PB_seg1;
+
+% ch4 = 4;
+% PB_seg2 = zeros(4, 2);
+% PB_seg2(1, 1) = 0;
+% PB_seg2(1, 2) = 2e-3;
+% PB_seg2(2, 1) = 1;
+% PB_seg2(2, 2) = 1e-3;
+% PB_seg2(3, 1) = 0;
+% PB_seg2(3, 2) = 2e-3;
+% PB_seg2(4, 1) = 1;
+% PB_seg2(4, 2) = 1.5e-3;
+% PB(ch4) = PB_seg2;
+
 % download PB
-initializeAWG(ch2);
+initializeAWG(ch3);
 generate_PB(PB, sampleRateDAC, inst);
 
 
@@ -212,7 +225,8 @@ reps = [1 10000];
 repeatSeq = [1]; % how many times to repeat the block of pulses
 
 tof = -1000*(25.9874);
-setNCO_IQ(ch2, 0, 0);
+setNCO_IQ(ch3, 0, 0);
+% setNCO_IQ(ch4, 0, 0);
 ch = 1;
 
 

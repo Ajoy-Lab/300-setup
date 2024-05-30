@@ -3,7 +3,8 @@ function generate_PB(PB, sampleRateDAC, inst)
 % keys(PB): indicates channel
 % values(PB): 2D array where the first column indicate 0s or 1s and 2nd
 % column indicates the duration of those pulses.
-    function setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst)
+% only supports Marker 1 for channel 3 and/or channel 4
+    function setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst, segm_offset)
         inst.SendScpi(sprintf(':INST:CHAN %d',ch));
         inst.SendScpi('TASK:ZERO:ALL');
         %number of tasks: 2 from initial and final holding segment
@@ -16,19 +17,19 @@ function generate_PB(PB, sampleRateDAC, inst)
         t_idx = t_idx + 1;
         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
         inst.SendScpi(':TASK:COMP:ENAB INT');
-        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3));
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3 + segm_offset));
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',t_idx));
         inst.SendScpi(':TASK:COMP:TYPE SING');
-        seg_idx = 1;
+        seg_idx = 1 + segm_offset;
         for idx = 1:length(num_ms_l)
             if num_ms_l(idx) > 0
                 inst.SendScpi(sprintf(':TASK:COMP:SEL %d',t_idx));
                 t_idx = t_idx + 1;
                 if on_or_off(idx) == 0
-                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1));
+                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 1 + segm_offset));
                     fprintf("assign task with repetitive positive 1ms \n");
                 else
-                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2));
+                    inst.SendScpi(sprintf(':TASK:COMP:SEGM %d', 2 + segm_offset));
                     fprintf("assign task with repetitive negative 1ms \n");
                 end
                 inst.SendScpi(sprintf(':TASK:COMP:LOOP %d', num_ms_l(idx)));
@@ -48,14 +49,14 @@ function generate_PB(PB, sampleRateDAC, inst)
         end
         inst.SendScpi(sprintf(':TASK:COMP:SEL %d', t_idx));
         inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3));
+        inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',3 + segm_offset));
         inst.SendScpi(':TASK:COMP:TYPE SING');
         inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',1));
         inst.SendScpi('TASK:COMP:WRITE');
         resp = inst.SendScpi('SOUR:FUNC:MODE TASK');
     end
 k = keys(PB);
-assert(length(PB) == 1, "Tabor PB only supports one channel");
+segm_offset = 0;
 for i = 1: length(PB)
     %get channel and marker number
     ch = k{i};
@@ -68,7 +69,7 @@ for i = 1: length(PB)
     % 1ms, if it isn't then download one more segment.
     is_mult_ms = [];
     %first store 1ms segment ON and OFF semgnet for the 1st marker
-    segMem = 1;
+    segMem = 1 + segm_offset;
     one_ms = round_to_DAC_freq(1e-3, sampleRateDAC, 64);
     [I, Q] = makeDC(one_ms*sampleRateDAC);
     seg_1ms_off = uint8(zeros(1, length(I)));
@@ -111,7 +112,8 @@ for i = 1: length(PB)
             segMem = segMem + 1;
         end
     end
-    setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst);
+    setTask_PB(ch, num_ms_l, on_or_off, is_mult_ms, inst, segm_offset);
+    segm_offset = segMem - 1;
 end
 
 end
