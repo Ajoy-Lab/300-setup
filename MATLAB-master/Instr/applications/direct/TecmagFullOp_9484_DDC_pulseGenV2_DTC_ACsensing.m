@@ -293,11 +293,11 @@ end
         (reso_freq-50:10:reso_freq-10), (reso_freq-5:1:reso_freq-2),[0], ...
         (reso_freq+2:1:reso_freq+5),[0],(reso_freq+10:5:reso_freq+50),...
         (reso_freq*21/20:reso_freq/20:2*reso_freq),[0]);
-    freq_idx = idx+1;%fix(idx/5)+1;
+    freq_idx = fix(idx/5)+1;
     
-    AC_dict.freq = freq_l(freq_idx);
-    
-    if freq_l(freq_idx)==0
+    AC_dict.freq = reso_freq;%freq_l(freq_idx);
+
+    if mod(idx,2)==0
         AC_dict.Vpp = 0;
     else
         AC_dict.Vpp = 0.1;
