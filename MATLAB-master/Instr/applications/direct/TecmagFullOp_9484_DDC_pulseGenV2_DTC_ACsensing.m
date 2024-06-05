@@ -232,11 +232,13 @@ end
     frequencies = [0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
-    fprintf(sprintf("This is pi: %d", pi));
+    fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
-    pi_mult_l = [1 1.01 0.99 1.03 0.97];
-    pi_idx = 1;%mod(idx,5) + 1;
-    lengths = [pi_half pi_half pi*pi_mult_l(pi_idx) pi_half];
+    phase_idx = mod(idx, 75)+1;
+    pi_mult_idx = fix(idx/75)+1;    
+    pi_mult_l = [0.98 1];
+    lengths = [pi_half pi_half pi*pi_mult_l(pi_mult_idx) pi_half];
+    fprintf(sprintf("This is gamma: %d pi \n", pi_mult_l(pi_mult_idx)));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 90];
@@ -286,25 +288,20 @@ end
     %%set AC field parameter
     
     
+    phase_l = cat(2, [-360, -360], (-180:5:180));
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-   
-    freq_l = cat(2,[0],[0],(reso_freq-0.2:0.01:reso_freq+0.2));%, ...
-%         (reso_freq/20:reso_freq/20:reso_freq*19/20), ...
-%         (reso_freq-50:10:reso_freq-10), (reso_freq-5:1:reso_freq-2),[0], ...
-%         (reso_freq+2:1:reso_freq+5),[0],(reso_freq+10:5:reso_freq+50),...
-%         (reso_freq*21/20:reso_freq/20:2*reso_freq),[0]);
-    freq_idx = idx+1;
     
-    AC_dict.freq = freq_l(freq_idx);
-
-    if AC_dict.freq == 0
+    AC_dict.freq = reso_freq;
+    if phase_l(phase_idx) == -360
         AC_dict.Vpp = 0;
+        AC_dict.phase = 0;
     else
         AC_dict.Vpp = 0.1;
+        AC_dict.phase = phase_l(phase_idx);
     end
     
     AC_dict.DC_offset = 0;
-    AC_dict.phase = -90;
+    
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
