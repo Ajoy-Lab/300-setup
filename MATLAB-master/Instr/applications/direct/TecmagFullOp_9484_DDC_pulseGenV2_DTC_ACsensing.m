@@ -234,8 +234,8 @@ end
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
-    phase_idx = mod(idx, 75)+1;
-    pi_mult_idx = fix(idx/75)+1;    
+    vpp_idx = mod(idx, 2)+1;
+    pi_mult_idx = fix(idx/2)+1;    
     pi_mult_l = [0.98 1];
     lengths = [pi_half pi_half pi*pi_mult_l(pi_mult_idx) pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi_mult_l(pi_mult_idx)));
@@ -250,8 +250,8 @@ end
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     
-    reps = [1 6000 1 4];
-    repeatSeq = [1 64000]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 16];
+    repeatSeq = [1 32000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -287,19 +287,12 @@ end
     % resonance frequency
     %%set AC field parameter
     
-    
-    phase_l = cat(2, [-360, -360], (-180:5:180));
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    if phase_l(phase_idx) == -360
-        AC_dict.Vpp = 0;
-        AC_dict.phase = 0;
-    else
-        AC_dict.Vpp = 0.1;
-        AC_dict.phase = phase_l(phase_idx);
-    end
-    
+    Vpp_l = [0, 0.5];
+    AC_dict.Vpp = Vpp_l(vpp_idx);
+    AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
     
