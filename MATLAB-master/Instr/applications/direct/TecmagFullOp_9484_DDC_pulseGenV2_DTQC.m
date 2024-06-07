@@ -250,8 +250,8 @@ end
     
     T_arr = round_to_DAC_freq([2.0e-3, 2.4e-3], sampleRateDAC_freq, granularity);
     [T1, T2] = deal(T_arr(1), T_arr(2));
-    reson_freq_1 = 1/(2*T1);
-    reson_freq_2 = 1/(2*T2);
+    reson_freq1 = 1/(2*T1);
+    reson_freq2 = 1/(2*T2);
     
     seq_time = 15;
     % rounding happens in the "get_DTQCs_seq" function
