@@ -262,7 +262,7 @@ end
     ch3 = 3;
     PB_seg1 = zeros(2, 2);
     freq_idx = mod(index, 64) + 1;
-    phase_idx = fix(index/64);
+    phase_idx = fix(index/64) + 1;
     
     phase_l = [0, 90];
     phase = phase_l(phase_idx);
