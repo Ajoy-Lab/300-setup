@@ -250,8 +250,10 @@ end
     
     T_arr = round_to_DAC_freq([2.0e-3, 2.4e-3], sampleRateDAC_freq, granularity);
     [T1, T2] = deal(T_arr(1), T_arr(2));
+    reson_freq_1 = 1/(2*T1);
+    reson_freq_2 = 1/(2*T2);
     
-    seq_time = 10;
+    seq_time = 15;
     % rounding happens in the "get_DTQCs_seq" function
     seg_idx_l = get_DTQCs_seq(sampleRateDAC_freq, granularity, lengths, spacings, T1, T2, seq_time);
     
@@ -259,39 +261,29 @@ end
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;
     PB_seg1 = zeros(2, 2);
+    freq_idx = mod(index, 64) + 1;
+    phase_idx = fix(index/64);
     
-    reson_freq_1 = 1/(2*T1);
-    reson_freq_2 = 1/(2*T2);
-    reson_freq_3 = 1/(2*6*T1);
-    
-    freq_idx = mod(index,23) + 1;
-    phase_idx = mod(fix(index/23), 4) + 1;
-    Vpp_idx = fix(fix(index/23)/4)+1;
-    freq_l = cat(2, [0,0], (-0.9:0.3:0.9)+reson_freq_1,(-0.9:0.3:0.9)+reson_freq_2, (-0.9:0.3:0.9)+reson_freq_3);
-    phase_l = [0, 30, 60, 90];
-    Vpp_l = [0.2, 0.5, 0.8];
-    fprintf("This is frequency index: %d \n", freq_idx);
-    fprintf("This is phase index: %d \n", phase_idx);
-    fprintf("This is Vpp index: %d \n", Vpp_idx);
-    [Vpp, phase, freq] = deal(Vpp_l(Vpp_idx), phase_l(phase_idx), freq_l(freq_idx));
-    
-    
-    if freq_idx <= 2
-        Vpp = 0;
+    phase_l = [0, 90];
+    phase = phase_l(phase_idx);
+    if phase == 0
+        freq_l = cat(2, [0, 0], reson_freq2+(-0.9:0.1:-0.3), reson_freq2+(-0.2:0.02:0.2), reson_freq2+(0.3:0.1:0.9), (reson_freq2+1:5:reson_freq1-1), reson_freq1+(-0.9:0.1:0.9));
         start_time = lengths(1) + spacings(1) + ...
-               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
-    elseif (3 <= freq_idx) && (freq_idx <= 9)
+           (lengths(3) + spacings(3))*num_init_spin_lock + ...
+           (lengths(2) + spacings(2)) + lengths(2)/2;
+    elseif phase == 90
+        freq_l = cat(2, [0, 0], reson_freq2+(-0.9:0.1:0.9), (reson_freq2+1:5:reson_freq1-1), reson_freq1+(-0.9:0.1:-0.3), reson_freq1+(-0.2:0.02:0.2), reson_freq1+(0.3:0.1:0.9));
         start_time = lengths(1) + spacings(1) + ...
-               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
-    elseif (10 <= freq_idx) && (freq_idx <= 16)
-        start_time = lengths(1) + spacings(1) + ...
-               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2) + spacings(2) + lengths(2)/2;
-    elseif (17 <= freq_idx) && (freq_idx <= 23)
-        start_time = lengths(1) + spacings(1) + ...
-               (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
+           (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
     else
-        start_time = 0;
-        assert(start_time ~= 0, "freq_idx must be between 1 and 23");
+        fprintf("not a valid phase \n");
+    end
+    freq = freq_l(freq_idx);
+    
+    if freq_idx < 3
+        Vpp = 0;
+    else
+        Vpp = 0.4;
     end
     
     % Below means that PB outputs 0V for duration start_time
