@@ -290,7 +290,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    Vpp_l = [0, 0.5];
+    Vpp_l = [0, 1];
     AC_dict.Vpp = Vpp_l(vpp_idx);
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
