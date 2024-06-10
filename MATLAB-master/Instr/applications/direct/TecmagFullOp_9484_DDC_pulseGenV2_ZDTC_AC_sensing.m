@@ -241,14 +241,14 @@ end
     
     phases = [0 90 0 0 0 90];
     mods = [0 0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 36e-6 5e-6 1000e-6 5e-6 36e-6];
+    spacings = [5e-6 36e-6 5e-6 300e-6 5e-6 36e-6];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0 0 0];
     trigs = [0 1 0 0 0 1]; %acquire during spin locks
     
-    nflips_l = [1 65];
-    nflips_idx = mod(idx,2)+1;
+    nflips_l = cat(2,(1:1:10),(31:1:40),(101:110),(301:310),(1001:1010));
+    nflips_idx = mod(idx,50)+1;
     nflips = nflips_l(nflips_idx);
     
     reps = [1 6000 1 nflips 1 6000];
@@ -292,8 +292,8 @@ end
     reso_freq = 1/(2*T);
     freq = reso_freq;
     
-    Vpp_idx = fix(idx/2)+1;
-    Vpp_l = 10.^(-3:0.25:0);
+    Vpp_idx = fix(idx/50)+1;
+    Vpp_l = [0 0.01 0.1 0.5];
     
     AC_dict.freq = freq;
     
