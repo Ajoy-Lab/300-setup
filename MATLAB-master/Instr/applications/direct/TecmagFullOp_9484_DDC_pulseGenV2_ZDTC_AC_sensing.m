@@ -247,11 +247,8 @@ end
     markers2 = [0 0 0 0 0 0];
     trigs = [0 1 0 0 0 1]; %acquire during spin locks
     
-    nflips_l = cat(2,(1:1:10),(31:1:40),(101:110),(301:310),(1001:1010));
-    nflips_idx = mod(idx,50)+1;
-    nflips = nflips_l(nflips_idx);
     
-    reps = [1 6000 1 nflips 1 6000];
+    reps = [1 6000 1 100 1 6000];
     repeatSeq = [1 1 1]; % how many times to repeat the block of pulses; in this case should always be 1
     
     fprintf("setting up pulse blaster sequence\n");
@@ -292,14 +289,14 @@ end
     reso_freq = 1/(2*T);
     freq = reso_freq;
     
-    Vpp_idx = fix(idx/50)+1;
-    Vpp_l = [0 0.01 0.1 0.5];
-    
+        
     AC_dict.freq = freq;
     
-    AC_dict.Vpp = Vpp_l(Vpp_idx);
+    AC_dict.Vpp = 0.1;
     
     AC_dict.DC_offset = 0;
+    phase_l = (-180:9:180);
+    phase_idx = mod(idx,41)+1;
     AC_dict.phase = 0;
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
