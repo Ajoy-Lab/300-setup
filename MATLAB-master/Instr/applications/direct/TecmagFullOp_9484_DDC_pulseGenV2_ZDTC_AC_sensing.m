@@ -297,7 +297,7 @@ end
     AC_dict.DC_offset = 0;
     phase_l = (-180:9:180);
     phase_idx = mod(idx,41)+1;
-    AC_dict.phase = 0;
+    AC_dict.phase = phase_l(phase_idx);
     
     fprintf(sprintf("This is AC frequency: %d \n", AC_dict.freq));
     fprintf(sprintf("This AC Vpp voltage: %d \n", AC_dict.Vpp));
