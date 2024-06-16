@@ -239,7 +239,7 @@ end
     freq_idx = fix(idx/6)+1;
     pi_mult_l = [1, 0.96, 1.04, 0.98, 1.02, 0.99];
     lengths = [pi_half pi_half pi*pi_mult_l(pi_mult_idx) pi_half];
-    fprintf(sprintf("This is gamma: %d pi \n", pi_mult_l(pi_mult_idx)));
+    fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 90];
@@ -251,8 +251,8 @@ end
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     
-    reps = [1 6000 1 16];
-    repeatSeq = [1 32000]; % how many times to repeat the block of pulses
+    reps = [1 6000 1 4];
+    repeatSeq = [1 64000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -291,7 +291,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     freq_l = cat(2, [0], (reso_freq-0.2:0.01:reso_freq+0.2), (reso_freq-1:0.05:reso_freq-0.25),(reso_freq+0.25:0.05:reso_freq+1),[0]);
-    
+
     AC_dict.freq = freq_l(freq_idx);
     AC_dict.Vpp = 0.1;
     AC_dict.phase = 90;
