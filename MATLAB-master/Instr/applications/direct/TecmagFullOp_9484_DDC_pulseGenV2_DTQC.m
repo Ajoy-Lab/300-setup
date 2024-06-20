@@ -261,18 +261,27 @@ end
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;
     PB_seg1 = zeros(2, 2);
-    freq_idx = mod(index, 64) + 1;
-    phase_idx = fix(index/64) + 1;
+    freq_idx = mod(index, 47) + 1;
+    phase_idx = fix(index/47) + 1;
     
-    phase_l = [0, 90];
+    phase_l = [0, 0, 90, 90];
     phase = phase_l(phase_idx);
-    if phase == 0
-        freq_l = cat(2, [0, 0], reson_freq2+(-0.9:0.1:-0.3), reson_freq2+(-0.2:0.02:0.2), reson_freq2+(0.3:0.1:0.9), (reson_freq2+1:5:reson_freq1-1), reson_freq1+(-0.9:0.1:0.9));
+    if phase_idx == 1
+        freq_l = cat(2, [0, 0], (reson_freq2-17:4:reson_freq2-1), reson_freq2+(-0.9:0.1:-0.3), reson_freq2+(-0.2:0.02:0.2), reson_freq2+(0.3:0.1:0.9), (reson_freq2+1:4:reson_freq2+17));
         start_time = lengths(1) + spacings(1) + ...
            (lengths(3) + spacings(3))*num_init_spin_lock + ...
            (lengths(2) + spacings(2)) + lengths(2)/2;
-    elseif phase == 90
-        freq_l = cat(2, [0, 0], reson_freq2+(-0.9:0.1:0.9), (reson_freq2+1:5:reson_freq1-1), reson_freq1+(-0.9:0.1:-0.3), reson_freq1+(-0.2:0.02:0.2), reson_freq1+(0.3:0.1:0.9));
+    elseif phase_idx == 2
+        freq_l = cat(2, [0, 0], (reson_freq1-17:4:reson_freq1-1), reson_freq1+(-0.9:0.1:-0.3), reson_freq1+(-0.2:0.02:0.2), reson_freq1+(0.3:0.1:0.9), (reson_freq1+1:4:reson_freq1+17));
+        start_time = lengths(1) + spacings(1) + ...
+           (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
+    elseif phase_idx == 3
+        freq_l = cat(2, [0, 0], (reson_freq2-17:4:reson_freq2-1), reson_freq2+(-0.9:0.1:-0.3), reson_freq2+(-0.2:0.02:0.2), reson_freq2+(0.3:0.1:0.9), (reson_freq2+1:4:reson_freq2+17));
+        start_time = lengths(1) + spacings(1) + ...
+           (lengths(3) + spacings(3))*num_init_spin_lock + ...
+           (lengths(2) + spacings(2)) + lengths(2)/2;
+    elseif phase_idx == 4
+        freq_l = cat(2, [0, 0], (reson_freq1-17:4:reson_freq1-1), reson_freq1+(-0.9:0.1:-0.3), reson_freq1+(-0.2:0.02:0.2), reson_freq1+(0.3:0.1:0.9), (reson_freq1+1:4:reson_freq1+17));
         start_time = lengths(1) + spacings(1) + ...
            (lengths(3) + spacings(3))*num_init_spin_lock + lengths(2)/2;
     else
