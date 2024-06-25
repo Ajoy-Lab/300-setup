@@ -236,7 +236,7 @@ end
     idx = cmdBytes(2)-1;
     
     gamma_l = cat(2,(1:2:75),(76:1:125))*1e-6;
-    gamma_idx = fix(idx/2)+1;
+    gamma_idx = idx+1;
     lengths = [pi_half pi_half gamma_l(gamma_idx) pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -290,9 +290,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    Vpp_l = [0 0.1];
-    Vpp_idx = mod(idx,2)+1;
-    AC_dict.Vpp = Vpp_l(Vpp_idx);
+    AC_dict.Vpp = 1;
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
