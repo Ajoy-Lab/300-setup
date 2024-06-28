@@ -306,13 +306,13 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     if run_idx == 1
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reson_freq, 0.5, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reson_freq - 50, 0.5, 90, 0);
+        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.5, 90, 0);
+        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reso_freq - 50, 0.5, 90, 0);
     elseif run_idx == 2
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reson_freq, 0.5, 90, 0);
+        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.5, 90, 0);
         [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(0, 0, 90, 0);
     elseif run_idx == 3
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reson_freq - 50, 0.5, 90, 0);
+        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq - 50, 0.5, 90, 0);
         [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(0, 0, 90, 0);
     elseif run_idx == 4
         [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(0, 0, 90, 0);
