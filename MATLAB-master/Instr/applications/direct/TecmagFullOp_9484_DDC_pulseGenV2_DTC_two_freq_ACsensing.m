@@ -250,11 +250,11 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    if N_idx == 0
+    if N_idx == 1
         fprintf("N = 4 \n");
         reps = [1 6000 1 4];
         repeatSeq = [1 32000]; % how many times to repeat the block of pulses
-    elseif N_idx == 1
+    elseif N_idx == 2
         fprintf("N = 16 \n");
         reps = [1 6000 1 16];
         repeatSeq = [1 16000];
