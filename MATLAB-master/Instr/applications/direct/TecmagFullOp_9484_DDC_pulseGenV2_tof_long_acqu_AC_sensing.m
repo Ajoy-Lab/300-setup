@@ -270,15 +270,15 @@ end
     % ---------------------------------------------------------------------
     index = cmdBytes(2);
     Tmax = cmdBytes(4);
-%     freq_idx = mod(index, 26)+1;
-%     angle_idx = fix(index/26)+1;
-%     freq_offset_l = (0:200:5000);
-%     angle_l = (90:-15:15);
+     freq_idx = mod(index, 26)+1;
+     angle_idx = fix(index/26)+1;
+     freq_offset_l = (0:200:5000);
+     angle_l = (90:-15:15);
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
-    flip_angle = pi/2;
-%     fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
-%     fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
+    flip_angle = angle_l(angle_idx)/180*pi;
+    fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
+    fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
     
     % initialize parameters
     lengths = [pi/2  flip_angle];
@@ -343,7 +343,7 @@ end
     fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + 3000;
+                tof = cmdBytes(6) + freq_offset_l(freq_idx);
                 
                 ch=1;
                 initializeAWG(ch);
