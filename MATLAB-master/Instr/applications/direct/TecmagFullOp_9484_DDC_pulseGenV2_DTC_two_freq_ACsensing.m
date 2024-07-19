@@ -236,8 +236,9 @@ end
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
-    N_idx = mod(idx, 2) + 1;
-    run_idx = fix(idx/2) + 1;
+    noise_freq_idx = mod(idx, 5) + 1; 
+    noise_idx = mod(fix(idx / 5), 4) + 1;
+    bias_idx = fix(idx / 20) + 1;
     lengths = [pi_half pi_half pi pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -249,18 +250,8 @@ end
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
-    
-    if N_idx == 1
-        fprintf("N = 4 \n");
-        reps = [1 6000 1 4];
-        repeatSeq = [1 32000]; % how many times to repeat the block of pulses
-    elseif N_idx == 2
-        fprintf("N = 16 \n");
-        reps = [1 6000 1 16];
-        repeatSeq = [1 16000];
-    else
-       fprintf("not valid N_idx\n"); 
-    end
+    reps = [1 6000 1 4];
+    repeatSeq = [1 32000]; % how many times to repeat the block of pulses
         
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -305,23 +296,15 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    if run_idx == 1
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.3, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reso_freq - 50, 0.05, 90, 0);
-    elseif run_idx == 2
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.3, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reso_freq, 0.05, 90, 0);
-    elseif run_idx == 3
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.35, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reso_freq - 50, 0.05, 90, 0);
-    elseif run_idx == 4
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, 0.05, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(0, 0, 90, 0);
-    elseif run_idx == 5
-        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq - 50, 0.05, 90, 0);
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(0, 0, 90, 0);
+    Vpp1_l = [0.02, 0.04, 0.1, 0.4];
+    Vpp2_l = [4e-4, 8e-4, 16e-4, 32e-4];
+    noise_freq_l = [60, 500, 1000, 1600, -1];
+    [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1_l(bias_idx), -90, 0);
+    if noise_freq_l(noise_freq_idx) == -1
+        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(noise_freq_l(noise_freq_idx), 0, -90, 0);
+    else
+        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(noise_freq_l(noise_freq_idx), Vpp2_l(noise_idx), -90, 0);
     end
-        
     
     fprintf(sprintf("This is AC frequency for output 1: %d \n", AC_dict1.freq));
     fprintf(sprintf("This AC Vpp voltage for output 1: %d \n", AC_dict1.Vpp));
