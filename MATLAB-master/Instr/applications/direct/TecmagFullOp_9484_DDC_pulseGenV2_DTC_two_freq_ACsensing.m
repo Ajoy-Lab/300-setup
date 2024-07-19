@@ -297,7 +297,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     Vpp1_l = [0.02, 0.04, 0.1, 0.4];
-    Vpp2_l = [4e-4, 8e-4, 16e-4, 32e-4];
+    Vpp2_l = [1e-3, 2e-3, 4e-3, 8e-3];
     noise_freq_l = [60, 500, 1000, 1600, -1];
     [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1_l(bias_idx), -90, 0);
     if noise_freq_l(noise_freq_idx) == -1
