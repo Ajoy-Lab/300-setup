@@ -246,9 +246,9 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    
-    reps = [1 6000 1 4];
-    repeatSeq = [1 64000]; % how many times to repeat the block of pulses
+    N = (fix(idx/2)+1)*4;
+    reps = [1 6000 1 N];
+    repeatSeq = [1 20*fix(12800/N)]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -285,18 +285,16 @@ end
     %%set AC field parameter
     
     
-    phase_l = cat(2, [-360, -360], (-180:5:180));
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    if phase_l(phase_idx) == -360
+    if mod(idx,2)==0
         AC_dict.Vpp = 0;
-        AC_dict.phase = 0;
     else
         AC_dict.Vpp = 1;
-        AC_dict.phase = phase_l(phase_idx);
     end
     
+    AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
     
