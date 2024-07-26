@@ -270,27 +270,36 @@ end
     % ---------------------------------------------------------------------
     index = cmdBytes(2)-1;
     Tmax = cmdBytes(4);
-     freq_idx = mod(index, 26)+1;
-     angle_idx = fix(index/26)+1;
-     freq_offset_l = (0:200:5000);
-     angle_l = (90:-15:15);
+    freq_idx = mod(index, 26)+1;
+    angle_idx = fix(index/26)+1;
+    freq_offset_l = (0:200:5000);
+    angle_l = (90:-15:15);
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     flip_angle = angle_l(angle_idx)/180*pi;
     fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
     fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
     
+    total_seq_T = 600;
+    x_spacing = 36e-6;
+    num_pulses = 600/(flip_angle + x_spacing);
     % initialize parameters
-    lengths = [pi/2  flip_angle];
-    spacings = [5e-6 36e-6];
-    amps = [1 1];
-    phases = [0 90];
-    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    markers = [1 1]; %always keep these on
-    markers2 = [0 0];
-    trigs = [0 1]; %acquire on every "pi" pulse
-    reps = [1 1000000];
-    repeatSeq = [1];
+    
+    flip_angle_l = [flip_angle flip_angle flip_angle];
+    x_spacing_l = [x_spacing x_spacing x_spacing];
+    lengths = [pi/2];
+    
+    
+    lengths = [pi/2 flip_angle flip_angle flip_angle];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
+    amps = [1 1 1 1];
+    phases = [0 90 90 90];
+    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    markers = [1 1 1 1]; %always keep these on
+    markers2 = [0 0 0 0];
+    trigs = [0 1 0 0]; %acquire on every "pi" pulse
+    reps = [1 1 1 1];
+    repeatSeq = [1 1e6];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     
