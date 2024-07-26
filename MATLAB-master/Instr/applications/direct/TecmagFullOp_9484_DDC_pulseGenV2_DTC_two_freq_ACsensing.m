@@ -236,9 +236,9 @@ end
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
-    noise_freq_idx = mod(idx, 5) + 1; 
-    noise_idx = mod(fix(idx / 5), 4) + 1;
-    bias_idx = fix(idx / 20) + 1;
+    Vpp1_idx = mod(idx, 4) + 1;
+    Vpp2_idx = mod(fix(idx / 4), 4) + 1;
+    noise_idx = fix(fix(idx / 4) / 4) + 1;
     lengths = [pi_half pi_half pi pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -298,12 +298,15 @@ end
     
     Vpp1_l = [0.02, 0.04, 0.1, 0.4];
     Vpp2_l = [1e-3, 2e-3, 4e-3, 8e-3];
-    noise_freq_l = [60, 500, 1000, 1600, -1];
-    [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1_l(bias_idx), -90, 0);
-    if noise_freq_l(noise_freq_idx) == -1
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(noise_freq_l(noise_freq_idx), 0, -90, 0);
+    noise_freq_l = [60, 500, 1000, 1600, reso_freq, -1];
+    [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1_l(Vpp1_idx), -90, 0);
+    if noise_freq_l(noise_idx) == -1
+        % this will be the baseline
+        [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1_l(Vpp1_idx)- Vpp2_l(Vpp2_idx), -90, 0);
+        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(reso_freq, 0, -90, 0);
     else
-        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(noise_freq_l(noise_freq_idx), Vpp2_l(noise_idx), -90, 0);
+        % add noise or resonant field
+        [AC_dict2.freq, AC_dict2.Vpp, AC_dict2.phase,  AC_dict2.DC_offset] = deal(noise_freq_l(noise_idx), Vpp2_l(Vpp2_idx), -90, 0);
     end
     
     fprintf(sprintf("This is AC frequency for output 1: %d \n", AC_dict1.freq));
