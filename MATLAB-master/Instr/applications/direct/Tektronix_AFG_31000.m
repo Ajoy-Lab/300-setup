@@ -78,7 +78,13 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("PHASE:ADJUST %dDEG", 0));
             fprintf(obj.gpib_obj, "SOURce1:BURSt:INFInite:REARm");
         end
-
+        
+        function apply_DC(obj, voltage)
+            fprintf(obj.gpib_obj, "SOURce1:FUNCtion:SHAPe DC");
+            fprintf(obj.gpib_obj, sprintf("SOURce1:VOLT:LEV:IMM:OFFS %d", voltage));
+            fprintf(obj.gpib_obj, "OUTP1:STAT ON");
+        end
+    
         function output_off(obj)
             %{
             Turns off the output and resets.
