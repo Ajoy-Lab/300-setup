@@ -40,7 +40,7 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, "SOURce1:BURSt:IDLE DC");
             fprintf(obj.gpib_obj, "SOURce1:BURSt:MODE TRIG");
             % for now set it as infinite cycles
-            if nycles == "INF"
+            if ncycles == "INF"
                 fprintf(obj.gpib_obj, "SOURce1:BURSt:NCYCles INF");
             else
                 fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
