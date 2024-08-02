@@ -270,62 +270,67 @@ end
     % ---------------------------------------------------------------------
     index = cmdBytes(2)-1;
     Tmax = cmdBytes(4);
-    freq_idx = mod(index, 26)+1;
-    angle_idx = fix(index/26)+1;
-    freq_offset_l = (0:200:5000);
-    angle_l = (90:-15:15);
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
-    flip_angle = angle_l(angle_idx)/180*pi;
-    fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
-    fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
     
-    total_seq_T = 600;
-    x_spacing = 36e-6;
-    num_pulses = 600/(flip_angle + x_spacing);
+    flip_angle_idx = fix(fix(index / 3) / 5) + 1;
+    freq_offset_idx = mod(fix(index / 3), 5) + 1;
+    readout_window = mod(index, 3) + 1;
+    
+    flip_angle_l = [15, 10, 5];
+    freq_offset_l = [0, 1000, 2000, 3000, 4000];
+    
+    flip_angle_degree = flip_angle_l(flip_angle_idx);
+    freq_offset = freq_offset_l(freq_offset_idx);
+    
+    flip_angle = flip_angle_degree/180*pi;
+    pulse_spacing = 36e-6;
+    
+    
+    fprintf("This is the flip angle applied: %.2f \n", flip_angle_degree);
+    fprintf("This is the offset applied: %.2f \n", freq_offset);
+    
     % initialize parameters
-    
-    flip_angle_l = [flip_angle flip_angle flip_angle];
-    x_spacing_l = [x_spacing x_spacing x_spacing];
     lengths = [pi/2];
-    
-    
-    lengths = [pi/2 flip_angle flip_angle flip_angle];
-    spacings = [5e-6 36e-6 36e-6 36e-6];
-    amps = [1 1 1 1];
-    phases = [0 90 90 90];
-    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    markers = [1 1 1 1]; %always keep these on
-    markers2 = [0 0 0 0];
-    trigs = [0 1 0 0]; %acquire on every "pi" pulse
-    reps = [1 1 1 1];
-    repeatSeq = [1 1e6];
-    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
-    
+    spacings = [5e-6];
+    amps = [1];
+    phases = [0];
+    mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    markers = [1]; %always keep these on
+    markers2 = [0];
+    trigs = [0]; %acquire on every "pi" pulse
+    reps = [1];
+    repeatSeq = [1];
     
     % fix the total time to 2e6*pi/2 pulses
-    num_x_pulses = (lengths(1)+spacings(2))*2e6/((lengths(2)+spacings(2)));
+    num_x_pulses = (lengths(1) + pulse_spacing)*2e6/((flip_angle + pulse_spacing));
+    
     % round up to the nearest Tmax to help with processing
     num_x_pulses = ceil(num_x_pulses/Tmax)*Tmax;
     num_slots = ceil(num_x_pulses/1e6);
-    num_extra_slots = ceil(num_x_pulses/1e6)-1;
+    
     
     % append extra slots to generate equal-length puleses
-    amps = cat(2, amps, repmat(amps(end),1, num_extra_slots));
-    spacings = cat(2, spacings, repmat(spacings(end), 1,num_extra_slots));
-    lengths = cat(2, lengths, repmat(lengths(end), 1, num_extra_slots));
-    phases = cat(2, phases, repmat(phases(end), 1, num_extra_slots));
-    mods = cat(2, mods, repmat(mods(end),1, num_extra_slots));
-    markers = cat(2, markers, repmat(markers(end),1, num_extra_slots));
-    markers2 = cat(2, markers2, repmat(markers2(end),1, num_extra_slots));
-    trigs = cat(2, trigs, repmat(trigs(end),1, num_extra_slots));
-    reps = cat(2, reps, repmat(reps(end),1, num_extra_slots));
-    if mod(num_x_pulses, 1e6) ~= 0
-        reps(end) = mod(num_x_pulses, 1e6);
+    for window_idx = (1:readout_window)
+        lengths = cat(2, lengths, repmat([flip_angle], 1, num_slots));
+        spacings = cat(2, spacings, repmat([pulse_spacing], 1,num_slots));
+        amps = cat(2, amps, repmat([1], 1, num_slots));
+        phases = cat(2, phases, repmat([90], 1, num_slots));
+        mods = cat(2, mods, repmat([0], 1, num_slots));
+        markers = cat(2, markers, repmat([1], 1, num_slots));
+        markers2 = cat(2, markers2, repmat([0], 1, num_slots));
+        if window_idx == readout_window
+            trigs = cat(2, trigs, repmat([1], 1, num_slots));
+        else
+            trigs = cat(2, trigs, repmat([0], 1, num_slots));
+        end
+        reps = cat(2, reps, repmat([1e6], 1, num_slots));
+        if mod(num_x_pulses, 1e6) ~= 0
+            reps(end) = mod(num_x_pulses, 1e6);
+        end
     end
-        fprintf("setting up pulse blaster sequence\n");
-        
+    
+    fprintf("setting up pulse blaster sequence\n");    
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;    
     start_time = 2;
@@ -352,7 +357,7 @@ end
     fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + freq_offset_l(freq_idx);
+                tof = cmdBytes(6) + freq_offset;
                 
                 ch=1;
                 initializeAWG(ch);
@@ -361,11 +366,11 @@ end
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
                 block_dict = {'init_pul'};
-                for theta_idx = (1: num_slots)
+                for theta_idx = (1: (num_slots*readout_window))
                    defPulse(sprintf('theta%i',theta_idx), amps(theta_idx+1), mods(theta_idx+1), lengths(theta_idx+1), phases(theta_idx+1), spacings(theta_idx+1));
                    block_dict{end+1} = sprintf('theta%i',theta_idx);
                 end
-                defBlock('pulsed_SL', block_dict, reps(1:num_slots+1), markers(1:num_slots+1), trigs(1:num_slots+1));
+                defBlock('pulsed_SL', block_dict, reps(1:(num_slots*readout_window)+1), markers(1:(num_slots*readout_window)+1), trigs(1:(num_slots*readout_window)+1));
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
@@ -381,65 +386,10 @@ end
                 resp = inst.SendScpi(':SYST:ERR?');
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
-% %                 need to modify Marker #2 to show up during acquisition
-%                 % ## final segment which will contain the marker
-%                 chNum = 1;
-%                 segNum = 4;
-%                 
-%                 % ## how long the "on" portion needs to be
-%                 onLength = 10e-6;
-%                 
-%                 % ## when does the marker start after the last pulse
-%                 buffer = 10e-6;
-%                 
-%                 % ## select the final segment
-%                 cmd = sprintf(':INST:CHAN %d',chNum);
-%                 inst.SendScpi(cmd);
-%                 cmd = sprintf(':TRAC:SEL %d',segNum);
-%                 inst.SendScpi(cmd);
-%                 
-%                 % ## get the length of the segment
-%                 query = inst.SendScpi(':TRAC:DEF?');
-%                 segLen = pfunc.netStrToStr(query.RespStr);
-%                 mkrsegment_length = str2num(segLen);
-% %                 mkrsegment_length = floor(mkrsegment_length/4);
-%                 
-%                 % ## make a new segment
-%                 mkr_vector_2 = zeros(mkrsegment_length,1);
-%                 mkr_vector_1 = zeros(mkrsegment_length,1);
-%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
-%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
-%                 
-%                 % ## make the marker
-% %                 mkr_vector_on = ones(onLength_points,1);
-%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
-%                 % proteus.inst.timeout = 30000
-%                 
-%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
-%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
-% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
-%                 mkr_vector = uint8(mkr_vector);
-%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
-%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
-%                 
-% %                 % % # Set normal timeout
-% %                 % proteus.inst.timeout = 10000
-% %                 cmd = ':MARK:SEL 1';
-% %                 inst.SendScpi(cmd);
-% %                 cmd = ':MARK:STAT ON';
-% %                 inst.SendScpi(cmd);
-% %                 % proteus.checkForError()
-
-                
                 fprintf('Calculate and set data structures...\n');
                 
-                
-%                numberOfPulses_total = cmdBytes(3);
-%                reps(2) = numberOfPulses_total;
-%                 numberOfPulses_total = reps(2);
-                
                 numberOfPulses_total = 0;
-                for i = (2:length(reps))
+                for i = ((2+num_slots*(readout_window-1)):(2+num_slots*(readout_window)-1))
                     numberOfPulses_total = numberOfPulses_total + reps(i);
                 end
                 
@@ -521,7 +471,7 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                 
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = 180*50;
+                ncycles = "INF";
                 if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
                     tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
                         AC_dict.DC_offset, AC_dict.phase, ncycles);
@@ -540,7 +490,7 @@ end
                 
                % pause(Tmax+3);
                 
-                for n = 1:6000
+                for n = 1:8000
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
@@ -766,10 +716,10 @@ end
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 
                 %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
-                time_cycle=lengths(2)+spacings(2);
+                time_cycle = lengths(2)+spacings(2);
 %                 time_cycle=time_cycle.*6; % for WHH-4
                                  %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
-                time_axis=time_cycle.*ivec;
+                time_axis = (lengths(2)+spacings(2))*num_x_pulses*(readout_window-1) + time_cycle.*ivec;
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
