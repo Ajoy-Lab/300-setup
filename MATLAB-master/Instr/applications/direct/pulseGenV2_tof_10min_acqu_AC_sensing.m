@@ -273,15 +273,21 @@ end
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     
-    flip_angle_idx = fix(fix(index / 3) / 3) + 1;
-    freq_offset_idx = mod(fix(index / 3), 3) + 1;
+    setting_idx = fix(fix(index / 3) / 5) + 1;
+    freq_idx = mod(fix(index / 3), 5) + 1;
     readout_window = mod(index, 3) + 1;
     
-    flip_angle_l = [90, 15, 10];
-    freq_offset_l = [0, 4000, 5000];
+    freq_l = [10, 50, 100, 500, 1000];
     
-    flip_angle_degree = flip_angle_l(flip_angle_idx);
-    freq_offset = freq_offset_l(freq_offset_idx);
+    if setting_idx == 1
+        flip_angle_degree = 90;
+        freq_offset = 0;
+    elseif setting_idx == 2
+        flip_angle_degree = 10;
+        freq_offset = 5000;
+    else
+        fprintf("setting idx out of bound");
+    end
     
     flip_angle = flip_angle_degree/180*pi;
     pulse_spacing = 36e-6;
@@ -345,7 +351,7 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0);
     
-    AC_dict.freq = 50;
+    AC_dict.freq = freq_l(freq_idx);
     AC_dict.Vpp = 1;
     AC_dict.phase = 0;
     AC_dict.DC_offset = 0;
