@@ -273,12 +273,12 @@ end
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     
-    flip_angle_idx = fix(fix(index / 3) / 5) + 1;
-    freq_offset_idx = mod(fix(index / 3), 5) + 1;
+    flip_angle_idx = fix(fix(index / 3) / 2) + 1;
+    freq_offset_idx = mod(fix(index / 3), 2) + 1;
     readout_window = mod(index, 3) + 1;
     
-    flip_angle_l = [15, 10, 5];
-    freq_offset_l = [0, 1000, 2000, 3000, 4000];
+    flip_angle_l = [90, 15, 10];
+    freq_offset_l = [0, 5000];
     
     flip_angle_degree = flip_angle_l(flip_angle_idx);
     freq_offset = freq_offset_l(freq_offset_idx);
@@ -302,8 +302,8 @@ end
     reps = [1];
     repeatSeq = [1];
     
-    % fix the total time to 2e6*pi/2 pulses
-    num_x_pulses = (lengths(1) + pulse_spacing)*2e6/((flip_angle + pulse_spacing));
+    % fix the total time to 2.2e6*pi/2 pulses
+    num_x_pulses = (lengths(1) + pulse_spacing)*2.2e6/((flip_angle + pulse_spacing));
     
     % round up to the nearest Tmax to help with processing
     num_x_pulses = ceil(num_x_pulses/Tmax)*Tmax;
@@ -768,7 +768,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time', 'freq_offset', 'flip_angle_degree');
                 fprintf('Save complete\n');
                 tek.output_off();
                 
