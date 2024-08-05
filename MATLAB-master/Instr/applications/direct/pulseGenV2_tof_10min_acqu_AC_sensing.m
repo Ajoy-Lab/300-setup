@@ -273,12 +273,12 @@ end
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     
-    flip_angle_idx = fix(fix(index / 3) / 2) + 1;
-    freq_offset_idx = mod(fix(index / 3), 2) + 1;
+    flip_angle_idx = fix(fix(index / 3) / 3) + 1;
+    freq_offset_idx = mod(fix(index / 3), 3) + 1;
     readout_window = mod(index, 3) + 1;
     
     flip_angle_l = [90, 15, 10];
-    freq_offset_l = [0, 5000];
+    freq_offset_l = [0, 4000, 5000];
     
     flip_angle_degree = flip_angle_l(flip_angle_idx);
     freq_offset = freq_offset_l(freq_offset_idx);
