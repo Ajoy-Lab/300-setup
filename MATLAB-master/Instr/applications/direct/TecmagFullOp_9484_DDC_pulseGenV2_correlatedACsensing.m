@@ -236,8 +236,9 @@ end
     ch3 = 3;
     ch4 = 4;
     
-    verticies = 5
-    first_angle = 90
+    verticies = 8
+    first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22]
+    first_angle = first_angle_arr(verticies)
     
     amps = [1 1];
     frequencies = [0 0];
