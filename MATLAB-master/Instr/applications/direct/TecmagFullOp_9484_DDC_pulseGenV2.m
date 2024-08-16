@@ -272,7 +272,7 @@ end
     fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [36e-6 36e-6];
+    spacings = [5e-6 36e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
@@ -527,6 +527,7 @@ end
                 cyclesPoints = 50;
                 fprintf('Shuttle complete\n')
                 fprintf('Transfering aquired data to computer....\n')
+                pulse_chunk_of_interest = 0;
                 for n = 1:loops
                     fprintf('Start Read %d .... ', n);
                     firstIndex = ((n-1)*numberOfPulses)+1;
@@ -637,6 +638,17 @@ end
                             end
                         end
                         if n == 1
+                            if i == 1
+                                pulse_chunk_of_interest = pulse;
+                                figure(10);clf;
+                                plot(pulse_chunk_of_interest);
+                                figure(11);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse_chunk_of_interest),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end                        
+                        if n == 1
                             if i == 2
                                 figure(8);clf;
                                 plot(pulse);
@@ -646,17 +658,7 @@ end
                                 yline(2048);
                             end
                         end
-                        if n == 58
-                            if i == 9708
-                                figure(10);clf;
-                                plot(pulse);
-                                figure(11);clf;
-                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
-
+                        
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
                         imagMean = mean(imag(pulse));
@@ -693,14 +695,8 @@ end
                 %ivec=1:numberOfPuacqlses*loops;
                 ivec=1:length(pulseAmp);
                 delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
-                
-                %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
                 time_cycle=lengths(2)+spacings(2);
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
-%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
@@ -709,13 +705,6 @@ end
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
                     set(p1,'markersize',1);
                     plot_labels('Time [s]', 'Phase [au]');
-                    
-%                     start_fig(1,[3 2]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',1);
-%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-%                     set(gca,'xlim',[0,25e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
@@ -730,12 +719,6 @@ end
                     set(p1,'markersize',1);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
-                    
-%                     start_fig(13,[5 1]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',0.5);
-%                     set(gca,'xlim',[5-8e-3,5+30e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
 
                 catch
                     disp('Plot error occured');
@@ -746,7 +729,8 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase', ...
+                    'lengths', 'phases', 'spacings', 'reps', 'tof', 'pulse_chunk_of_interest');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
