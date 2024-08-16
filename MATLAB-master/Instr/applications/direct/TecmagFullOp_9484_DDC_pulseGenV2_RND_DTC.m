@@ -263,7 +263,7 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    
+    sampleRateDAC_freq = 675000000;
 %     pulse_name = ['init_pul', 'theta1'];
     %% DEFINE PULSE LENGTH
     pi = cmdBytes(3)*1e-6;
@@ -272,18 +272,17 @@ end
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
     index = cmdBytes(2);
-    flip_angle_l = [0.5, 0.65, 0.8000, 0.8700, (0.94:0.02:1.1), 1.15];
-    n_order = mod(index, 3);
-    angle_idx = mod(fix(index/3), 14) + 1;
-    seed = fix(fix(index/3)/14);
-    lengths = [pi_half pi_half pi pi_half];
-    lengths(3) = flip_angle_l(angle_idx)*pi;
+    n_order = 0;
+    seed = 5;
+    lengths = [pi/2 pi/2 pi pi/2];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     fprintf("This is the random seed %d \n", seed);
-    fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
+    fprintf("This is the length of the pi pulse %d \n", lengths(3));
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
     % readout after all pulses
-    spacings = [5e-6 38e-6 38e-6 38e-6];
+    spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     fprintf("This is x-pulse spacings %d \n", spacings(4));
     trigs = [0 1 1 1];
     markers = [1 1 1 1]; %always keep these on => turns on the amplifier for the pulse sequence
@@ -315,55 +314,6 @@ end
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
-                
-% %                 need to modify Marker #2 to show up during acquisition
-%                 % ## final segment which will contain the marker
-%                 chNum = 1;
-%                 segNum = 4;
-%                 
-%                 % ## how long the "on" portion needs to be
-%                 onLength = 10e-6;
-%                 
-%                 % ## when does the marker start after the last pulse
-%                 buffer = 10e-6;
-%                 
-%                 % ## select the final segment
-%                 cmd = sprintf(':INST:CHAN %d',chNum);
-%                 inst.SendScpi(cmd);
-%                 cmd = sprintf(':TRAC:SEL %d',segNum);
-%                 inst.SendScpi(cmd);
-%                 
-%                 % ## get the length of the segment
-%                 query = inst.SendScpi(':TRAC:DEF?');
-%                 segLen = pfunc.netStrToStr(query.RespStr);
-%                 mkrsegment_length = str2num(segLen);
-% %                 mkrsegment_length = floor(mkrsegment_length/4);
-%                 
-%                 % ## make a new segment
-%                 mkr_vector_2 = zeros(mkrsegment_length,1);
-%                 mkr_vector_1 = zeros(mkrsegment_length,1);
-%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
-%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
-%                 
-%                 % ## make the marker
-% %                 mkr_vector_on = ones(onLength_points,1);
-%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
-%                 % proteus.inst.timeout = 30000
-%                 
-%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
-%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
-% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
-%                 mkr_vector = uint8(mkr_vector);
-%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
-%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
-%                 
-% %                 % % # Set normal timeout
-% %                 % proteus.inst.timeout = 10000
-% %                 cmd = ':MARK:SEL 1';
-% %                 inst.SendScpi(cmd);
-% %                 cmd = ':MARK:STAT ON';
-% %                 inst.SendScpi(cmd);
-% %                 % proteus.checkForError()
 
                 
                 fprintf('Calculate and set data structures...\n');
@@ -379,19 +329,6 @@ end
                 loops=Tmax;
                     
                 readLen = round2((tacq+2)*1e-6*2.7/(16*1e-9),96)-96;
-%                  readLen = round2((tacq+2)*1e-6/(13.27*1e-9),96)-96;
-                 %readLen = round2((tacq+2)*1e-6/(16*1e-9),96)-96;
-                 %readLen = round2((tacq)*1e-6/1e-9,96)-96;
-%                 readLen = 33888; % round2((tacq+2)*1e-6/1e-9,96)-96 %constraint: has to be multiple of 96, add 4 of deadtime %number of points in a frame
-                  %readLen = 16896; % for tacq=16
-%                 readLen = 65856; % for tacq=64
-%                 readLen = 129888; % for tacq=128
-
-%                 readLen = 66912; % actual tacq=64
-%                 readLen = 131040;
-%                 readLen = 129600;
-%                 readLen = 126912; % actual tacq=128
-%                 readLen = 97920; % for tacq=96
                 
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
@@ -770,7 +707,9 @@ end
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase', 'lengths',...
+                    'phases','spacings','reps','DTC_rep_seq', ...
+                    'num_x_lt_pulses');
                 fprintf('Save complete\n');
                 
             case 4 % Cleanup, save and prepare for next experiment
