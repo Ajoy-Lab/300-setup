@@ -222,7 +222,7 @@ end
     
 %     pulse_name = ['init_pul'];
     pi = cmdBytes(3)*1e-6;
-    amps = [1, 1];
+    amps = [0.5, 0.5];
     frequencies = [0, 0];
     lengths = [pi/2, pi/2];
     phases = [0, 0];
@@ -1053,7 +1053,7 @@ global pulseDict
             markDC = uint8(zeros(DClenreal, 1));
             markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0, sampleRateDAC);
+            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 3, sampleRateDAC);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
             markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
