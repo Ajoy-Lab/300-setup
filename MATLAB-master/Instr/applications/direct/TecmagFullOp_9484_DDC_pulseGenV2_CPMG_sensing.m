@@ -228,12 +228,6 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     sampleRateDAC_freq = 675000000;
-    fprintf("setting up pulse blaster sequence\n");
-    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
-    AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
-    ch3 = 3;
-    ch4 = 4;
-    
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
@@ -251,16 +245,25 @@ end
     
     
     %%set PB parameter
-    start_time = lengths(1) + spacings(1) + lengths(2)/2;
+    start_time = lengths(1) + spacings(1) + lengths(2)/2 + (lengths(2) + spacings(2))*1000;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
-    PB_seg2 = zeros(2, 2);    
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 20e-6);
+    PB_seg2 = zeros(2, 2);
     %%set AC field parameter
     idx = cmdBytes(2)-1;
-    center_freq = 1/((lengths(2) + spacings(2))*2);
-    [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.3, 0, 0);
+    
+    reso_freq = 1/((lengths(2) + spacings(2))*2);
+    AC_dict.freq = reso_freq;
+    AC_dict.Vpp = 1;
+    AC_dict.phase = 90;
+    AC_dict.DC_offset = 0;
+    
+    fprintf("setting up pulse blaster sequence\n");
+    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
+    ch3 = 3;
+    ch4 = 4;
+    
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
@@ -270,6 +273,7 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0);
     setNCO_IQ(ch4, 0 ,0);
+    
     
     
 %                 tof = -1000*cmdBytes(2);
@@ -334,10 +338,11 @@ end
                 rc = inst.SendScpi(':DIG:INIT ON');
                
                 fprintf("set Tektronix 31000 as burst mode \n");
-                ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
-                tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
-                    AC_dict("DC_offset"), AC_dict("phase"), ncycles, true);
-                
+                ncycles = min(1e6, round(60*AC_dict.freq));
+                if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
+                    tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
+                        AC_dict.DC_offset, AC_dict.phase, ncycles);
+                end
                 fprintf("setting done\n");
                 
                 
