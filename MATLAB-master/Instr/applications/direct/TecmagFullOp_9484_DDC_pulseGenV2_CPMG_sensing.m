@@ -245,7 +245,7 @@ end
     
     
     %%set PB parameter
-    start_time = lengths(1) + spacings(1) + lengths(2)/2 + (lengths(2) + spacings(2))*1000;
+    start_time = lengths(1) + spacings(1) + lengths(2)/2 + (lengths(2) + spacings(2))*0;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 20e-6);
@@ -256,7 +256,7 @@ end
     reso_freq = 1/((lengths(2) + spacings(2))*2);
     AC_dict.freq = reso_freq;
     AC_dict.Vpp = 1;
-    AC_dict.phase = 90;
+    AC_dict.phase = 0;
     AC_dict.DC_offset = 0;
     
     fprintf("setting up pulse blaster sequence\n");

@@ -22,7 +22,7 @@ adcDualChanMode = 2;
 % fullScaleMilliVolts =1000;
 trigSource = 1; % 1 = external-trigger
 dacChanInd = 3;
-adcChanInd = 2;
+adcChanInd = 1;
 measurementTimeSeconds = 7; %Integer
 %delay = 0.0000178; % dead time
 %delay = 0.0000348; % dead time
@@ -195,8 +195,8 @@ end
     inst.SendScpi(sprintf(':DIG:FREQ %f', sampleRate));
     inst.SendScpi(':DIG:DDC:CLKS AWG');
     inst.SendScpi(':DIG:DDC:MODE COMP');
-    inst.SendScpi(':DIG:DDC:CFR2 75.38E6');
-    inst.SendScpi(':DIG:DDC:PHAS2 90');
+    inst.SendScpi(':DIG:DDC:CFR1 75.38E6');
+    inst.SendScpi(':DIG:DDC:PHAS1 90');
     inst.SendScpi(':DIG:CHAN:RANG LOW');
     % Enable acquisition in the digitizer's channels  
     inst.SendScpi(':DIG:CHAN:STATE ENAB');   
@@ -222,17 +222,17 @@ end
     
 %     pulse_name = ['init_pul'];
     pi = cmdBytes(3)*1e-6;
-    amps = [1];
-    frequencies = [0];
-    lengths = [pi/2];
-    phases = [0];
-    mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [50000e-6];
-    markers = [1]; %always keep these on
-    markers2 = [0];
-    trigs = [1]; %acquire on every "pi" pulse
+    amps = [1, 1];
+    frequencies = [0, 0];
+    lengths = [pi/2, pi/2];
+    phases = [0, 0];
+    mods = [0, 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [30e-6, 40e-6];
+    markers = [1, 1]; %always keep these on
+    markers2 = [0, 0];
+    trigs = [1, 0]; %acquire on every "pi" pulse
     
-    reps = [1];
+    reps = [1, 1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
                 tof = cmdBytes(6);
                 
@@ -242,61 +242,12 @@ end
                 clearBlockDict();
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defBlock('FID', {'init_pul'}, reps(1), markers(1), trigs(1));
-                makeBlocks({'FID'}, ch, repeatSeq);
+                defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defBlock('readout_pulse', {'init_pul', 'theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                makeBlocks({'readout_pulse'}, ch, repeatSeq);
                     
                 setNCO_IQ(ch, 75.38e6+tof, 0);
-                inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
-                
-% %                 need to modify Marker #2 to show up during acquisition
-%                 % ## final segment which will contain the marker
-%                 chNum = 1;
-%                 segNum = 4;
-%                 
-%                 % ## how long the "on" portion needs to be
-%                 onLength = 10e-6;
-%                 
-%                 % ## when does the marker start after the last pulse
-%                 buffer = 10e-6;
-%                 
-%                 % ## select the final segment
-%                 cmd = sprintf(':INST:CHAN %d',chNum);
-%                 inst.SendScpi(cmd);
-%                 cmd = sprintf(':TRAC:SEL %d',segNum);
-%                 inst.SendScpi(cmd);
-%                 
-%                 % ## get the length of the segment
-%                 query = inst.SendScpi(':TRAC:DEF?');
-%                 segLen = pfunc.netStrToStr(query.RespStr);
-%                 mkrsegment_length = str2num(segLen);
-% %                 mkrsegment_length = floor(mkrsegment_length/4);
-%                 
-%                 % ## make a new segment
-%                 mkr_vector_2 = zeros(mkrsegment_length,1);
-%                 mkr_vector_1 = zeros(mkrsegment_length,1);
-%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
-%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
-%                 
-%                 % ## make the marker
-% %                 mkr_vector_on = ones(onLength_points,1);
-%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
-%                 % proteus.inst.timeout = 30000
-%                 
-%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
-%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
-% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
-%                 mkr_vector = uint8(mkr_vector);
-%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
-%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
-%                 
-% %                 % % # Set normal timeout
-% %                 % proteus.inst.timeout = 10000
-% %                 cmd = ':MARK:SEL 1';
-% %                 inst.SendScpi(cmd);
-% %                 cmd = ':MARK:STAT ON';
-% %                 inst.SendScpi(cmd);
-% %                 % proteus.checkForError()
-
+                inst.SendScpi(sprintf(':DIG:DDC:CFR1 %d', 75.38e6+tof));
                 
                 fprintf('Calculate and set data structures...\n');
                 
@@ -304,7 +255,7 @@ end
 
                 Tmax=1; % will be 1 for FID
                 
-                tacq=40000;
+                tacq=500;
 
                 numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;
@@ -356,7 +307,7 @@ end
             case 3 % Measure
                 
                 %inst.SendScpi(':DIG:INIT ON');
-                inst.SendScpi(sprintf(':DIG:CHAN 2'))
+                inst.SendScpi(sprintf(':DIG:CHAN 1'))
                 fprintf('Triggering pulse sequence\n');
                 rc = inst.SendScpi('*TRG');
                 assert(rc.ErrCode == 0);
