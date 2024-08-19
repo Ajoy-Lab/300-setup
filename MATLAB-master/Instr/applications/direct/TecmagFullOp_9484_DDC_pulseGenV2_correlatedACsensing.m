@@ -263,7 +263,7 @@ end
     T = lengths(2) + spacings(2);
     num_periods = floor(2/T);
     
-    start_time = lengths(1) + spacings(1) + (num_periods)*T;
+    start_time = lengths(1) + spacings(1) + T/2 + (num_periods)*T;
 
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
