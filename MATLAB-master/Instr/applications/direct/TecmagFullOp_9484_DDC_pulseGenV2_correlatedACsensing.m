@@ -233,19 +233,20 @@ end
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
+    AC_dict2 = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     ch4 = 4;
     
-    verticies = 8
-    first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22]
-    first_angle = first_angle_arr(verticies)
+    vertices = 4;
+    first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22];
+    first_angle = first_angle_arr(vertices);
     
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
     lengths = [pi/2 pi/2];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    phases = [0 360/verticies];
+    phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 100e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
@@ -269,17 +270,19 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time + 2, 2);
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2, 150e-6);
     
     %%set AC field parameter
     idx = cmdBytes(2)-1;
     
-    center_freq = 1/((lengths(2) + spacings(2))*verticies);
-    AC_V = [0.01 0.02 0.04 0.08 0.14 0.2 0.3];
-    AC_idx = idx+1;
+    center_freq = 1/((lengths(2) + spacings(2))*vertices);
+    AC_V = 10.^(-3:0.15:-0.9);
+    AC_idx = mod(idx,15)+1;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, AC_V(AC_idx), 0, first_angle);
-    DC_V = 0;
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.3, 0, first_angle);
+    [AC_dict2("freq"), AC_dict2("Vpp"), ...
+        AC_dict2("DC_offset"), AC_dict2("phase")] = deal(center_freq+100, AC_V(AC_idx), 0, 0);
+    
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
@@ -415,7 +418,9 @@ end
                 ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
                     AC_dict("DC_offset"), AC_dict("phase"), ncycles, true);
-                tek2.apply_DC(DC_V);
+                %tek2.apply_DC(DC_V);
+                tek2.burst_mode_trig_sinwave(AC_dict2("freq"), AC_dict2("Vpp"),...
+                    AC_dict2("DC_offset"), AC_dict2("phase"), ncycles, true);
                 fprintf("setting done\n");
                 
                 
@@ -705,7 +710,7 @@ end
                 % Save data
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','DC_V','lengths',...
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
                     'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
                 tek.output_off() 
