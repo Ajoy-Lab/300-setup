@@ -261,17 +261,11 @@ end
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
     [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time + 2, 2);
     
+    freq_l = (960:1:1080);
     %%set AC field parameter
-    idx = cmdBytes(2)-1;
-    
-    center_freq = 1/((lengths(2) + spacings(2))*4);
-%     freq_l = [100 300 1000 3000 10000 30000 100000];
-%     freq_idx = fix(idx/19)+1;
-%     vpp_l = cat(2, (0.001:0.001:0.01), (0.02:0.01:0.1));
-%     vpp_idx = mod(idx,19)+1;
-%     DC_offset = (-0.9:0.2:0.9);
+    idx = cmdBytes(2);
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(center_freq, 0.3, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(idx), 0.1, 0, 90);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
@@ -407,6 +401,7 @@ end
                 ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict("freq")) + 10;
                 tek.burst_mode_trig_sinwave(AC_dict("freq"), AC_dict("Vpp"),...
                     AC_dict("DC_offset"), AC_dict("phase"), ncycles, true);
+                
                 fprintf("setting done\n");
                 
                 
@@ -700,7 +695,6 @@ end
                     'phases','spacings','reps','trigs','repeatSeq','start_time');
                 fprintf('Save complete\n');
                 tek.output_off() 
-                
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
                 assert(rc.ErrCode == 0);
