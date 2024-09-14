@@ -296,8 +296,13 @@ end
     
     Vpp1 = 0.1;
     Vpp2 = 1e-3;
-    noise_freq_l = cat(2,[-1, -1],(60:200:960), [-1,-1],(reso_freq-1:0.1:reso_freq-0.3), ...
-        [-1,-1],(reso_freq-0.2:0.01:reso_freq+0.2),[-1,-1],(reso_freq+0.3:0.1:reso_freq+1),[-1, -1],(1200:200:5000));
+    noise_freq_l_init = cat(2,[-1],(60:200:960),(reso_freq-1:0.1:reso_freq-0.3), ...
+        (reso_freq-0.2:0.01:reso_freq+0.2),(reso_freq+0.3:0.1:reso_freq+1),(1200:200:5000));
+    baseline_l = -1 * ones(1, length(noise_freq_l_init));
+    noise_freq_l = zeros(1, length(noise_freq_l_init) + length(baseline_l));
+    noise_freq_l(1:2:end) = noise_freq_l_init;
+    noise_freq_l(2:2:end) = baseline_l;
+    
     [AC_dict1.freq, AC_dict1.Vpp, AC_dict1.phase,  AC_dict1.DC_offset] = deal(reso_freq, Vpp1, -90, 0);
     if noise_freq_l(freq_idx) == -1
         % this will be the baseline
