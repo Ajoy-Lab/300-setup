@@ -294,10 +294,10 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    Vpp1 = 0.1;
-    Vpp2 = 1e-3;
-    noise_freq_l_init = cat(2,[-1],(60:200:960),(reso_freq-1:0.1:reso_freq-0.3), ...
-        (reso_freq-0.2:0.01:reso_freq+0.2),(reso_freq+0.3:0.1:reso_freq+1),(1200:200:5000));
+    Vpp1 = 0.04;
+    Vpp2 = 4e-3;
+    noise_freq_l_init = cat(2,[-1],(60:200:960),(reso_freq-1:0.2:reso_freq-0.4), ...
+        (reso_freq-0.2:0.04:reso_freq+0.2),(reso_freq+0.4:0.2:reso_freq+1),(1200:200:5000));
     baseline_l = -1 * ones(1, length(noise_freq_l_init));
     noise_freq_l = zeros(1, length(noise_freq_l_init) + length(baseline_l));
     noise_freq_l(1:2:end) = noise_freq_l_init;
