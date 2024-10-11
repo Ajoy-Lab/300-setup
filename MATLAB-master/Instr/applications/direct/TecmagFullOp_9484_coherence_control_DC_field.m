@@ -32,7 +32,7 @@ measurementTimeSeconds = 7; %Integer
 delay = 0.0000038; % dead time
 global bits
 bits = 16;
-
+number_pi = pi;
 
 % remoteAddr = '192.168.1.2'; % old computer
 remoteAddr = '192.168.10.5'; % new computer
@@ -223,31 +223,59 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
+    sampleRateDAC_freq = 675000000;
+    fprintf("setting up pulse blaster sequence\n");
+    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
+    AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
+    ch3 = 3;
+    ch4 = 4;
+    tau = 22*1e-6;
     
-%     pulse_name = ['init_pul'];
+    amps = [1, 1, 1, 1, 1, 1, 1];
+    frequencies = [0, 0, 0, 0, 0, 0, 0];
     pi = cmdBytes(3)*1e-6;
-    idx = cmdBytes(2)-1;
+    lengths = [pi/2, pi/2, pi, pi, pi, pi, pi/2];
+    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+    % phases: x, -y, x, x, -x, -x, -y
+    phases = [0, -90, 0, 0, 180, 180, -90];
+    mods = [0, 0, 0, 0, 0, 0, 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    delta = tau+(pi/2);
+    spacings = [delta, tau, 2*tau, 2*tau, 2*tau, tau, delta];
+    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
+    markers = [1, 1, 1, 1, 1, 1, 1]; %always keep these on
+    markers2 = [0, 0, 0, 0, 0, 0, 0];
+    trigs = [0, 1, 1, 1, 1, 1, 1]; %acquire on every "pi" pulse
+    reps = [1, 1, 1, 1, 1, 1, 1];
+    repeatSeq = [1, 84000]; % how many times to repeat the block of pulses
     
-    amps = [1];
-    frequencies = [0];
-    lengths = [pi/2];
-    phases = [0];
-    mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [50000e-6];
-    markers = [1]; %always keep these on
-    markers2 = [0];
-    trigs = [1]; %acquire on every "pi" pulse
     
-    DC_idx = mod(idx, 21) + 1;
-    DC_l = (0: 0.05: 1);
-    DC = DC_l(DC_idx);
+    %%set PB parameter
+    start_time = 2;
+    PB_seg1 = zeros(2, 2);
+    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
+    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
+    PB_seg2 = zeros(2, 2);
+    [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time, 150e-6);
+    
+    %% should be setting DC field parameter
+    idx = cmdBytes(2);
+    DC = 0.5;
     if DC ~=0
         tek.apply_DC(DC);
         fprintf(sprintf("This is DC field applied: %d \n", DC));
     end
+    PB(ch3) = PB_seg1;
+    PB(ch4) = PB_seg2;
+    %no need to initialize both channels
+    initializeAWG(ch3);
+    fprintf("downloading pulseblaster sequence \n");
+    generate_PB(PB, sampleRateDAC, inst);
+    fprintf("PB download finished \n");
+    setNCO_IQ(ch3, 0, 0);
+    setNCO_IQ(ch4, 0 ,0);
     
-    reps = [1];
-    repeatSeq = [1]; % how many times to repeat the block of pulses
+    %tof = -1000*cmdBytes(2);
                 tof = cmdBytes(6);
                 
                 ch=1;
@@ -255,94 +283,46 @@ end
                 clearPulseDict();
                 clearBlockDict();
                 
-                defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
-                defBlock('FID', {'init_pul'}, reps(1), markers(1), trigs(1));
-                makeBlocks({'FID'}, ch, repeatSeq);
-                    
+                defPulse('pi_half_x', amps(1), mods(1), lengths(1), phases(1), spacings(1));
+                defPulse('pi_half_ny', amps(2), mods(2), lengths(2), phases(2), spacings(2));
+                defPulse('pi_x1', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                defPulse('pi_x2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
+                defPulse('pi_nx1', amps(5), mods(5), lengths(5), phases(5), spacings(5));
+                defPulse('pi_nx2', amps(6), mods(6), lengths(6), phases(6), spacings(6));
+                defPulse('pi_half_ny', amps(7), mods(7), lengths(7), phases(7), spacings(7));
+                defBlock('init_block', {'pi_half_x'}, reps(1), markers(1), trigs(1));
+                defBlock('trial', {'pi_half_ny', 'pi_x1', 'pi_x2', 'pi_nx1', 'pi_nx2', 'pi_half_ny'}, reps(2:7), markers(2:7), trigs(2:7));
+                makeBlocks({'init_block', 'trial'}, ch, repeatSeq);
+                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
+                fprintf("snyching Tabor's PB and Pseq \n");
+                inst.SendScpi(sprintf(':INST:CHAN %d',ch));
+                inst.SendScpi(':TRIG:COUPLE ON');
+                inst.SendScpi(':TRIG:CPU:MODE LOCAL');
+                inst.SendScpi(':TRIG:SOUR:ENAB CPU');
+                inst.SendScpi(':TRIG:SEL CPU');
+                inst.SendScpi(':TRIG:STAT ON');
+                resp = inst.SendScpi(':SYST:ERR?');
+                
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
-% %                 need to modify Marker #2 to show up during acquisition
-%                 % ## final segment which will contain the marker
-%                 chNum = 1;
-%                 segNum = 4;
-%                 
-%                 % ## how long the "on" portion needs to be
-%                 onLength = 10e-6;
-%                 
-%                 % ## when does the marker start after the last pulse
-%                 buffer = 10e-6;
-%                 
-%                 % ## select the final segment
-%                 cmd = sprintf(':INST:CHAN %d',chNum);
-%                 inst.SendScpi(cmd);
-%                 cmd = sprintf(':TRAC:SEL %d',segNum);
-%                 inst.SendScpi(cmd);
-%                 
-%                 % ## get the length of the segment
-%                 query = inst.SendScpi(':TRAC:DEF?');
-%                 segLen = pfunc.netStrToStr(query.RespStr);
-%                 mkrsegment_length = str2num(segLen);
-% %                 mkrsegment_length = floor(mkrsegment_length/4);
-%                 
-%                 % ## make a new segment
-%                 mkr_vector_2 = zeros(mkrsegment_length,1);
-%                 mkr_vector_1 = zeros(mkrsegment_length,1);
-%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
-%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
-%                 
-%                 % ## make the marker
-% %                 mkr_vector_on = ones(onLength_points,1);
-%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
-%                 % proteus.inst.timeout = 30000
-%                 
-%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
-%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
-% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
-%                 mkr_vector = uint8(mkr_vector);
-%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
-%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
-%                 
-% %                 % % # Set normal timeout
-% %                 % proteus.inst.timeout = 10000
-% %                 cmd = ':MARK:SEL 1';
-% %                 inst.SendScpi(cmd);
-% %                 cmd = ':MARK:STAT ON';
-% %                 inst.SendScpi(cmd);
-% %                 % proteus.checkForError()
-
-                
                 fprintf('Calculate and set data structures...\n');
-                
-                numberOfPulses_total = 1;
+                numberOfPulses_total = reps(1)*repeatSeq(1) + sum(reps(2:7))*repeatSeq(2);
 
-                Tmax=1; % will be 1 for FID
                 
-                tacq=40000;
-
-                numberOfPulses=1; %in 1 second %will be 1 for FID
+                Tmax=cmdBytes(4);
+                
+                
+                tacq=cmdBytes(5);
+                numberOfPulses= floor(numberOfPulses_total/Tmax); %in 1 second %will be 1 for FID
                 loops=Tmax;
                     
                 readLen = round2((tacq+2)*1e-6*2.7/(16*1e-9),96)-96;
-                
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
                 assert(rc.ErrCode == 0);
                 
-                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd))
-                %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
-                %assert(rc.ErrCode == 0);
-                %rc = inst.SendScpi(sprintf(':DIG:TRIG:SELF %f', 0.025)); %0.025 
-                %assert(rc.ErrCode == 0);
-                %rc = inst.SendScpi(sprintf(':DIG:TRIG:AWG:TDEL %f', lengths(2) + 8e-6));
-                %assert(rc.ErrCode == 0);
-                
-                %inst.SendScpi(sprintf(':DIG:CHAN 1'))
-                %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
-                %assert(rc.ErrCode == 0);
-%                 rc = inst.SendScpi(sprintf(':DIG:TRIG:AWG:TDEL %f', 0));
-%                 assert(rc.ErrCode == 0);
-                
+                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd));
                 rc = inst.SendScpi(':DIG:TRIG:SOUR EXT'); %digChan
                 assert(rc.ErrCode == 0);
                 %inst.SendScpi(':DIG:TRIG:TYPE GATE');
@@ -354,17 +334,14 @@ end
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
-
-                 rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
-                 assert(rc.ErrCode == 0);
-                 rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
-                 assert(rc.ErrCode == 0);
-    
+                rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
+                assert(rc.ErrCode == 0);
                 fprintf('Waiting... Listen for Shuttle\n');
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
-                assert(rc.ErrCode == 0);
+                
+                fprintf("setting done\n");
                 
                 
             case 3 % Measure
@@ -379,7 +356,7 @@ end
                 
                % pause(Tmax+3);
                 
-                for n = 1:700
+                for n = 1:1200
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
@@ -398,21 +375,6 @@ end
 
                 rc = inst.SendScpi(':DIG:INIT OFF');
                 assert(rc.ErrCode == 0);
-%                 rc = inst.SetAdcCaptureEnable(on);
-%                 assert(rc == 0);
-                
-%                 rc = inst.ReadAdcCaptureStatus();
-                
-                %                 % Wait until the capture completes
-                %                 status = inst.ReadAdcCompleteFramesCount();
-                %                 while status ~= numberOfPulses_total
-                %                     pause(0.01);
-                %                     status = inst.ReadAdcCompleteFramesCount();
-                %                 end
-                
-                %                 readSize = uint64(readLen);
-                %                 readOffset = uint64(offLen);
-                
                 chanIndex = adcChanInd - 1;
                 pulseAmp = [];
                 relPhase = [];
@@ -453,18 +415,8 @@ end
                     resp = inst.SendScpi(':DIG:DATA:SIZE?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
                     num_bytes = str2double(resp);
-                    
-                    wavlen = floor(num_bytes / 2);
-%                     netArray = NET.createArray('System.UInt16', wavlen);
-                    nFrames = 100;
-%                     netArray2 = NET.createArray('System.UInt16', nFrames * readLen);
-                    
-                    tic             
-%                     
-                                                       
+                    tic                                                            
                     rc = inst.ReadMultipleAdcFrames(chanIndex, firstIndex, numberOfPulses, netArray); %this is where the device reads
-                    %rc = inst.ReadMultipleAdcFrames(0, firstIndex, numberOfPulses, netArray2); %this is where the device reads
-                    
                     assert(rc == 0);
                     samples = uint16(netArray); %get the data (1s chunk)
                     samples = samples(1:2:length(samples));
@@ -473,24 +425,18 @@ end
                     samplesI = double(samples(1:2:wfmLength));
                     samplesQ = double(samples(2:2:wfmLength));
                     samples = samplesI + 1.0i * samplesQ;
-                    %samples2 = samples2(1:2:length(samples2));
-                    %samples2 = samples2(1:2:length(samples2));
                     fprintf('Read %d Complete\n', n);
                     toc
                     
                     tic
                     %delete mem
                     fprintf('Clear mem %d .... ', n);
-                    
-%                     rc =inst.WipeMultipleAdcFrames(chanIndex, ((n-1)*numberOfPulses)+1, numberOfPulses, 0);
-%                     assert(rc == 0);
                     fprintf('Clear mem %d Complete\n', n);
                     toc
                     
                     tic
                     fprintf('Starting iteration %d data processing....', n);
                     pulses = reshape(samples, [], numberOfPulses); % reshape samples into a more useful array (2 dimensions)
-                    %pulses2 = reshape(samples2, [], numberOfPulses);
                     
                     clear samples;
                     clear samples2;
@@ -520,19 +466,24 @@ end
                     fprintf('Data processing iteration %d complete!\n', n);
                     toc
                 end
-                
-                time_vec = 1:length(pulse);
-                time_axis = time_vec./sampleRate;
-                complex_acq = pulse;
-%                 
+                phase_base = relPhase(3);
+                relPhase = relPhase - relPhase(3) + number_pi/2;
+                curr_t = reps(1)*(lengths(1)+spacings(1));
+                time_axis = curr_t;
+                for i = (1:repeatSeq(2))
+                    for idx = (2: 7)
+                        curr_t = curr_t + reps(idx)*(lengths(idx) + spacings(idx));
+                        time_axis(end+1) = curr_t;
+                    end
+                end  
                 %fn=dataBytes; %filename
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
                 % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'complex_acq','time_axis', 'padded_len', 'DC');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','lengths',...
+                    'phases','spacings','reps','trigs','repeatSeq');
                 fprintf('Save complete\n');
-                tek.output_off();
                 
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
@@ -1040,7 +991,7 @@ global pulseDict
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB CPU');
+    inst.SendScpi(':TASK:COMP:ENAB INT');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
