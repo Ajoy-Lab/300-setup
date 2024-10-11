@@ -270,14 +270,14 @@ end
     frequencies = [0 0];
     lengths = [pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
-    phases = [0 0];
+    phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 100e-6];
+    spacings = [5e-6 36e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 100000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
