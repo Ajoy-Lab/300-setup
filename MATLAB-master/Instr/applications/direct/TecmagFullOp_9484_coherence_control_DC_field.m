@@ -246,7 +246,7 @@ end
     markers2 = [0, 0, 0, 0, 0, 0, 0];
     trigs = [0, 1, 1, 1, 1, 1, 1]; %acquire on every "pi" pulse
     reps = [1, 1, 1, 1, 1, 1, 1];
-    repeatSeq = [1, 84000]; % how many times to repeat the block of pulses
+    repeatSeq = [1, 42000]; % how many times to repeat the block of pulses
     
     
     %%set PB parameter
@@ -260,7 +260,7 @@ end
     
     %% should be setting DC field parameter
     idx = cmdBytes(2);
-    DC = 0.5;
+    DC = 0;
     if DC ~=0
         tek.apply_DC(DC);
         fprintf(sprintf("This is DC field applied: %d \n", DC));
@@ -289,9 +289,9 @@ end
                 defPulse('pi_x2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
                 defPulse('pi_nx1', amps(5), mods(5), lengths(5), phases(5), spacings(5));
                 defPulse('pi_nx2', amps(6), mods(6), lengths(6), phases(6), spacings(6));
-                defPulse('pi_half_ny', amps(7), mods(7), lengths(7), phases(7), spacings(7));
+                defPulse('pi_half_ny2', amps(7), mods(7), lengths(7), phases(7), spacings(7));
                 defBlock('init_block', {'pi_half_x'}, reps(1), markers(1), trigs(1));
-                defBlock('trial', {'pi_half_ny', 'pi_x1', 'pi_x2', 'pi_nx1', 'pi_nx2', 'pi_half_ny'}, reps(2:7), markers(2:7), trigs(2:7));
+                defBlock('trial', {'pi_half_ny', 'pi_x1', 'pi_x2', 'pi_nx1', 'pi_nx2', 'pi_half_ny2'}, reps(2:7), markers(2:7), trigs(2:7));
                 makeBlocks({'init_block', 'trial'}, ch, repeatSeq);
                 assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
@@ -307,7 +307,7 @@ end
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
                 fprintf('Calculate and set data structures...\n');
-                numberOfPulses_total = reps(1)*repeatSeq(1) + sum(reps(2:7))*repeatSeq(2);
+                numberOfPulses_total = sum(reps(2:7))*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -469,13 +469,48 @@ end
                 phase_base = relPhase(3);
                 relPhase = relPhase - relPhase(3) + number_pi/2;
                 curr_t = reps(1)*(lengths(1)+spacings(1));
-                time_axis = curr_t;
+                time_axis = [];
                 for i = (1:repeatSeq(2))
                     for idx = (2: 7)
                         curr_t = curr_t + reps(idx)*(lengths(idx) + spacings(idx));
                         time_axis(end+1) = curr_t;
                     end
-                end  
+                end
+                
+                start_fig(12,[5 1]);
+                p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
+                set(p1,'markersize',1);
+                plot_labels('Time [s]', 'Phase [au]');
+
+                start_fig(1,[3 2]);
+                p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+                set(p1,'linewidth',1);
+                set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+                set(gca,'xlim',[0,25e-3]);
+                plot_labels('Time [s]', 'Signal [au]');
+
+                start_fig(1,[5 2]);
+                p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
+                set(p1,'markersize',1);
+                set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+                plot_labels('Time [s]', 'Signal [au]');
+
+                start_fig(2,[5 2]);
+                p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
+                set(p1,'linestyle','--');
+                p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
+                set(p1,'markersize',1);
+                set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
+                plot_labels('Time [s]', 'Signal [au]');
+
+                start_fig(13,[5 1]);
+                p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
+                set(p1,'linewidth',0.5);
+                set(gca,'xlim',[5-8e-3,5+30e-3]);
+                plot_labels('Time [s]', 'Signal [au]');
+
+                disp('Plot error occured');
+                
                 %fn=dataBytes; %filename
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
@@ -484,6 +519,7 @@ end
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','lengths',...
                     'phases','spacings','reps','trigs','repeatSeq');
                 fprintf('Save complete\n');
+                tek.output_off()
                 
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
