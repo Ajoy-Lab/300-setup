@@ -40,12 +40,12 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, "SOURce1:BURSt:IDLE DC");
             fprintf(obj.gpib_obj, "SOURce1:BURSt:MODE TRIG");
             % for now set it as infinite cycles
-            if ncycles == "INF"
-                fprintf(obj.gpib_obj, "SOURce1:BURSt:NCYCles INF");
-            else
-                fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
-            end
-            
+%             if ncycles == "INF"
+%                 fprintf(obj.gpib_obj, "SOURce1:BURSt:NCYCles INF");
+%             else
+%                 fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
+%             end
+            fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
             
             % turn on output then set the frequency
             fprintf(obj.gpib_obj, "OUTP1:STAT ON");

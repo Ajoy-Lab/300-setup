@@ -232,28 +232,22 @@ end
     frequencies = [0 0 0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
-   18
     idx = cmdBytes(2)-1;
     
     fprintf(sprintf("This is pi: %d", pi));
-    pi_mult_idx = fix(idx/48)+1;
-    pi_mult_l = [0.9 0.95 0.98 1 1.02 1.05 1.1];
-    lengths = [pi_half pi_half pi_half pi*pi_mult_l(pi_mult_idx) pi_half pi_half];
+    lengths = [pi_half pi_half pi_half pi pi_half pi_half];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 0 0 90];
     mods = [0 0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+    
     spacings = [5e-6 36e-6 5e-6 300e-6 5e-6 36e-6];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0 0 0];
-    trigs = [0 1 0 1 0 1];
-    
-    nflips_l = cat(2,[1 2 5 10],[101 102 105 110],[1001 1002 1005 1010]);
-    nflips_idx = mod(idx,12)+1;
-    nflips = nflips_l(nflips_idx);
-    nflips=1000;
-    reps = [1 6000 1 nflips 1 6000];
+    trigs = [0 1 0 0 0 1];
+    nflips = 60001+2000*(idx);
+    reps = [1 6000 1 72001 1 6000];
     repeatSeq = [1 1 1]; % how many times to repeat the block of pulses; in this case should always be 1
     
     fprintf("setting up pulse blaster sequence\n");
@@ -296,9 +290,7 @@ end
     
         
     AC_dict.freq = freq;
-    Vpp_l = [0 0.02 0.1 0.5];
-    Vpp_idx = fix(mod(idx,48)/12)+1;
-    AC_dict.Vpp = Vpp_l(Vpp_idx);
+    AC_dict.Vpp = 0.5;
     AC_dict.DC_offset = 0;
     AC_dict.phase = 0;
     
@@ -345,7 +337,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+reps(4)+reps(6);
+                numberOfPulses_total = reps(2)+reps(6);
 
                 
                 Tmax=cmdBytes(4);
@@ -679,7 +671,7 @@ end
                     reps(4)*(lengths(4)+spacings(4))+lengths(5)+spacings(5);
                 time_axis3 = SL2_start_time + (1:reps(6))*(lengths(6)+spacings(6));
 
-                time_axis = cat(2,time_axis1,time_axis2,time_axis3);
+                time_axis = cat(2,time_axis1,time_axis3);
                 
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)

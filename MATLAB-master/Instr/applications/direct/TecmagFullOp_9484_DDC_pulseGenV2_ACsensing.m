@@ -241,7 +241,7 @@ end
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6];
+    spacings = [5e-6 100e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
@@ -265,7 +265,7 @@ end
     %%set AC field parameter
     idx = cmdBytes(2);
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(idx), 0.1, 0, 90);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(100, 0.1, 0, 90);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels

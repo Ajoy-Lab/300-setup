@@ -246,9 +246,9 @@ end
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    N = (fix(idx/2)+1)*4;
+    N = 16;
     reps = [1 6000 1 N];
-    repeatSeq = [1 20*fix(12800/N)]; % how many times to repeat the block of pulses
+    repeatSeq = [1 6000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -288,12 +288,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    if mod(idx,2)==0
-        AC_dict.Vpp = 0;
-    else
-        AC_dict.Vpp = 1;
-    end
-    
+    AC_dict.Vpp = 1;
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
@@ -553,36 +548,36 @@ end
                             end
                         end
                         
-                        if n == 1
-                            if i == 500
-                                figure(6);clf;
-                                plot(pulse);
-                                figure(7);clf;
-                                plot(f,abs(fftshift(fft(pulse,padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
-                        if n == 4
-                            if i == 2
-                                figure(8);clf;
-                                plot(pulse);
-                                figure(9);clf;
-                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
-                        if n == 58
-                            if i == 9708
-                                figure(10);clf;
-                                plot(pulse);
-                                figure(11);clf;
-                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-                                hold on;
-                                yline(2048);
-                            end
-                        end
+%                         if n == 1
+%                             if i == 500
+%                                 figure(6);clf;
+%                                 plot(pulse);
+%                                 figure(7);clf;
+%                                 plot(f,abs(fftshift(fft(pulse,padded_len))));
+%                                 hold on;
+%                                 yline(2048);
+%                             end
+%                         end
+%                         if n == 4
+%                             if i == 2
+%                                 figure(8);clf;
+%                                 plot(pulse);
+%                                 figure(9);clf;
+%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+%                                 hold on;
+%                                 yline(2048);
+%                             end
+%                         end
+%                         if n == 58
+%                             if i == 9708
+%                                 figure(10);clf;
+%                                 plot(pulse);
+%                                 figure(11);clf;
+%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+%                                 hold on;
+%                                 yline(2048);
+%                             end
+%                         end
 
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
@@ -635,7 +630,7 @@ end
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',1.25);
                     plot_labels('Time [s]', 'Phase [au]');
                     
 %                     start_fig(1,[3 2]);
@@ -645,17 +640,17 @@ end
 %                     set(gca,'xlim',[0,25e-3]);
 %                     plot_labels('Time [s]', 'Signal [au]');
                     
-                    start_fig(1,[5 2]);
-                    p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1);
-                    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-                    plot_labels('Time [s]', 'Signal [au]');
-                    
+%                     start_fig(1,[5 2]);
+%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
+%                     set(p1,'markersize',1);
+%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+%                     plot_labels('Time [s]', 'Signal [au]');
+%                     
                     start_fig(2,[5 2]);
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',1.25);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     

@@ -270,14 +270,14 @@ end
     frequencies = [0 0];
     lengths = [pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
-    phases = [0 90];
+    phases = [0 0];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6];
+    spacings = [5e-6 100e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 200000];
+    reps = [1 100000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
@@ -703,12 +703,12 @@ end
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',2);
                     plot_labels('Time [s]', 'Phase [au]');
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',2);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
                     
@@ -716,7 +716,7 @@ end
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
-                    set(p1,'markersize',1);
+                    set(p1,'markersize',2);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
 

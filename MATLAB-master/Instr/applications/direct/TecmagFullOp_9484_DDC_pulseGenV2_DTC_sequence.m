@@ -281,7 +281,7 @@ end
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     reps = [1 6000 1 300];
-    repeatSeq = [1 600]; % how ma54ny times to repeat the block of pulses
+    repeatSeq = [1 600]; % how many times to repeat the block of pulses
     
                 tof = cmdBytes(6);
                 

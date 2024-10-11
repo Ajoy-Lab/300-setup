@@ -239,7 +239,7 @@ end
     trigs = [1]; %acquire on every "pi" pulse
     
     DC_idx = mod(idx, 21) + 1;
-    DC_l = (0: 2e-3: 40e-3);
+    DC_l = (0: 0.05: 1);
     DC = DC_l(DC_idx);
     if DC ~=0
         tek.apply_DC(DC);
