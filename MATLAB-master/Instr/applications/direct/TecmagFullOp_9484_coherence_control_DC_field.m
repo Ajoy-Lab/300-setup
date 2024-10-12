@@ -229,7 +229,7 @@ end
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     ch4 = 4;
-    tau = 22*1e-6;
+    tau = 36*1e-6;
     
     amps = [1, 1, 1, 1, 1, 1, 1];
     frequencies = [0, 0, 0, 0, 0, 0, 0];
@@ -260,7 +260,8 @@ end
     
     %% should be setting DC field parameter
     idx = cmdBytes(2);
-    DC = 0;
+    DC_l = (0:0.1:1);
+    DC = DC_l(idx);
     if DC ~=0
         tek.apply_DC(DC);
         fprintf(sprintf("This is DC field applied: %d \n", DC));
