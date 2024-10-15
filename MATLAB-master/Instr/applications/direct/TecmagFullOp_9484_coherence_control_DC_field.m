@@ -229,14 +229,14 @@ end
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     ch4 = 4;
-    tau = 10*1e-6;
+    tau = 60*1e-6;
     
     amps = [1, 1, 1, 1, 1, 1, 1];
     frequencies = [0, 0, 0, 0, 0, 0, 0];
     pi = cmdBytes(3)*1e-6;
     lengths = [pi/2, pi/2, pi, pi, pi, pi, pi/2];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    % phases: x, -y, x, x, -x, -x, -y
+    % phases: x, -y, x, x, -x, -x, y
     phases = [0, -90, 0, 0, 180, 180, 90];
     mods = [0, 0, 0, 0, 0, 0, 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     delta = tau+(pi/2);
