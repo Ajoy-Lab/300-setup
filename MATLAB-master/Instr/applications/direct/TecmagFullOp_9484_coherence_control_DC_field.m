@@ -229,7 +229,7 @@ end
     AC_dict = containers.Map('KeyType', 'char', 'ValueType', 'any');
     ch3 = 3;
     ch4 = 4;
-    tau = 36*1e-6;
+    tau = 10*1e-6;
     
     amps = [1, 1, 1, 1, 1, 1, 1];
     frequencies = [0, 0, 0, 0, 0, 0, 0];
@@ -237,14 +237,14 @@ end
     lengths = [pi/2, pi/2, pi, pi, pi, pi, pi/2];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     % phases: x, -y, x, x, -x, -x, -y
-    phases = [0, -90, 0, 0, 180, 180, -90];
+    phases = [0, -90, 0, 0, 180, 180, 90];
     mods = [0, 0, 0, 0, 0, 0, 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     delta = tau+(pi/2);
-    spacings = [delta, tau, 2*tau, 2*tau, 2*tau, tau, delta];
+    spacings = [delta, tau, 2*tau, 2*tau, 2*tau, tau, 2*delta];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1, 1, 1, 1, 1, 1, 1]; %always keep these on
     markers2 = [0, 0, 0, 0, 0, 0, 0];
-    trigs = [0, 1, 1, 1, 1, 1, 1]; %acquire on every "pi" pulse
+    trigs = [0, 0, 0, 0, 0, 0, 1]; %acquire on every "pi" pulse
     reps = [1, 1, 1, 1, 1, 1, 1];
     repeatSeq = [1, 42000]; % how many times to repeat the block of pulses
     
@@ -259,9 +259,7 @@ end
     [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time, 150e-6);
     
     %% should be setting DC field parameter
-    idx = cmdBytes(2);
-    DC_l = (0:0.1:1);
-    DC = DC_l(idx);
+    DC = 1;
     if DC ~=0
         tek.apply_DC(DC);
         fprintf(sprintf("This is DC field applied: %d \n", DC));
@@ -308,7 +306,7 @@ end
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
                 fprintf('Calculate and set data structures...\n');
-                numberOfPulses_total = sum(reps(2:7))*repeatSeq(2);
+                numberOfPulses_total = reps(7)*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -467,14 +465,16 @@ end
                     fprintf('Data processing iteration %d complete!\n', n);
                     toc
                 end
-                phase_base = relPhase(3);
-                relPhase = relPhase - relPhase(3) + number_pi/2;
+                phase_base = relPhase(1);
+                relPhase = relPhase - relPhase(1) - number_pi/2;
                 curr_t = reps(1)*(lengths(1)+spacings(1));
                 time_axis = [];
                 for i = (1:repeatSeq(2))
                     for idx = (2: 7)
                         curr_t = curr_t + reps(idx)*(lengths(idx) + spacings(idx));
-                        time_axis(end+1) = curr_t;
+                        if idx == 7
+                            time_axis(end+1) = curr_t;
+                        end
                     end
                 end
                 
