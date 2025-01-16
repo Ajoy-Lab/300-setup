@@ -296,7 +296,7 @@ end
     %analyte_freq = analyte_freq_l(idx);
     
     pi_b = pi*0.95;    %abc
-    SL_angle = pi/b/pi * 90;
+    SL_angle = pi_b/pi * 90;
     ACfreqarr = 10:1:200;
     rng(42);
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
