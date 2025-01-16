@@ -295,7 +295,15 @@ end
     analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
-    %pi_b = pi*0.975;    %abc
+    pi_b = pi*0.95;    %abc
+    SL_angle = pi/b/pi * 90;
+    ACfreqarr = 10:1:200;
+    rng(42);
+    ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
+    disp(ACfreqarrshuffled);
+    ACfreq = ACfreqarrshuffled(idx);
+    disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
+    
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
@@ -335,7 +343,6 @@ end
     TJidx = idx - 1;
     disp((1.08^9)/(1.08^TJidx));
     %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);  %abc
-    trajectory_freq = trajectory_freq;
     AC_dict.freq = trajectory_freq+0.5;
     
     waveformTJ          = 'SIN';    %SIN, SQU, TRI
@@ -343,8 +350,8 @@ end
     AC_dict.DC_offset   = 0;
     AC_dict.phase       = 0;
     
-    waveformAC          = 'SIN';
-    AC_dict2.freq       = 20;
+    waveformAC          = 'SQU';
+    AC_dict2.freq       = ACfreq;%20;
     AC_dict2.Vpp        = 0.15; 
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
