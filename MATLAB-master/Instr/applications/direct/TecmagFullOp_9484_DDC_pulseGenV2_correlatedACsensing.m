@@ -295,10 +295,11 @@ end
     analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
-    pi_b = pi*0.95;    %abc
+    pi_b = pi*0.9;    %abc
     SL_angle = pi_b/pi * 90;
     ACfreqarr = 10:1:200;
     rng(42);
+    idx = mod(idx - 1, numel(ACfreqarr)) + 1;
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
     disp(ACfreqarrshuffled);
     ACfreq = ACfreqarrshuffled(idx);
@@ -317,7 +318,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 90000];
+    reps = [1 75000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -340,8 +341,8 @@ end
     
     %%set AC field parameter
 
-    TJidx = idx - 1;
-    disp((1.08^9)/(1.08^TJidx));
+    %TJidx = idx - 1;
+    %disp((1.08^9)/(1.08^TJidx));
     %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);  %abc
     AC_dict.freq = trajectory_freq+0.5;
     
