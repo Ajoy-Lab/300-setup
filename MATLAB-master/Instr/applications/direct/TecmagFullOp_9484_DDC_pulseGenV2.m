@@ -278,7 +278,7 @@ end
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 1000000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
                 tof = cmdBytes(6);
