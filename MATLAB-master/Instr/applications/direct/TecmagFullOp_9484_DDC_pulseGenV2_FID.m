@@ -235,9 +235,9 @@ end
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     tof_offset_idx = cmdBytes(2);
-    tof_offset_l = (0:100:1000);
+    tof_offset_l = (0:300:3000);
     fprintf(sprintf("This is tof offset: %d \n", tof_offset_l(tof_offset_idx)));
-                tof = cmdBytes(6) + tof_offset_l(tof_offset_idx);
+                tof = cmdBytes(6) - tof_offset_l(tof_offset_idx);
                 
                 ch=1;
                 initializeAWG(ch);
