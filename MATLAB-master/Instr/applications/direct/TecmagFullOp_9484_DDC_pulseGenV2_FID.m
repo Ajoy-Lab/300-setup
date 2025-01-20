@@ -227,14 +227,17 @@ end
     lengths = [pi/2];
     phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [50000e-6];
+    spacings = [50000e-6]; %default [50000e-6]
     markers = [1]; %always keep these on
     markers2 = [0];
     trigs = [1]; %acquire on every "pi" pulse
     
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
-                tof = cmdBytes(6);
+    tof_offset_idx = cmdBytes(2);
+    tof_offset_l = (0:100:1000);
+    fprintf(sprintf("This is tof offset: %d \n", tof_offset_l(tof_offset_idx)));
+                tof = cmdBytes(6) + tof_offset_l(tof_offset_idx);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -304,7 +307,7 @@ end
 
                 Tmax=1; % will be 1 for FID
                 
-                tacq=40000;
+                tacq=80000; %default 40000
 
                 numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;
