@@ -222,9 +222,10 @@ end
     
 %     pulse_name = ['init_pul'];
     pi = cmdBytes(3)*1e-6;
+    init_pulse = cmdBytes(2)*1e-6;
     amps = [1];
     frequencies = [0];
-    lengths = [pi/2];
+    lengths = [init_pulse];
     phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [50000e-6]; %default [50000e-6]
@@ -234,10 +235,7 @@ end
     
     reps = [1];
     repeatSeq = [1]; % how many times to repeat the block of pulses
-    tof_offset_idx = cmdBytes(2);
-    tof_offset_l = (0:300:3000);
-    fprintf(sprintf("This is tof offset: %d \n", tof_offset_l(tof_offset_idx)));
-                tof = cmdBytes(6) - tof_offset_l(tof_offset_idx);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -307,7 +305,7 @@ end
 
                 Tmax=1; % will be 1 for FID
                 
-                tacq=80000; %default 40000
+                tacq=10000; %default 40000
 
                 numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;
