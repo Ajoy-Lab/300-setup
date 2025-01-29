@@ -272,7 +272,7 @@ end
     amps = [1 1 1 1];
     frequencies = [0 0 0 0];
     %[pi/2 Y-pulse, theta x-pulse(spin lock), pi Y-pulse, pi/2 x-pulse]
-    lengths = [pi/2 pi/2 pi pi/2];
+    lengths = [pi/2 pi/2 0.98*pi pi/2];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     fprintf("This is the length of the pi+e pulse %d \n", lengths(3));
     phases = [0 90 0 90];
