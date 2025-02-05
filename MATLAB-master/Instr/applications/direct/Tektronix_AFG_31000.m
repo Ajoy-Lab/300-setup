@@ -24,6 +24,23 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("SOUR1:PHAS %dDEG", phase));
             fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:LEV:IMM:OFFS %dV", DC_offset));
         end
+        
+        function init_AFG_RF_FM(obj, freq, Vpp, DC_offset, phase, FMshape, FMfreq, FMdeviation)
+            fprintf(obj.gpib_obj, "SOUR1:FUNC SIN");
+            fprintf(obj.gpib_obj, "SOUR1:FM:STAT ON");
+            
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FREQ %.3f", freq));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT %.3f", Vpp));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:PHAS %dDEG", phase));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:LEV:IMM:OFFS %dV", DC_offset));
+            
+            fprintf(obj.gpib_obj, "SOUR1:FM:SOUR INT");
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:INT:FUNC %s", FMshape));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:INT:FREQ %.3f", FMfreq));
+            disp(sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
+            
+        end
 
         function burst_mode_trig_sinwave(obj, freq, Vpp, DC_offset, phase, ncycles, add_external)
             %{
@@ -161,7 +178,7 @@ classdef Tektronix_AFG_31000
             
             fprintf(obj.gpib_obj, sprintf("FREQUENCY %d", freq));
             fprintf(obj.gpib_obj, sprintf("VOLTAGE:AMPLITUDE %d", Vpp));
-            fprintf(obj.gpib_obj, sprintf("VOLTAGE:OFFSET %d", DC_offset));
+            fprintf(obj.gpib_obj, sprintf("VOLTAGE:OFFSET %f", DC_offset));
             fprintf(obj.gpib_obj, sprintf("PHASE:ADJUST %dDEG", phase));
             
             % Additional code to activate trigger (don't know why it is necessary but it is)

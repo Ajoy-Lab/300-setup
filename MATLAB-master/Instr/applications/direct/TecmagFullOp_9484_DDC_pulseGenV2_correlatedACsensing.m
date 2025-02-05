@@ -9,6 +9,8 @@ savesinglechunk=false;
 chunknumber = 1;
 savemultwind=false;
 
+
+
 sampleRate = 2700e6;
 global sampleRateDAC
 sampleRateDAC = 9e9;
@@ -259,7 +261,7 @@ end
     idx = cmdBytes(2);
     pi_idx = idx;
     vertices_l = [2 3 4 5 6 8 12 14];
-    vertices = 2;%vertices_l(idx);
+    vertices = 2;%vertices_l(idx);  %scan: 4
     first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22];
     %first_angle = 180/vertices;%first_angle_arr(vertices);
     
@@ -297,13 +299,13 @@ end
     
     pi_b = pi*0.9;    %abc
     SL_angle = pi_b/pi * 90;
-    ACfreqarr = 10:1:200;
+    ACfreqarr = 10:5:510;
     rng(42);
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
-    disp(ACfreqarrshuffled);
+%     disp(ACfreqarrshuffled);
     ACfreq = ACfreqarrshuffled(idx);
-    disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
+%     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -318,7 +320,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 75000];
+    reps = [1 70000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -343,24 +345,40 @@ end
 
     %TJidx = idx - 1;
     %disp((1.08^9)/(1.08^TJidx));
-    %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);  %abc
+    %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);
+    tof = cmdBytes(6);
+    RF_freq0 = 75380000 + tof;
     AC_dict.freq = trajectory_freq+0.5;
+    ACfreq = 20;%120;                     %scan: comment
+    f_RFoffset = 20;
     
     waveformTJ          = 'SIN';    %SIN, SQU, TRI
     AC_dict.Vpp         = 0.3;
     AC_dict.DC_offset   = 0;
     AC_dict.phase       = 0;
     
-    waveformAC          = 'SQU';
-    AC_dict2.freq       = ACfreq;%20;
-    AC_dict2.Vpp        = 0.15; 
+    waveformAC          = 'SIN';    %scan: SQU
+    AC_dict2.freq       = ACfreq;   %20
+    AC_dict2.Vpp        = 0.2;      %scan: 0.15
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
-    AC_dictRF.freq      = 75352401.49;
+    AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
     AC_dictRF.Vpp       = 0.15;
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
+    
+    AFG_RF_useFM        = true;
+    AC_dictRF.FMshape   = 'TRI';
+    AC_dictRF.FMfreq    = 30;
+    AC_dictRF.FMdeviation = 100;
+    
+    if u3status == 1
+        rf_text = num2str(AC_dictRF.freq);
+        text_to_send = strcat("set_rf_freq_", rf_text);
+        fprintf(text_to_send);
+        fwrite(u3, text_to_send);  % Send a UDP packet to the local Python script
+    end
     
     %ch2 = 2;
     %PB(ch2) = PB_seg3;
@@ -402,8 +420,14 @@ end
     end
     
     try
+        
         tekRF.output_off();
-        tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
+        if AFG_RF_useFM
+            tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation);
+        else
+            tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
+        end
+        
     catch
         disp('setting tekRF: error occurred');
     end
@@ -538,16 +562,19 @@ end
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
+                disp('3');
                
                
                 
                 
                 
             case 3 % Measure
+                disp('4');
                 inst.SendScpi(sprintf(':DIG:CHAN 2'));
                 if u3status == 1
                     freq_text = num2str(trajectory_freq);
                     text_to_send = strcat("start_output",freq_text);
+                    strcat("start_output", freq_text);
                     fprintf(text_to_send);
                     fwrite(u3, text_to_send);  % Send a UDP packet to the local Python script
                 end
@@ -843,7 +870,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM');
                 fprintf('Save complete\n');
                 tek.output_off() 
                 tek2.output_off()
@@ -1358,7 +1385,8 @@ global pulseDict
     
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
-    
+    %disp("Position1");
+
     myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr)); %ask Joan why this happens
 
     res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
@@ -1382,6 +1410,7 @@ global pulseDict
 
         dacWaveIQ = [dacWaveI; dacWaveQ];
         dacWaveIQ = dacWaveIQ(:)';
+        %disp("pos1");
         inst.SendScpi(sprintf(':INST:CHAN %d',ch));
         inst.SendScpi(':TRAC:FORM U16');
         inst.SendScpi(sprintf(':TRAC:DEF %d, %d',segMem, length(dacWaveIQ)));
