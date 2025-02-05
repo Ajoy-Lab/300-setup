@@ -56,9 +56,11 @@ def main():
             print(f"All set. Response was: {response} Hz")
             time.sleep(10)
             afgTJ.stop_output()
+            afgAC.stop_output()
             afgRF.stop_output()
     except:
         afgTJ.stop_output()               # Turn off the output when the script is interrupted
+        afgAC.stop_output()
         afgRF.stop_output()
         print("Outputs turned off.")
         afgTJ.close()  
@@ -66,9 +68,8 @@ def main():
     
     time.sleep(1)
     if not testmode:
-        afgTJ.stop_output() 
-        afgRF.stop_output()
         afgTJ.close()                         # Close the connection
+        afgAC.close()
         afgRF.close() 
 
 
