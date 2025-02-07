@@ -299,13 +299,13 @@ end
     
     pi_b = pi*0.9;    %abc
     SL_angle = pi_b/pi * 90;
-    ACfreqarr = 10:5:510;
+    ACfreqarr = 10:2:210;
     rng(42);
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
 %     disp(ACfreqarrshuffled);
     ACfreq = ACfreqarrshuffled(idx);
-%     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
+    disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -320,7 +320,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 70000];
+    reps = [1 60000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -349,29 +349,29 @@ end
     tof = cmdBytes(6);
     RF_freq0 = 75380000 + tof;
     AC_dict.freq = trajectory_freq+0.5;
-    ACfreq = 20;%120;                     %scan: comment
-    f_RFoffset = 20;
+    %ACfreq = 20;%120;                     %scan: comment
     
     waveformTJ          = 'SIN';    %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3;
-    AC_dict.DC_offset   = 0;
+    AC_dict.Vpp         = 0.3; %0.3;
+    AC_dict.DC_offset   = 0.0;
     AC_dict.phase       = 0;
     
-    waveformAC          = 'SIN';    %scan: SQU
+    waveformAC          = 'SQU';    %scan: SQU
     AC_dict2.freq       = ACfreq;   %20
     AC_dict2.Vpp        = 0.2;      %scan: 0.15
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
+    f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.15;
+    AC_dictRF.Vpp       = 0.3; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
     AFG_RF_useFM        = true;
     AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 30;
-    AC_dictRF.FMdeviation = 100;
+    AC_dictRF.FMfreq    = 12.5;
+    AC_dictRF.FMdeviation = 50;
     
     if u3status == 1
         rf_text = num2str(AC_dictRF.freq);
