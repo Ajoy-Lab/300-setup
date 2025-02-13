@@ -37,8 +37,8 @@ def main():
         afgRF = None
         afgTJ = None
     # while True:
-    try: 
-        while True:
+    # try: 
+    while True:
             response, code = wait_for_udp_packet(host = 'localhost', port = 12345, expected_message = 'start_output')
             if code == 2:
                 rf_freq = float(response)
@@ -46,25 +46,28 @@ def main():
                 print(f"RF freq set to {rf_freq}")
                 continue
             frequency = float(response)
-            time.sleep(3)
+            time.sleep(3-0.3-0.067) #-0.07
             afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}')
-            time.sleep(2-0.06)
+            time.sleep(2-0.06+0.3-1) #-1
             afgRF.start_output()
-            time.sleep(3)
+            time.sleep(0.5)
+            afgRF.start_output(channel=2)
+            time.sleep(2.5)
             afgAC.set_volts(voltage = 0.001)
             afgAC.set_freq(0.01)
             print(f"All set. Response was: {response} Hz")
-            time.sleep(10)
+            time.sleep(8)
             afgTJ.stop_output()
             afgAC.stop_output()
             afgRF.stop_output()
-    except:
-        afgTJ.stop_output()               # Turn off the output when the script is interrupted
-        afgAC.stop_output()
-        afgRF.stop_output()
-        print("Outputs turned off.")
-        afgTJ.close()  
-        afgRF.close() 
+            afgRF.stop_output(channel=2)
+    # except:
+    #     afgTJ.stop_output()               # Turn off the output when the script is interrupted
+    #     afgAC.stop_output()
+    #     afgRF.stop_output()
+    #     print("Outputs turned off.")
+    #     afgTJ.close()  
+    #     afgRF.close() 
     
     time.sleep(1)
     if not testmode:
@@ -140,7 +143,10 @@ def wait_for_udp_packet(host, port, expected_message):
 
     sock.close()
     assert(code is not None)
-    return data_dec[len(expected_message):], code
+    try:
+        return data_dec[len(expected_message):], code
+    except:
+        return None, None
 
 def list_available_devices(rm):
     """List all available devices in the resource manager."""

@@ -2,6 +2,12 @@
 %% Clear everything
 clear;
 close;
+try
+    instrreset;
+    disp("instrreset done for you")
+catch
+    disp("nothing to reset")
+end
 
 %% Set defaults Vars
 savealldata=false;
@@ -101,6 +107,12 @@ else
         end
         
         % Connect to the selected instrument ..
+        try
+            instrreset;
+            disp("instrreset done for you")
+        catch
+            disp("instrreset did not work")
+        end
         should_reset = true;
         inst = admin.OpenInstrument(sId, should_reset);
         instId = inst.InstrId;
@@ -244,7 +256,7 @@ end
     tek.output_off()
     tek2.output_off()
     try
-        tekRF.output_off()
+        tekRF.just_output_off()
     end
     
         case 2 % Aquire on trig
@@ -299,12 +311,12 @@ end
     
     pi_b = pi*0.9;    %abc
     SL_angle = pi_b/pi * 90;
-    ACfreqarr = 10:2:210;
+    ACfreqarr = 1:1:210;
     rng(42);
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
 %     disp(ACfreqarrshuffled);
-    ACfreq = ACfreqarrshuffled(idx);
+    ACfreq = ACfreqarrshuffled(10-idx);
     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
@@ -336,10 +348,10 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+3, 150e-6); %+2
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2, 150e-6); %+3
     PB_seg3 = zeros(2, 2);
     [PB_seg3(1,1), PB_seg3(2,1)] = deal(0, 1);
-    [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+3
+    [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+4
     
     %%set AC field parameter
 
@@ -348,15 +360,15 @@ end
     %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);
     tof = cmdBytes(6);
     RF_freq0 = 75380000 + tof;
-    AC_dict.freq = trajectory_freq+0.5;
-    %ACfreq = 20;%120;                     %scan: comment
     
     waveformTJ          = 'SIN';    %SIN, SQU, TRI
     AC_dict.Vpp         = 0.3; %0.3;
+    AC_dict.freq = trajectory_freq+0.5;
     AC_dict.DC_offset   = 0.0;
     AC_dict.phase       = 0;
     
     waveformAC          = 'SQU';    %scan: SQU
+    %ACfreq = 20;%120;                     %scan: comment
     AC_dict2.freq       = ACfreq;   %20
     AC_dict2.Vpp        = 0.2;      %scan: 0.15
     AC_dict2.DC_offset  = 0;
@@ -364,14 +376,15 @@ end
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.3; %0.15
+    AC_dictRF.Vpp       = 0.6; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
     AFG_RF_useFM        = true;
+    AFG_RF_external_mod = false;
     AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 12.5;
-    AC_dictRF.FMdeviation = 50;
+    AC_dictRF.FMfreq    = 2.5;
+    AC_dictRF.FMdeviation = 250;
     
     if u3status == 1
         rf_text = num2str(AC_dictRF.freq);
@@ -421,9 +434,9 @@ end
     
     try
         
-        tekRF.output_off();
+        tekRF.just_output_off();
         if AFG_RF_useFM
-            tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation);
+            tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
         else
             tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
         end
@@ -870,12 +883,12 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_external_mod');
                 fprintf('Save complete\n');
                 tek.output_off() 
                 tek2.output_off()
                 try
-                    tekRF.output_off()
+                    tekRF.just_output_off()
                 end
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
