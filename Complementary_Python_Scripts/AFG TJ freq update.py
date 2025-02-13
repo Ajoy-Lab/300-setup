@@ -52,7 +52,7 @@ def main():
             afgRF.start_output()
             time.sleep(0.5)
             afgRF.start_output(channel=2)
-            time.sleep(2.5)
+            time.sleep(3.0)
             afgAC.set_volts(voltage = 0.001)
             afgAC.set_freq(0.01)
             print(f"All set. Response was: {response} Hz")
