@@ -318,11 +318,11 @@ end
 %     disp(ACfreqarrshuffled);
     
     
-    ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
+    %ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
     
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
-    %ACfreq = ACfreqarrshuffled(idx);
-    ACfreq = ACfreqarr(idx);
+    ACfreq = ACfreqarrshuffled(idx);
+    %ACfreq = ACfreqarr(idx);
     
     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
@@ -368,16 +368,16 @@ end
     tof = cmdBytes(6);
     RF_freq0 = 75380000 + tof;
     
-    waveformTJ          = 'SQU'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.2;   %0.3;
-    AC_dict.freq        = ACfreq;%trajectory_freq+0.5;
+    waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
+    AC_dict.Vpp         = 0.3;   %0.2
+    AC_dict.freq        = trajectory_freq+0.5;
     AC_dict.DC_offset   = 0.0;
     AC_dict.phase       = 0;
     
     waveformAC          = 'SQU';    %scan: SQU
     %ACfreq = 20;%120;                     %scan: comment
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0;          %0.2;      
+    AC_dict2.Vpp        = 0.2;          %0;      
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     

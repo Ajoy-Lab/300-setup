@@ -46,7 +46,7 @@ def main():
                 print(f"RF freq set to {rf_freq}")
                 continue
             frequency = float(response)
-            time.sleep(3-0.3-0.067) #-0.07
+            time.sleep(3-0.3) #-0.07
             afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}')
             time.sleep(2-0.06+0.3-1) #-1
             afgRF.start_output()
