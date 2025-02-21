@@ -30,6 +30,21 @@ def main():
         afgRF.identify()                                              # Print the instrument identification
         afgTJ.identify()                                              # Print the instrument identification
         
+        # afgAC.afg.write('*RST')
+        
+        afgAC.afg.write('BURSt:STATE ON')
+        afgAC.afg.write('SOURce1:BURSt:IDLE DC')
+        afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
+        afgAC.afg.write('SOURce1:BURSt:MODE GATE')
+        afgAC.afg.write('SOURce1:TRIG:MODE:BURS EXT')
+        resp = afgAC.afg.write('SOUR1:FUNC:EFIL M:/AnotherOneBitesTheDust-short-withtime.tfwx')
+        afgAC.afg.write('SOUR1:FUNC:SHAP EFIL')
+        afgAC.afg.write('SOUR1:FREQ 0.223869232')
+        afgAC.afg.write('SOUR1:VOLT 0.2')
+        afgAC.afg.write('SOUR1:VOLT:OFFS 0')
+        afgAC.afg.write('SOUR1:BURSt:NCYCles 1')
+        afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
+        input(f"response: {resp}")
         #afgRF.set_volts(channel=ch, voltage=volts)
         #afg.configure(frequency='1.552838kHz', voltage=0.5, channel=channel, phase=0)     # Configure the function generator
 

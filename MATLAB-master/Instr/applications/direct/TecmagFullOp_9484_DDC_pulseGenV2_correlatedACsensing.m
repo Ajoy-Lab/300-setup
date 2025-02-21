@@ -2,12 +2,12 @@
 %% Clear everything
 clear;
 close;
-try
-    instrreset;
-    disp("instrreset done for you")
-catch
-    disp("nothing to reset")
-end
+% try
+%     instrreset;
+%     disp("did instrreset")
+% catch
+%     disp("nothing to reset")
+% end
 
 %% Set defaults Vars
 savealldata=false;
@@ -107,18 +107,24 @@ else
         end
         
         % Connect to the selected instrument ..
-        try
-            instrreset;
-            disp("instrreset done for you")
-        catch
-            disp("instrreset did not work")
-        end
+%         try
+%             instrreset;
+%             disp("instrreset done for you")
+%         catch
+%             disp("instrreset did not work")
+%         end
         should_reset = true;
         inst = admin.OpenInstrument(sId, should_reset);
         instId = inst.InstrId;
         
     catch ME
         admin.Close();
+        try
+            instrreset;
+            disp("instrreset done for you")
+        catch
+            disp("instrreset did not work")
+        end
         rethrow(ME) 
     end    
 end
@@ -186,7 +192,7 @@ end
         while(u2.BytesAvailable == 0)
             % If no bytes in u2 buffer, wait 10ms then check again
             pause(0.01);
-        end
+         end
         %         cmdBytes = fread(u2);
         readBytes = fscanf(u2);
         dataBytes=1;counter=1;
@@ -298,18 +304,22 @@ end
     shuffled_indices = randperm(length(values)); % Shuffle the values
     shuffled_values = values(shuffled_indices);
     
-    SL_angle = shuffled_values(idx);
-    pi_b = pi*(shuffled_values(idx)/90);
+    slarray = 140:1:180;
+    shuffled_array = slarray(randperm(numel(slarray)));
+    
+    SL_angle = shuffled_array(idx);
+    pi_b = pi*(shuffled_array(idx)/180);
     
     disp(['Current index is: ', num2str(idx)]);
-    disp(['The SL angle at the current index is: ', num2str(shuffled_values(idx))]);
+    disp(['The SL angle at the current index is: ', num2str(shuffled_array(idx))]);
     disp(['The pi value at the current index is: ', num2str(pi_b*1000000)]);
     
     spacing = 100e-6;
     analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
-    pi_b = pi*0.9;    %abc
+    %pi_b = pi*0.9;
+    % pi_b = pi*0.5;
     SL_angle = pi_b/pi * 90;
     ACfreqarr = 1:1:210;
     rng(42);
@@ -318,11 +328,11 @@ end
 %     disp(ACfreqarrshuffled);
     
     
-    %ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
+    ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
     
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
-    ACfreq = ACfreqarrshuffled(idx);
-    %ACfreq = ACfreqarr(idx);
+    %ACfreq = ACfreqarrshuffled(idx);
+    ACfreq = ACfreqarr(idx);
     
     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
@@ -339,7 +349,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 60000];
+    reps = [1 55000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -367,23 +377,24 @@ end
     %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);
     tof = cmdBytes(6);
     RF_freq0 = 75380000 + tof;
+    %ACfreq = 10;
     
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3;   %0.2
+    AC_dict.Vpp         = 0.3;   %0.3
     AC_dict.freq        = trajectory_freq+0.5;
     AC_dict.DC_offset   = 0.0;
     AC_dict.phase       = 0;
     
     waveformAC          = 'SQU';    %scan: SQU
-    %ACfreq = 20;%120;                     %scan: comment
+    ACfreq = 20;%120;                     %scan: comment
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0.2;          %0;      
+    AC_dict2.Vpp        = 0.2;        %0.2;             
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.6; %0.15
+    AC_dictRF.Vpp       = 0.5; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
@@ -890,7 +901,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_external_mod');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_external_mod', 'tof');
                 fprintf('Save complete\n');
                 tek.output_off() 
                 tek2.output_off()
