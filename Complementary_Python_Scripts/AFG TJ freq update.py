@@ -32,19 +32,18 @@ def main():
         
         # afgAC.afg.write('*RST')
         
-        afgAC.afg.write('BURSt:STATE ON')
-        afgAC.afg.write('SOURce1:BURSt:IDLE DC')
-        afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
-        afgAC.afg.write('SOURce1:BURSt:MODE GATE')
-        afgAC.afg.write('SOURce1:TRIG:MODE:BURS EXT')
-        resp = afgAC.afg.write('SOUR1:FUNC:EFIL M:/AnotherOneBitesTheDust-short-withtime.tfwx')
-        afgAC.afg.write('SOUR1:FUNC:SHAP EFIL')
+        # afgAC.afg.write('BURSt:STATE ON')
+        # afgAC.afg.write('SOURce1:BURSt:IDLE DC')
+        # afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
+        # afgAC.afg.write('SOURce1:BURSt:MODE GATE')
+        # resp = afgAC.afg.write('SOUR1:FUNC:EFIL M:/AnotherOneBitesTheDust-short-withtime.tfwx')
+        # afgAC.afg.write('SOUR1:FUNC:SHAP EFIL')
         afgAC.afg.write('SOUR1:FREQ 0.223869232')
-        afgAC.afg.write('SOUR1:VOLT 0.2')
+        afgAC.afg.write('SOUR1:VOLT 0.25')
         afgAC.afg.write('SOUR1:VOLT:OFFS 0')
-        afgAC.afg.write('SOUR1:BURSt:NCYCles 1')
-        afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
-        input(f"response: {resp}")
+        # afgAC.afg.write('SOUR1:BURSt:NCYCles 1')
+        # afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
+        # input(f"response: {resp}")
         #afgRF.set_volts(channel=ch, voltage=volts)
         #afg.configure(frequency='1.552838kHz', voltage=0.5, channel=channel, phase=0)     # Configure the function generator
 
@@ -61,15 +60,20 @@ def main():
                 print(f"RF freq set to {rf_freq}")
                 continue
             frequency = float(response)
-            time.sleep(3-0.3) #-0.07
+            time.sleep(3-0.31) #-0.07
             afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}')
-            time.sleep(2-0.06+0.3-1) #-1
-            afgRF.start_output()
+            time.sleep(1-0.3)
+            afgAC.afg.write('SOUR1:FREQ 0.223869232')
+            afgAC.afg.write('SOUR1:VOLT 0.25')
+            afgAC.afg.write('SOUR1:VOLT:OFFS 0')
+            afgAC.start_output()
+            time.sleep(1-0.06+0.3-1+0.3) #-1
+            # afgRF.start_output()
             time.sleep(0.5)
-            afgRF.start_output(channel=2)
+            # afgRF.start_output(channel=2)
             time.sleep(3.0)
-            afgAC.set_volts(voltage = 0.001)
-            afgAC.set_freq(0.01)
+            # afgAC.set_volts(voltage = 0.001)
+            # afgAC.set_freq(0.01)
             print(f"All set. Response was: {response} Hz")
             time.sleep(8)
             afgTJ.stop_output()

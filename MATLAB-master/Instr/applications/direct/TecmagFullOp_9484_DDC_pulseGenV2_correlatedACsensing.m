@@ -14,6 +14,7 @@ savealldata=false;
 savesinglechunk=false;
 chunknumber = 1;
 savemultwind=false;
+controlAFG_AC = false;
 
 
 
@@ -153,7 +154,9 @@ end
     fprintf('Reset complete\n');
     fprintf('initializing Tektronix AFG 31000\n');
     tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
-    tek2 = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019987::INSTR");
+    if controlAFG_AC
+        tek2 = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019987::INSTR");
+    end
     try
         tekRF = Tektronix_AFG_31000("USB0::0x0699::0x035A::B011535::INSTR");
     catch
@@ -260,7 +263,9 @@ end
     fprintf('ADC Configured\n');
     fprintf('Clocks synced\n');
     tek.output_off()
-    tek2.output_off()
+    if controlAFG_AC
+        tek2.output_off()
+    end
     try
         tekRF.just_output_off()
     end
@@ -318,7 +323,7 @@ end
     analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
-    %pi_b = pi*0.9;
+    pi_b = pi*0.9;
     % pi_b = pi*0.5;
     SL_angle = pi_b/pi * 90;
     ACfreqarr = 1:1:210;
@@ -445,11 +450,12 @@ end
     %    tek2.burst_mode_trig_sinwave(AC_dict2.freq, AC_dict2.Vpp,...
     %        AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
     %end
-    if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
-        tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
-            AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
+    if controlAFG_AC
+        if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
+            tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
+                AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
+        end
     end
-    
     try
         
         tekRF.just_output_off();
@@ -904,7 +910,9 @@ end
                     'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_external_mod', 'tof');
                 fprintf('Save complete\n');
                 tek.output_off() 
-                tek2.output_off()
+                if controlAFG_AC
+                    tek2.output_off()
+                end
                 try
                     tekRF.just_output_off()
                 end
