@@ -263,7 +263,7 @@ end
     
     %%set AC field parameter
     idx = cmdBytes(2);
-    res_freq = 4898.55;
+    res_freq = 1528.71;
     [AC_dict("freq"), AC_dict("Vpp"), ...
         AC_dict("DC_offset"), AC_dict("phase")] = deal(res_freq, 0.8, 0, 90);
     PB(ch3) = PB_seg1;
@@ -278,7 +278,7 @@ end
     
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + 4800;
+                tof = cmdBytes(6) + 1140;
                 
                 ch=1;
                 initializeAWG(ch);
