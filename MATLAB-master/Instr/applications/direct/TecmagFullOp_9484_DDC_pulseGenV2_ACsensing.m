@@ -237,23 +237,23 @@ end
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
-    lengths = [pi/2 pi/2];
+    lengths = [pi/2 pi/12];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 100e-6];
+    spacings = [5e-6 32e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 200000];
+    reps = [1 1000000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
     %%set PB parameter
-    start_time = 2;
+    start_time = 0.1;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
@@ -261,11 +261,11 @@ end
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
     [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time + 2, 2);
     
-    freq_l = (960:1:1080);
     %%set AC field parameter
     idx = cmdBytes(2);
+    res_freq = 4898.55;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(100, 0.1, 0, 90);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(res_freq, 0.8, 0, 90);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
@@ -278,7 +278,7 @@ end
     
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6);
+                tof = cmdBytes(6) + 4800;
                 
                 ch=1;
                 initializeAWG(ch);
@@ -416,7 +416,7 @@ end
                 
                % pause(Tmax+3);
                 
-                for n = 1:1200
+                for n = 1:2000
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
