@@ -237,35 +237,36 @@ end
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
-    lengths = [pi/2 pi/12];
+    lengths = [pi/2 pi/2];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 32e-6];
+    spacings = [5e-6 40e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 1000000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
     %%set PB parameter
-    start_time = 0.1;
+    start_time = lengths(1) + spacings(1) + (lengths(2) + spacings(2)) * 1000.5;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time + 2, 2);
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time, reps(2)*(spacings(2)+lengths(2)));
     
     %%set AC field parameter
     idx = cmdBytes(2);
-    res_freq = 1528.71;
+    res_freq = 1/(4*(lengths(2) + spacings(2)));
+    freq_l = cat(2,(-1000:50:-300),(-250:10:0),(10:10:250),(300:50:1000)) + res_freq;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(res_freq, 0.8, 0, 90);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(idx), 0.5, 0, 0);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
@@ -278,7 +279,7 @@ end
     
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + 1140;
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -364,7 +365,7 @@ end
                 assert(rc.ErrCode == 0)
                 rc = inst.SendScpi(':DIG:TRIG:LEV1 1.0');
                 assert(rc.ErrCode == 0)
-                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 12e-6)); % external trigger delay
+                rc = inst.SendScpi(sprintf(':DIG:TRIG:DEL:EXT %f', 16e-6)); % external trigger delay
                 assert(rc.ErrCode == 0)
                 
                 fprintf('Instr setup complete and ready to aquire\n');
