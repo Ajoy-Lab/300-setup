@@ -11,8 +11,21 @@ classdef Tektronix_AFG_31000
             %}
             obj.gpib_obj=visa('ni',port_name);
             fopen(obj.gpib_obj);
-            fprintf(obj.gpib_obj, "*CLS");
-            fprintf(obj.gpib_obj, "*RST");
+            %fprintf(obj.gpib_obj, "*CLS");
+            %fprintf(obj.gpib_obj, "*RST");
+        end
+        
+        function sweep(obj, fstart, fstop, sweep_t, Vpp)
+             % set souce1
+            fprintf(obj.gpib_obj, "SOURce1:FREQuency:MODE SWE");
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FREQ:STAR %.3f", fstart));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FREQ:STOP %.3f", fstop));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:SWE:TIME %.3f", sweep_t));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:LEV:IMM:AMP %.3f", Vpp));
+            fprintf(obj.gpib_obj, "TRIG:SEQ:SOUR EXT");
+            fprintf(obj.gpib_obj, "TRIG:SLOP POS");
+            fprintf(obj.gpib_obj, "SOUR1:SWEep:MODE MAN");
+            fprintf(obj.gpib_obj, "OUTP1:STAT ON");
         end
         
         function init_AFG_RF(obj, freq, Vpp, DC_offset, phase)
@@ -25,7 +38,7 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:LEV:IMM:OFFS %dV", DC_offset));
         end
         
-        function init_AFG_RF_FM(obj, freq, Vpp, DC_offset, phase, FMshape, FMfreq, FMdeviation)
+        function init_AFG_RF_FM(obj, freq, Vpp, DC_offset, phase, FMshape, FMfreq, FMdeviation, external_modulation)
             fprintf(obj.gpib_obj, "SOUR1:FUNC SIN");
             fprintf(obj.gpib_obj, "SOUR1:FM:STAT ON");
             
@@ -39,6 +52,13 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("SOUR1:FM:INT:FREQ %.3f", FMfreq));
             disp(sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
             fprintf(obj.gpib_obj, sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
+            
+            
+            if external_modulation
+                fprintf(obj.gpib_obj, "SOUR1:FM:SOUR EXT");
+                %fprintf(obj.gpib_obj, "SOUR2:FUNC SIN");    % noise function PRN
+                %fprintf(obj.gpib_obj, "SOUR2:VOLT:LEV:IMM:AMPL 1Vpp");
+            end
             
         end
 
@@ -226,6 +246,13 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, "OUTP1:STAT OFF");
             fprintf(obj.gpib_obj, "*CLS");
             fprintf(obj.gpib_obj, "*RST");
+        end
+        
+        function just_output_off(obj)
+            %{
+            Turns off the output.
+            %}
+            fprintf(obj.gpib_obj, "OUTP1:STAT OFF");
         end
         
     end
