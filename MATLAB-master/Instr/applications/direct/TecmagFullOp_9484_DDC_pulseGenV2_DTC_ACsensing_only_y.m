@@ -275,9 +275,9 @@ end
 %     PB_seg2(2, 1) = 1;
 %     PB_seg2(2, 2) = repeatSeq(2) *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
     for i = (2:2:2*repeatSeq(2))
-        PB_seg2(i, 1) = 1;
+        PB_seg2(i, 1) = 0;
         PB_seg2(i, 2) = lengths(3);
-        PB_seg2(i+1, 1) = 0;
+        PB_seg2(i+1, 1) = 1;
         PB_seg2(i+1, 2) = spacings(3) + reps(4)*(spacings(4)+lengths(4));
     end
     
