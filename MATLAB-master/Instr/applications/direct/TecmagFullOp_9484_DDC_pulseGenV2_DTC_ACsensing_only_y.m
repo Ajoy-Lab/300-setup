@@ -234,7 +234,6 @@ end
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2);
-    phase_idx = idx;
     lengths = [pi_half pi_half pi pi_half];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
@@ -296,8 +295,9 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
+    Vpp_l = (0.1:0.1:1);
     AC_dict.freq = reso_freq;
-    AC_dict.Vpp = 0.5;
+    AC_dict.Vpp = Vpp_l(idx);
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
