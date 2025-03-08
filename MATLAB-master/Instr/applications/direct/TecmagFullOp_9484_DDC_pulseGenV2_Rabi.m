@@ -190,7 +190,7 @@ end
         while(u2.BytesAvailable == 0)
             % If no bytes in u2 buffer, wait 10ms then check again
             pause(0.01);
-        end
+       end
         %         cmdBytes = fread(u2);
         readBytes = fscanf(u2);
         dataBytes=1;counter=1;
@@ -266,18 +266,18 @@ end
     tic
 %     pulse_name = ['init_pul', 'theta1'];
     pi = cmdBytes(3)*1e-6;
-    amps = [1 1];
-    frequencies = [0 0];
-    lengths = [pi/2 pi/2];
+    amps = [1 1 1];
+    frequencies = [0 0 0];
+    lengths = [pi/2 pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
-    phases = [270 270];
-    mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [36e-6 36e-6];
-    markers = [1 1]; %always keep these on
-    markers2 = [0 0];
-    trigs = [1 1]; %acquire on every "pi" pulse
+    phases = [270 180 270];
+    mods = [0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+    spacings = [5e-6 36e-6 36e-6];
+    markers = [1 1 1]; %always keep these on
+    markers2 = [0 0 0];
+    trigs = [0 1 1]; %acquire on every "pi" pulse
     
-    reps = [1 100];
+    reps = [1 3000 200];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
 %                 tof = -1000*cmdBytes(2);
@@ -290,7 +290,8 @@ end
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
                 defPulse('theta1', amps(2), mods(2), lengths(2), phases(2), spacings(2));
-                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                defPulse('theta2', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                defBlock('pulsed_SL', {'init_pul','theta1', 'theta2'}, reps(1:3), markers(1:3), trigs(1:3));
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
@@ -354,7 +355,7 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = 1+reps(2);
+                numberOfPulses_total = reps(2) + reps(3);
 
                 
                 Tmax=cmdBytes(4);
@@ -693,11 +694,9 @@ end
                 end
                 
                 %ivec=1:numberOfPuacqlses*loops;
-                ivec=1:length(pulseAmp);
-                delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
-                time_cycle=lengths(2)+spacings(2);
-                time_axis=time_cycle.*ivec;
-                phase_base = relPhase(1); % take average phase during initial spin-locking to be x-axis
+                time_axis= (1:1:reps(2))*(lengths(2)+spacings(2));
+                time_axis = cat(2, time_axis, reps(2)*(lengths(2)+spacings(2)) + (1:1:reps(3))*(lengths(3) + spacings(3)));
+                phase_base = mean(relPhase(reps(2)-200:reps(2))); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
                 try
