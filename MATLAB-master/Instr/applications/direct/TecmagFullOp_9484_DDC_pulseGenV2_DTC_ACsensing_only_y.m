@@ -247,7 +247,7 @@ end
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
     N = 4;
-    reps = [1 20 1 N];
+    reps = [1 6000 1 N];
     repeatSeq = [1 5000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
@@ -261,30 +261,26 @@ end
     % set PB parameter
     AC_phase_start_time = lengths(1) + spacings(1) + ...
                (lengths(2) + spacings(2))*reps(2) + lengths(3)/2;
-           
-    num_periods = floor(AC_phase_start_time/T);
-    
-    start_time = AC_phase_start_time - (num_periods)*T;
-        
-    PB_seg1 = zeros(2, 2);
     
     % Below means that PB outputs 0V for duration start_time
     % and PB outputs 2.7V (TTL +) for 100e-6
     %%set PB parameter
     start_time = lengths(1) + spacings(1) + (lengths(2) + spacings(2)) ...
-        * reps(2) + 100 *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+        * reps(2) + 2 *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))) + lengths(3)/2;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2*repeatSeq(2), 2);
     PB_seg2(1, 1) = 0;
     PB_seg2(1, 2) = start_time;
-    for i = (2:2:2*repeatSeq(2))
-        PB_seg2(i, 1) = 1;
-        PB_seg2(i, 2) = lengths(3);
-        PB_seg2(i+1, 1) = 0;
-        PB_seg2(i+1, 2) = spacings(3) + reps(4)*(spacings(4)+lengths(4));
-    end
+    PB_seg2(2, 1) = 1;
+    PB_seg2(2, 2) = repeatSeq(2) *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+%     for i = (2:2:2*repeatSeq(2))
+%         PB_seg2(i, 1) = 1;
+%         PB_seg2(i, 2) = lengths(3);
+%         PB_seg2(i+1, 1) = 0;
+%         PB_seg2(i+1, 2) = spacings(3) + reps(4)*(spacings(4)+lengths(4));
+%     end
     
     fprintf(sprintf("This is AC start time: %d \n", start_time));
     PB(ch3) = PB_seg1;
@@ -301,7 +297,7 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    AC_dict.Vpp = 0.3;
+    AC_dict.Vpp = 0.5;
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
@@ -646,18 +642,11 @@ end
                     set(p1,'markersize',1.25);
                     plot_labels('Time [s]', 'Phase [au]');
                     
-%                     start_fig(1,[3 2]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',1);
-%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-%                     set(gca,'xlim',[0,25e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
-                    
-%                     start_fig(1,[5 2]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-%                     set(p1,'markersize',1);
-%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-%                     plot_labels('Time [s]', 'Signal [au]');
+                    start_fig(1,[5 2]);
+                    p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
+                    set(p1,'markersize',1);
+                    set(gca,'ylim',[0,max(pulseAmp)*1.05]);
+                    plot_labels('Time [s]', 'Signal [au]');
 %                     
                     start_fig(2,[5 2]);
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
