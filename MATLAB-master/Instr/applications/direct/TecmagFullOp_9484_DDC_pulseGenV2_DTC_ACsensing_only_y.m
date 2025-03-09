@@ -272,14 +272,14 @@ end
     PB_seg2 = zeros(2*repeatSeq(2), 2);
     PB_seg2(1, 1) = 0;
     PB_seg2(1, 2) = start_time - lengths(3)/2;
-%     PB_seg2(2, 1) = 1;
-%     PB_seg2(2, 2) = repeatSeq(2) *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
-    for i = (2:2:2*repeatSeq(2))
-        PB_seg2(i, 1) = 0;
-        PB_seg2(i, 2) = lengths(3) + 20e-6;
-        PB_seg2(i+1, 1) = 1;
-        PB_seg2(i+1, 2) = spacings(3) + reps(4)*(spacings(4)+lengths(4)) - 20e-6;
-    end
+    PB_seg2(2, 1) = 1;
+    PB_seg2(2, 2) = repeatSeq(2) *(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4)));
+%     for i = (2:2:2*repeatSeq(2))
+%         PB_seg2(i, 1) = 0;
+%         PB_seg2(i, 2) = lengths(3) + 20e-6;
+%         PB_seg2(i+1, 1) = 1;
+%         PB_seg2(i+1, 2) = spacings(3) + reps(4)*(spacings(4)+lengths(4)) - 20e-6;
+%     end
     
     fprintf(sprintf("This is AC start time: %d \n", start_time));
     PB(ch3) = PB_seg1;
