@@ -237,11 +237,15 @@ end
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
-    lengths = [pi/2 pi/12];
+    idx = cmdBytes(2);
+    angle_idx = mod(idx, 6) + 1;
+    tof_idx = fix(idx/6) + 1;
+    angle_l = [pi/2, 5*pi/12, pi/3, pi/4, pi/6, pi,12];
+    lengths = [pi/2 angle_l(angle_idx)];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 32e-6];
+    spacings = [5e-6 36e-6];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
@@ -279,7 +283,8 @@ end
     
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + 5000;
+                tof_l = (0:300:4800);
+                tof = cmdBytes(6) + tof_l(tof_idx);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -659,7 +664,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time', 'tof');
                 fprintf('Save complete\n');
                 tek.output_off() 
             case 4 % Cleanup, save and prepare for next experiment
