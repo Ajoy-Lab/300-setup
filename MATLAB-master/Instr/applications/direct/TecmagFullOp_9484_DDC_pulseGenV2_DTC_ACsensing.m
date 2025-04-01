@@ -240,15 +240,15 @@ end
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = [5e-6 150e-6-pi/2 250e-6-pi 150e-6-pi/2];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
     trigs = [0 1 1 1]; %acquire on every "pi" pulse
     
-    N = 16;
-    reps = [1 6000 1 N];
-    repeatSeq = [1 6000]; % how many times to repeat the block of pulses
+    N = 4;
+    reps = [1 5000 1 N];
+    repeatSeq = [1 5000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -288,7 +288,8 @@ end
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
     AC_dict.freq = reso_freq;
-    AC_dict.Vpp = 1;
+    Vpp_l = cat(2,(0:0.002:0.01),(0.02:0.01:0.1),(0.2:0.1:0.5));
+    AC_dict.Vpp = Vpp_l(floor((idx-1)/7)+1);
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
     
