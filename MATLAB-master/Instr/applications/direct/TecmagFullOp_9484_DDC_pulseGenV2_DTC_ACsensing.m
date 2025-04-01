@@ -235,8 +235,8 @@ end
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
     
-    AC_Vpp_idx = mod(idx, 6)+1;    
-    freq_idx = fix(idx/6)+1;
+    freq_idx = mod(idx, 75)+1;    
+    AC_Vpp_idx = fix(idx/75)+1;
     lengths = [pi_half pi_half 0.98*pi pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
