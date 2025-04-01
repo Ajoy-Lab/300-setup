@@ -233,7 +233,9 @@ end
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
-    seq_idx = cmdBytes(2);
+    scan_idx = cmdBytes(2)-1;
+    seq_idx = mod(scan_idx, 2);
+    AC_phase_l = [0, 15, 30, 45];
     if seq_idx == 0
         lengths = [pi_half, pi_half, pi, pi_half];
         lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -266,7 +268,7 @@ end
         repeatSeq = [1 5000]; % how many times to repeat the block of pulses
         % Y-pulse spacing
         T = (lengths(4) + spacings(4)+(lengths(5) + spacings(5))*reps(5));
-        spacings(3) = T/4 - lengths(3);
+        spacings(3) = T/2 - lengths(3);
         spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
         % set PB parameter
         reso_freq = 1/(2*(reps(4)*(lengths(4) + spacings(4)) + reps(5)*(lengths(5) + spacings(5))));
@@ -300,7 +302,7 @@ end
     setNCO_IQ(ch3, 0, 0)
     AC_dict.freq = reso_freq;
     AC_dict.Vpp = 0.5;
-    AC_dict.phase = 30;
+    AC_dict.phase = AC_phase_l(fix(scan_idx/2) + 1);
     AC_dict.DC_offset = 0;
     
     
