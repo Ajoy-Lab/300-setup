@@ -228,38 +228,55 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     sampleRateDAC_freq = 675000000; 
-    amps = [1 1 1 1];
-    frequencies = [0 0 0 0];
+    amps = [1 1 1 1 1];
+    frequencies = [0 0 0 0 0];
     pi = cmdBytes(3)*1e-6;
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
-    idx = cmdBytes(2);
-    phase_idx = idx;
-    lengths = [pi_half pi_half pi pi_half];
-    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
-    
-    phases = [0 90 0 90];
-    mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 150e-6-pi/2 250e-6-pi 150e-6-pi/2];
-    spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
-    markers = [1 1 1 1]; %always keep these on
-    markers2 = [0 0 0 0];
-    trigs = [0 1 1 1]; %acquire on every "pi" pulse
-    
-    N = 4;
-    reps = [1 5000 1 N];
-    repeatSeq = [1 5000]; % how many times to repeat the block of pulses
-    
+    seq_idx = cmdBytes(2);
+    if seq_idx == 0
+        lengths = [pi_half, pi_half, pi, pi_half];
+        lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+        phases = [0 90 0 90];
+        mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+        spacings = [5e-6, 36e-6, 36e-6, 36e-6];
+        spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
+        markers = [1 1 1 1]; %always keep these on
+        markers2 = [0 0 0 0];
+        trigs = [0 1 1 1]; %acquire on every "pi" pulse
+        N = 4;
+        reps = [1 6000 1 N];
+        repeatSeq = [1 5000]; % how many times to repeat the block of pulses
+        % Y-pulse spacing
+        T = (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4));
+        
+        reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
+    elseif seq_idx == 1
+        lengths = [pi_half, pi_half, pi_half, pi, pi_half];
+        lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+        phases = [0 90 90 0 90];
+        mods = [0 0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
+        spacings = [5e-6, 36e-6, 0, 36e-6, 36e-6];
+        spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
+        markers = [1 1 1 1 1]; %always keep these on
+        markers2 = [0 0 0 0 0];
+        trigs = [0 1 0 1 1]; %acquire on every "pi" pulse
+        N = 4;
+        reps = [1 6000 1 1 N];
+        repeatSeq = [1 5000]; % how many times to repeat the block of pulses
+        % Y-pulse spacing
+        T = (lengths(4) + spacings(4)+(lengths(5) + spacings(5))*reps(5));
+        spacings(3) = T/4 - lengths(3);
+        spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
+        % set PB parameter
+        reso_freq = 1/(2*(reps(4)*(lengths(4) + spacings(4)) + reps(5)*(lengths(5) + spacings(5))));
+    end
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
     ch3 = 3;
     
-    % Y-pulse spacing
-    T = (lengths(3) + spacings(3)+(lengths(4) + spacings(4))*reps(4));
-    
-    % set PB parameter
     AC_phase_start_time = lengths(1) + spacings(1) + ...
-               (lengths(2) + spacings(2))*reps(2) + lengths(3)/2;
+                    (lengths(2) + spacings(2))*reps(2) + pi/2;
            
     num_periods = floor(AC_phase_start_time/T);
     
@@ -281,16 +298,9 @@ end
     generate_PB(PB, sampleRateDAC, inst);
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0)
-    % resonance frequency
-    %%set AC field parameter
-    
-    
-    reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
-    
     AC_dict.freq = reso_freq;
-    Vpp_l = cat(2,(0:0.002:0.01),(0.02:0.01:0.1),(0.2:0.1:0.5));
-    AC_dict.Vpp = Vpp_l(floor((idx-1)/7)+1);
-    AC_dict.phase = 90;
+    AC_dict.Vpp = 0.5;
+    AC_dict.phase = 0;
     AC_dict.DC_offset = 0;
     
     
@@ -308,11 +318,20 @@ end
                 
                 defPulse('init_pul', amps(1), mods(1), lengths(1), phases(1), spacings(1));
                 defPulse('theta1', amps(2), mods(1), lengths(2), phases(2), spacings(2));
-                defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
-                defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
-                defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
-                defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
+                if seq_idx == 0
+                    defPulse('gamma', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                    defPulse('theta2', amps(4), mods(4), lengths(4), phases(4), spacings(4));
+                    defBlock('pulsed_SL', {'init_pul','theta1'}, reps(1:2), markers(1:2), trigs(1:2));
+                    defBlock('DTC', {'gamma','theta2'}, reps(3:4), markers(3:4), trigs(3:4));
+                elseif seq_idx == 1
+                    defPulse('residue', amps(3), mods(3), lengths(3), phases(3), spacings(3));
+                    defPulse('gamma', amps(4), mods(4), lengths(4), phases(4), spacings(4));
+                    defPulse('theta2', amps(5), mods(5), lengths(5), phases(5), spacings(5));
+                    defBlock('pulsed_SL', {'init_pul','theta1','residue'}, reps(1:3), markers(1:3), trigs(1:3));
+                    defBlock('DTC', {'gamma','theta2'}, reps(4:5), markers(4:5), trigs(4:5));
+                end
                 makeBlocks({'pulsed_SL','DTC'}, ch, repeatSeq);
+                
                 assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
                 setNCO_IQ(ch, 75.38e6+tof, 0);
                 fprintf("snyching Tabor's PB and Pseq \n");
@@ -333,8 +352,11 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps(2)+(reps(3) + reps(4))*repeatSeq(2);
-
+                if seq_idx == 0
+                    numberOfPulses_total = reps(2)+(reps(3) + reps(4))*repeatSeq(2);
+                elseif seq_idx == 1
+                    numberOfPulses_total = reps(2)+(reps(4) + reps(5))*repeatSeq(2);
+                end
                 
                 Tmax=cmdBytes(4);
                 
@@ -616,13 +638,25 @@ end
                 %ivec=1:numberOfPuacqlses*loops;
                 time_axis = (1:reps(2))*(lengths(2)+spacings(2));
                 curr_t = reps(2)*(lengths(2)+spacings(2));
-                for i = (1:repeatSeq(2))
-                    curr_t = curr_t + lengths(3) + spacings(3);
-                    time_axis(end+1) = curr_t;
-                    added_time_axis = (1:reps(4))*(lengths(4)+spacings(4));
-                    added_time_axis = curr_t + added_time_axis;
-                    time_axis = cat(2, time_axis, added_time_axis);
-                    curr_t = curr_t + reps(4)*(lengths(4)+spacings(4));
+                if seq_idx == 0
+                    for i = (1:repeatSeq(2))
+                        curr_t = curr_t + lengths(3) + spacings(3);
+                        time_axis(end+1) = curr_t;
+                        added_time_axis = (1:reps(4))*(lengths(4)+spacings(4));
+                        added_time_axis = curr_t + added_time_axis;
+                        time_axis = cat(2, time_axis, added_time_axis);
+                        curr_t = curr_t + reps(4)*(lengths(4)+spacings(4));
+                    end
+                elseif seq_idx == 1
+                    curr_t = reps(2)*(lengths(2)+spacings(2)) + lengths(3) + spacings(3);
+                    for i = (1:repeatSeq(2))
+                        curr_t = curr_t + lengths(4) + spacings(4);
+                        time_axis(end+1) = curr_t;
+                        added_time_axis = (1:reps(5))*(lengths(5)+spacings(5));
+                        added_time_axis = curr_t + added_time_axis;
+                        time_axis = cat(2, time_axis, added_time_axis);
+                        curr_t = curr_t + reps(5)*(lengths(5)+spacings(5));
+                    end
                 end
 %                 %drop first point -- NOT ANYMORE
 %                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
@@ -671,7 +705,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time', 'T');
                 fprintf('Save complete\n');
                 tek.output_off() 
                 
