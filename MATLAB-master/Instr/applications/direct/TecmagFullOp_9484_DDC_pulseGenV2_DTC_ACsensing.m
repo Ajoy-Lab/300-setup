@@ -300,7 +300,7 @@ end
     setNCO_IQ(ch3, 0, 0)
     AC_dict.freq = reso_freq;
     AC_dict.Vpp = 0.5;
-    AC_dict.phase = 0;
+    AC_dict.phase = 30;
     AC_dict.DC_offset = 0;
     
     
