@@ -61,7 +61,58 @@ classdef Tektronix_AFG_31000
             end
             
         end
+        
+        function init_AFG_RF_twoFM(obj, freq, Vpp, DC_offset, phase, FMshape, FMfreq, FMdeviation, external_modulation)
+            fprintf(obj.gpib_obj, "SOUR1:FUNC SIN");
+            fprintf(obj.gpib_obj, "SOUR2:FUNC SIN");
+            fprintf(obj.gpib_obj, "SOUR1:FM:STAT ON");
+            fprintf(obj.gpib_obj, "SOUR2:FM:STAT ON");
+            
+            freq_ch1 = freq+FMdeviation;
+            freq_ch2 = freq+3*FMdeviation;
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FREQ %.3f", freq_ch1));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:FREQ %.3f", freq_ch2));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT %.3f", Vpp));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:VOLT %.3f", Vpp));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:OFFS %dV", DC_offset));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:VOLT:OFFS %dV", DC_offset));
+            
+            fprintf(obj.gpib_obj, "SOUR1:FM:SOUR INT");
+            fprintf(obj.gpib_obj, "SOUR2:FM:SOUR INT");
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:INT:FUNC %s", FMshape));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:FM:INT:FUNC %s", FMshape));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:INT:FREQ %.3f", FMfreq));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:FM:INT:FREQ %.3f", FMfreq*1.07));
+            disp(sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FM:DEV %.3fHz", FMdeviation));
+            fprintf(obj.gpib_obj, sprintf("SOUR2:FM:DEV %.3fHz", FMdeviation));
+            
+            if external_modulation
+                fprintf(obj.gpib_obj, "SOUR1:FM:SOUR EXT");
+                %fprintf(obj.gpib_obj, "SOUR2:FUNC SIN");    % noise function PRN
+                %fprintf(obj.gpib_obj, "SOUR2:VOLT:LEV:IMM:AMPL 1Vpp");
+            end
+            
+        end
 
+
+        function init_AFG_RF_AM(obj, freq, Vpp, DC_offset, phase)
+            fprintf(obj.gpib_obj, "SOUR1:FUNC SIN");
+%             fprintf(obj.gpib_obj, "SOUR1:FM:STAT ON");
+            
+            fprintf(obj.gpib_obj, sprintf("SOUR1:FREQ %.3f", freq));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT %.3f", Vpp));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:PHAS %dDEG", phase));
+            fprintf(obj.gpib_obj, sprintf("SOUR1:VOLT:LEV:IMM:OFFS %dV", DC_offset));
+            
+            fprintf(obj.gpib_obj, "SOUR1:AM:STAT ON");
+            fprintf(obj.gpib_obj, "SOUR1:AM:SOUR EXT");
+            fprintf(obj.gpib_obj, "SOUR1:AM:DEPT 120");
+            
+        
+            
+        end
+        
         function burst_mode_trig_sinwave(obj, freq, Vpp, DC_offset, phase, ncycles, add_external)
             %{
             1. Sets Tektronix device to burst mode, waiting for a trigger

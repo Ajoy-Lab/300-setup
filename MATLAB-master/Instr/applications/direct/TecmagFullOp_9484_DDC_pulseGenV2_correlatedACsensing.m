@@ -1,133 +1,146 @@
 % This version runs a Pulse Spin-locking sequence
-%% Clear everything
-clear;
-close;
-% try
-%     instrreset;
-%     disp("did instrreset")
-% catch
-%     disp("nothing to reset")
-% end
+restart = true;
+while restart
+    %% Clear everything
+    clear;
+    close;
+    % try
+    %     instrreset;
+    %     disp("did instrreset")
+    % catch
+    %     disp("nothing to reset")
+    % end
 
-%% Set defaults Vars
-savealldata=false;
-savesinglechunk=false;
-chunknumber = 1;
-savemultwind=false;
-controlAFG_AC = false;
-
-
-
-sampleRate = 2700e6;
-global sampleRateDAC
-sampleRateDAC = 9e9;
-global inst
-global interp
-global pulseDict
-global blockDict
-pulseDict = containers.Map;
-blockDict = containers.Map;
-interp = 4;
-adcDualChanMode = 2;
-% fullScaleMilliVolts =1000;
-trigSource = 1; % 1 = external-trigger
-dacChanInd = 3;
-adcChanInd = 2;
-measurementTimeSeconds = 7; %Integer
-%delay = 0.0000178; % dead time
-%delay = 0.0000348; % dead time
-%delay=0.00000148;
-%delay = 0.0000108; % dead time
-%delay = 0.0000028; % dead time
-delay = 0.0000038; % dead time
-global bits
-bits = 16;
+    %% Set defaults Vars
+    savealldata=false;
+    savesinglechunk=false;
+    chunknumber = 1;
+    savemultwind=false;
+    controlAFG_AC = true;
 
 
-% remoteAddr = '192.168.1.2'; % old computer
-remoteAddr = '192.168.10.5'; % new computer
-remotePort = 2020;
-localPort = 9090;
 
-off = 0;
-on = 1;
-pfunc = ProteusFunctions;
+    sampleRate = 2700e6;
+    global sampleRateDAC
+    sampleRateDAC = 9e9;
+    global inst
+    global interp
+    global pulseDict
+    global blockDict
+    pulseDict = containers.Map;
+    blockDict = containers.Map;
+    interp = 4;
+    adcDualChanMode = 2;
+    % fullScaleMilliVolts =1000;
+    trigSource = 1; % 1 = external-trigger
+    dacChanInd = 3;
+    adcChanInd = 2;
+    measurementTimeSeconds = 7; %Integer
+    %delay = 0.0000178; % dead time
+    %delay = 0.0000348; % dead time
+    %delay=0.00000148;
+    %delay = 0.0000108; % dead time
+    %delay = 0.0000028; % dead time
+    delay = 0.0000038; % dead time
+    global bits
+    bits = 16;
 
-dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';
 
-cType = "DLL";  %"LAN" or "DLL"
+    % remoteAddr = '192.168.1.2'; % old computer
+    remoteAddr = '192.168.10.5'; % new computer
+    remotePort = 2020;
+    localPort = 9090;
 
-paranoia_level = 2;
+    off = 0;
+    on = 1;
+    pfunc = ProteusFunctions;
 
-if cType == "LAN"
-    try
-        connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
-        inst = TEProteusInst(connStr, paranoia_level);
-        
-        res = inst.Connect();
-        assert (res == true);
-    catch ME
-        rethrow(ME)
-    end   
-else
-    asm = NET.addAssembly(dll_path);
+    dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';
 
-    import TaborElec.Proteus.CLI.*
-    import TaborElec.Proteus.CLI.Admin.*
-    import System.*
-    
-    admin = CProteusAdmin(@OnLoggerEvent);
-    rc = admin.Open();
-    assert(rc == 0);   
-    
-    try
-        slotIds = admin.GetSlotIds();
-        numSlots = length(size(slotIds));
-        assert(numSlots > 0);
-        
-        % If there are multiple slots, let the user select one ..
-        sId = slotIds(1);
-        if numSlots > 1
-            fprintf('\n%d slots were found\n', numSlots);
-            for n = 1:numSlots
-                sId = slotIds(n);
-                slotInfo = admin.GetSlotInfo(sId);
-                if ~slotInfo.IsSlotInUse
-                    modelName = slotInfo.ModelName;
-                    if slotInfo.IsDummySlot
-                        fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
-                    else
-                        fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
+    cType = "DLL";  %"LAN" or "DLL"
+
+    paranoia_level = 2;
+
+    if cType == "LAN"
+        try
+            connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
+            inst = TEProteusInst(connStr, paranoia_level);
+
+            res = inst.Connect();
+            assert (res == true);
+        catch ME
+            rethrow(ME)
+        end   
+    else
+        asm = NET.addAssembly(dll_path);
+
+        import TaborElec.Proteus.CLI.*
+        import TaborElec.Proteus.CLI.Admin.*
+        import System.*
+
+        admin = CProteusAdmin(@OnLoggerEvent);
+        rc = admin.Open();
+        assert(rc == 0);   
+
+        restart = true;
+
+        try
+            slotIds = admin.GetSlotIds();
+            numSlots = length(size(slotIds));
+            assert(numSlots > 0);
+
+            % If there are multiple slots, let the user select one ..
+            sId = slotIds(1);
+            if numSlots > 1
+                fprintf('\n%d slots were found\n', numSlots);
+                for n = 1:numSlots
+                    sId = slotIds(n);
+                    slotInfo = admin.GetSlotInfo(sId);
+                    if ~slotInfo.IsSlotInUse
+                        modelName = slotInfo.ModelName;
+                        if slotInfo.IsDummySlot
+                            fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
+                        else
+                            fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
+                        end
                     end
                 end
+                pause(0.1);
+                choice = 8%input('Enter SlotId ');
+                fprintf('\n');
+                sId = uint32(choice);
             end
-            pause(0.1);
-            choice = 8%input('Enter SlotId ');
-            fprintf('\n');
-            sId = uint32(choice);
-        end
-        
-        % Connect to the selected instrument ..
-%         try
-%             instrreset;
-%             disp("instrreset done for you")
-%         catch
-%             disp("instrreset did not work")
-%         end
-        should_reset = true;
-        inst = admin.OpenInstrument(sId, should_reset);
-        instId = inst.InstrId;
-        
-    catch ME
-        admin.Close();
-        try
-            instrreset;
-            disp("instrreset done for you")
-        catch
-            disp("instrreset did not work")
-        end
-        rethrow(ME) 
-    end    
+
+            % Connect to the selected instrument ..
+    %         try
+    %             instrreset;
+    %             disp("instrreset done for you")
+    %         catch
+    %             disp("instrreset did not work")
+    %         end
+            should_reset = true;
+            inst = admin.OpenInstrument(sId, should_reset);
+            instId = inst.InstrId;
+            restart = false;
+
+        catch ME
+            admin.Close();
+            try
+                instrreset;
+                disp("instrreset done for you")
+            catch
+                disp("instrreset did not work")
+            end
+%             rethrow(ME) 
+            disp(['Error occurred: ', ME.message]);
+
+            % Optionally, you can add a delay before restarting
+            pause(2); % Pauses for 5 seconds before restarting
+
+            % Set restart to true to restart the code
+            restart = true;
+        end   
+    end
 end
     
     % ---------------------------------------------------------------------
@@ -151,9 +164,18 @@ end
 %     res = inst.SendScpi(sampleRateDAC_str); % set sample clock
 %     assert(res.ErrCode == 0);
     
+
+
     fprintf('Reset complete\n');
     fprintf('initializing Tektronix AFG 31000\n');
-    tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
+    try
+        tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
+    catch
+        instrreset;
+        disp("Instrreset done for tek object.")
+        tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
+        % disp("Test");
+    end
     if controlAFG_AC
         tek2 = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019987::INSTR");
     end
@@ -309,37 +331,40 @@ end
     shuffled_indices = randperm(length(values)); % Shuffle the values
     shuffled_values = values(shuffled_indices);
     
-    slarray = 140:1:180;
-    shuffled_array = slarray(randperm(numel(slarray)));
+%     slarray = 140:1:180;
+%     shuffled_array = slarray(randperm(numel(slarray)));
+%     
+%     SL_angle = shuffled_array(idx);
+%     pi_b = pi*(shuffled_array(idx)/180);
     
-    SL_angle = shuffled_array(idx);
-    pi_b = pi*(shuffled_array(idx)/180);
-    
-    disp(['Current index is: ', num2str(idx)]);
-    disp(['The SL angle at the current index is: ', num2str(shuffled_array(idx))]);
-    disp(['The pi value at the current index is: ', num2str(pi_b*1000000)]);
-    
+
     spacing = 100e-6;
     analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
-    pi_b = pi*0.9;
+    pi_b = pi*0.92;
     % pi_b = pi*0.5;
-    SL_angle = pi_b/pi * 90;
-    ACfreqarr = 1:1:210;
+    SL_angle = pi_b/pi * 360/vertices;
+    ACfreqarr = 1:1:200;
     rng(42);
+    
+    disp(['Current index is: ', num2str(idx)]);
+    disp(['The SL angle at the current index is: ', num2str(SL_angle)]);
+    disp(['The pi value at the current index is: ', num2str(pi_b*1000000)]);
+    
     
     ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
 %     disp(ACfreqarrshuffled);
     
     
-    ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
+    %ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
+    %FMVpparr = [0.1 0.2 0.4 0.6 0.8 1.0 1.2];
     
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
-    %ACfreq = ACfreqarrshuffled(idx);
-    ACfreq = ACfreqarr(idx);
-    
-    disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
+    ACfreq = ACfreqarrshuffled(idx);
+    %ACfreq = ACfreqarr(idx);
+    %idx = mod(idx - 1, numel(FMVpparr)) + 1;
+    %FMVpp = FMVpparr(idx);
     
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -354,7 +379,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 55000];
+    reps = [1 50000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -391,7 +416,7 @@ end
     AC_dict.phase       = 0;
     
     waveformAC          = 'SQU';    %scan: SQU
-    ACfreq = 20;%120;                     %scan: comment
+    %ACfreq = 10;                
     AC_dict2.freq       = ACfreq;   %20
     AC_dict2.Vpp        = 0.2;        %0.2;             
     AC_dict2.DC_offset  = 0;
@@ -399,15 +424,16 @@ end
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.5; %0.15
+    AC_dictRF.Vpp       = 1.0;%0.5; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
-    AFG_RF_useFM        = true;
+    AFG_RF_useFM        = false;
+    AFG_RF_use2FM       = true;
     AFG_RF_external_mod = false;
     AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 2.5;
-    AC_dictRF.FMdeviation = 250;
+    AC_dictRF.FMfreq    = 1.0;
+    AC_dictRF.FMdeviation = 550; %500
     
     if u3status == 1
         rf_text = num2str(AC_dictRF.freq);
@@ -461,6 +487,8 @@ end
         tekRF.just_output_off();
         if AFG_RF_useFM
             tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
+        elseif AFG_RF_use2FM
+            tekRF.init_AFG_RF_twoFM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
         else
             tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
         end
@@ -907,7 +935,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_external_mod', 'tof');
+                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_use2FM', 'AFG_RF_external_mod', 'tof');
                 fprintf('Save complete\n');
                 tek.output_off() 
                 if controlAFG_AC

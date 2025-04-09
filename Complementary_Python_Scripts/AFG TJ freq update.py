@@ -31,16 +31,43 @@ def main():
         afgTJ.identify()                                              # Print the instrument identification
         
         # afgAC.afg.write('*RST')
+        # afgRF.reset()
+        # input()
+        
+        # f_Larmor = 75380000
+        # cmds = [
+        #     'SOUR1:FUNC SIN',
+        #     'SOUR2:FUNC SIN',
+        #     f"SOUR1:FREQ {f_Larmor}",
+        #     f"SOUR2:FREQ {f_Larmor+2*500}",
+        #     'SOUR1:VOLT 0.25',
+        #     'SOUR2:VOLT 0.25',
+        #     'SOUR1:VOLT:OFFS 0',
+        #     'SOUR2:VOLT:OFFS 0',
+        #     'SOUR1:FM:STAT ON',
+        #     'SOUR2:FM:STAT ON',
+        #     'SOUR1:FM:INT:FUNC TRI',
+        #     'SOUR2:FM:INT:FUNC TRI',
+        #     'SOUR1:FM:INT:FREQ 2.5Hz',
+        #     'SOUR2:FM:INT:FREQ 2.5Hz',
+        #     'SOUR1:FM:DEV 500Hz',
+        #     'SOUR2:FM:DEV 500Hz'
+        # ]
+        
+        # for cmd in cmds:
+        #     afgRF.afg.write(cmd)
+            
+        # input()
         
         # afgAC.afg.write('BURSt:STATE ON')
         # afgAC.afg.write('SOURce1:BURSt:IDLE DC')
         # afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
         # afgAC.afg.write('SOURce1:BURSt:MODE GATE')
-        # resp = afgAC.afg.write('SOUR1:FUNC:EFIL M:/AnotherOneBitesTheDust-short-withtime.tfwx')
+        # resp = afgAC.afg.write('SOUR1:FUNC:EFIL M:/.tfwx')
         # afgAC.afg.write('SOUR1:FUNC:SHAP EFIL')
-        afgAC.afg.write('SOUR1:FREQ 0.223869232')
-        afgAC.afg.write('SOUR1:VOLT 0.25')
-        afgAC.afg.write('SOUR1:VOLT:OFFS 0')
+        # afgAC.afg.write('SOUR1:FREQ 0.223869232')
+        # afgAC.afg.write('SOUR1:VOLT 0.25')
+        # afgAC.afg.write('SOUR1:VOLT:OFFS 0')
         # afgAC.afg.write('SOUR1:BURSt:NCYCles 1')
         # afgAC.afg.write('SOURce1:BURSt:INFInite:REARm')
         # input(f"response: {resp}")
@@ -63,19 +90,20 @@ def main():
             time.sleep(3-0.31) #-0.07
             afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}')
             time.sleep(1-0.3)
-            afgAC.afg.write('SOUR1:FREQ 0.223869232')
-            afgAC.afg.write('SOUR1:VOLT 0.25')
-            afgAC.afg.write('SOUR1:VOLT:OFFS 0')
-            afgAC.start_output()
+            # afgAC.afg.write('SOUR1:FREQ 0.223869232')
+            # afgAC.afg.write('SOUR1:VOLT 0.4')
+            # afgAC.afg.write('SOUR1:VOLT:OFFS 0')
+            # afgAC.start_output()
             time.sleep(1-0.06+0.3-1+0.3) #-1
-            # afgRF.start_output()
+            # afgRF.start_output(channel=2)
+            afgRF.start_output()
             time.sleep(0.5)
             # afgRF.start_output(channel=2)
-            time.sleep(3.0)
-            # afgAC.set_volts(voltage = 0.001)
-            # afgAC.set_freq(0.01)
+            time.sleep(3.5)
+            afgAC.set_volts(voltage = 0.001)
+            afgAC.set_freq(0.01)
             print(f"All set. Response was: {response} Hz")
-            time.sleep(8)
+            time.sleep(11)
             afgTJ.stop_output()
             afgAC.stop_output()
             afgRF.stop_output()
@@ -139,6 +167,9 @@ class TektronixAFG31000:
     def close(self):
         """Close the connection to the function generator."""
         self.afg.close()
+    
+    def reset(self):
+        self.afg.write("*RST")
 
 def wait_for_udp_packet(host, port, expected_message):
     code = None
