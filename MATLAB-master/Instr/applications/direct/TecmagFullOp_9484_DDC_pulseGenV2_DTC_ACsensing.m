@@ -228,22 +228,20 @@ end
     % RF Pulse Config
     % ---------------------------------------------------------------------
     sampleRateDAC_freq = 675000000; 
-    amps = [1 1 1 1];
+    amps = [0.5 0.5 0.5 0.5];
     frequencies = [0 0 0 0];
-    pi = cmdBytes(3)*1e-6;
+    pi = 2*cmdBytes(3)*1e-6;
     pi_half = pi/2;
     fprintf(sprintf("This is pi: %d \n", pi));
     idx = cmdBytes(2)-1;
     
-    freq_idx = mod(idx, 75)+1;    
-    AC_Vpp_idx = fix(idx/75)+1;
-    lengths = [pi_half pi_half 0.98*pi pi_half];
+    lengths = [pi_half pi_half pi pi_half];
     fprintf(sprintf("This is gamma: %d pi \n", pi));
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     
     phases = [0 90 0 90];
     mods = [0 0 0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
-    spacings = [5e-6 36e-6 36e-6 36e-6];
+    spacings = [5e-6 150e-6-pi_half 275e-6-pi 150e-6-pi_half];
     spacings = round_to_DAC_freq(spacings,sampleRateDAC_freq, 64);
     markers = [1 1 1 1]; %always keep these on
     markers2 = [0 0 0 0];
@@ -251,7 +249,7 @@ end
     
     
     reps = [1 6000 1 4];
-    repeatSeq = [1 64000]; % how many times to repeat the block of pulses
+    repeatSeq = [1 8000]; % how many times to repeat the block of pulses
     
     fprintf("setting up pulse blaster sequence\n");
     PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
@@ -289,10 +287,9 @@ end
     
     reso_freq = 1/(2*(reps(3)*(lengths(3) + spacings(3)) + reps(4)*(lengths(4) + spacings(4))));
     
-    freq_l = cat(2, [0], (reso_freq-0.2:0.01:reso_freq+0.2), (reso_freq-1:0.05:reso_freq-0.25),(reso_freq+0.25:0.05:reso_freq+1),[0]);
-    AC_Vpp_l = [0.2, 0.4, 0.6, 0.8, 1];
-    
-    AC_dict.freq = freq_l(freq_idx);
+    AC_dict.freq = reso_freq;
+    AC_Vpp_idx = idx+1;
+    AC_Vpp_l = cat(2,(0:0.002:0.01),(0.02:0.01:0.1),(0.2:0.2:1));
     AC_dict.Vpp = AC_Vpp_l(AC_Vpp_idx);
     AC_dict.phase = 90;
     AC_dict.DC_offset = 0;
