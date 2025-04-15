@@ -238,9 +238,9 @@ end
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
     idx = cmdBytes(2);
-    angle_idx = mod(idx, 6) + 1;
-    tof_idx = fix(idx/6) + 1;
-    angle_l = [pi/2, 5*pi/12, pi/3, pi/4, pi/6, pi,12];
+    angle_idx = 6;
+    tof_idx = idx;
+    angle_l = [pi/2, 5*pi/12, pi/3, pi/4, pi/6, pi/12];
     lengths = [pi/2 angle_l(angle_idx)];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
