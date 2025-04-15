@@ -131,7 +131,7 @@ end
     
     fprintf('Reset complete\n');
     fprintf('initializing Tektronix AFG 31000\n');
-    tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
+    tek = Tektronix_AFG_31000("USB0::0x0699::0x035A::B011535::INSTR");
     
     fprintf("Tektronix Initialization complete\n");
     
