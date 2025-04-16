@@ -134,11 +134,11 @@ end
     fprintf('initializing Tektronix AFG 31000\n');
     tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
     tek2 = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019987::INSTR");
-    try
-        tekRF = Tektronix_AFG_31000("USB0::0x0699::0x035A::B011535::INSTR");
-    catch
-        disp("tekRF not available");
-    end
+%     try
+%         tekRF = Tektronix_AFG_31000("USB0::0x0699::0x035A::B011535::INSTR");
+%     catch
+%         disp("tekRF not available");
+%     end
         
     fprintf("Tektronix Initialization complete\n");
     
@@ -240,7 +240,7 @@ end
     fprintf('ADC Configured\n');
     fprintf('Clocks synced\n');
     tek.output_off()
-    tek2.output_off()
+%     tek2.output_off()
     try
         tekRF.output_off()
     end
@@ -305,20 +305,24 @@ end
     ACfreq = ACfreqarrshuffled(idx);
     disp(['The AC freq at the current index is: ', num2str(ACfreq)]);
     
-    lengths = [pi/2 2*pi/vertices];%[pi/2 pi_b*2/vertices];
+    lengths = [pi/2 3*pi/4];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+    lengths_exact = vpa(lengths, 12);
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [5e-6 spacing];
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
+    spacings_exact = vpa(spacings, 12);
     trajectory_freq = 1/((lengths(2)+spacings(2))*vertices);
+    disp(lengths_exact);
+    disp(spacings_exact);
     disp(trajectory_freq);
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 100000];
+    reps = [1 50000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -327,18 +331,19 @@ end
     T = lengths(2) + spacings(2);
     num_periods = floor(start_trajectory_time/T);
     
-    start_time = lengths(1) + spacings(1) + lengths(2) + spacings(2)/2 + (num_periods)*T;
+    start_time = lengths(1) + spacings(1) + 7000*T + lengths(2);
 
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+3, 150e-6); %+2
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time, 150e-6); %+2
     PB_seg3 = zeros(2, 2);
     [PB_seg3(1,1), PB_seg3(2,1)] = deal(0, 1);
     [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+3
-    
+    start_time_exact = vpa(start_time, 12);
+    display(start_time_exact);
     %%set AC field parameter
 
     %TJidx = idx - 1;
@@ -346,12 +351,12 @@ end
     %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);  %abc
     AC_dict.freq = trajectory_freq;
     
-    waveformTJ          = 'SQU';    %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3;
+    waveformTJ          = 'SIN';    %SIN, SQU, TRI
+    AC_dict.Vpp         = 0.0;
     AC_dict.DC_offset   = 0;
     AC_dict.phase       = 0;
     
-    waveformAC          = 'SQU';
+    waveformAC          = 'SIN';
     AC_dict2.freq       = 20;
     AC_dict2.Vpp        = 0; 
     AC_dict2.DC_offset  = 0;
@@ -376,8 +381,9 @@ end
     ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict.freq) + 10;
 
     if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
-        tek.burst_mode_trig_waveform(waveformTJ, AC_dict.freq, AC_dict.Vpp,...
-            AC_dict.DC_offset, AC_dict.phase, ncycles, true);
+         tek.burst_mode_trig_waveform(waveformTJ, AC_dict.freq, AC_dict.Vpp,...
+             AC_dict.DC_offset, AC_dict.phase, ncycles, true);
+%         tek.init_AFG_RF_AM(AC_dict.freq, AC_dict.Vpp, AC_dict.DC_offset, AC_dict.phase);
     end
     
     %if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
@@ -396,10 +402,10 @@ end
     %    tek2.burst_mode_trig_sinwave(AC_dict2.freq, AC_dict2.Vpp,...
     %        AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
     %end
-    if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
-        tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
-            AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
-    end
+% %     if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
+%         tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
+%             AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
+%     end
     
     try
         tekRF.output_off();
@@ -846,7 +852,7 @@ end
                     'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices');
                 fprintf('Save complete\n');
                 tek.output_off() 
-                tek2.output_off()
+%                 tek2.output_off()
                 try
                     tekRF.output_off()
                 end
