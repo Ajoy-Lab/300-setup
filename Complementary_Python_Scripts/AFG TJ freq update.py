@@ -88,18 +88,13 @@ def main():
                 continue
             frequency = float(response)
             time.sleep(3-0.31) #-0.07
-            afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}') # use this for orbits
+            # afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}') # use this for orbits
             time.sleep(1-0.3)
-            # afgAC.afg.write('SOUR1:FREQ 0.223869232')
-            # afgAC.afg.write('SOUR1:VOLT 0.4')
-            # afgAC.afg.write('SOUR1:VOLT:OFFS 0')
             # afgAC.start_output()
             time.sleep(1-0.06+0.3-1+0.3) #-1
             # afgRF.start_output(channel=2)
-            afgRF.start_output()
+            # afgRF.start_output()
             time.sleep(0.5)
-            # afgRF.start_output(channel=2)
-            # time.sleep(3.5)
             time.sleep(50)
             afgAC.set_volts(voltage = 0.001)
             afgAC.set_freq(0.01)

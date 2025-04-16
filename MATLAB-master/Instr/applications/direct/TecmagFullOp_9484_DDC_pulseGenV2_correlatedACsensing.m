@@ -13,7 +13,7 @@ while restart
 
     %% Set defaults Vars
     savealldata=false;
-    savesinglechunk=true;
+    savesinglechunk=false;
     chunknumber = 1;
     savemultwind=false;
     controlAFG_AC = true;
@@ -381,7 +381,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 100000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -412,21 +412,21 @@ end
     %ACfreq = 10;
     
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3; % volt_value; % 0.001;   %0.3
-    AC_dict.freq        = trajectory_freq;%+0.5; %0.01;
+    AC_dict.Vpp         = volt_value; % 0.001;   %0.3
+    AC_dict.freq        = trajectory_freq+1; %0.01;
     AC_dict.DC_offset   = 0.0;
-    AC_dict.phase       = 125;
+    AC_dict.phase       = 0;%125;
     
     waveformAC          = 'SIN';    %scan: SQU
     ACfreq = 20;                
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0.1;        %0.2;             
+    AC_dict2.Vpp        = 0.0;        %0.2;             
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.5;%0.5; %0.15
+    AC_dictRF.Vpp       = 0.0;%0.5; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
@@ -486,7 +486,7 @@ end
         end
     end
     try
-        
+      if AC_dictRF.Vpp~=0
         tekRF.just_output_off();
         if AFG_RF_useFM
             tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
@@ -495,7 +495,7 @@ end
         else
             tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
         end
-        
+      end
     catch
         disp('setting tekRF: error occurred');
     end
