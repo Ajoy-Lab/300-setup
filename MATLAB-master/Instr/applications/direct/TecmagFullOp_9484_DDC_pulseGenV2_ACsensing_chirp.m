@@ -237,10 +237,10 @@ end
     amps = [1 1];
     frequencies = [0 0];
     pi = cmdBytes(3)*1e-6;
-    idx = cmdBytes(2);
-    angle_idx = 6;
-    tof_idx = idx;
-    angle_l = [pi/2, 5*pi/12, pi/3, pi/4, pi/6, pi/12];
+    idx = cmdBytes(2)-1;
+    angle_idx = fix(idx/17) + 1;
+    tof_idx = mod(idx, 17) + 1;
+    angle_l = [pi/2, pi/12];
     lengths = [pi/2 angle_l(angle_idx)];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     phases = [0 90];
@@ -258,7 +258,7 @@ end
     
     %%set PB parameter
     start_time = 0.1;
-    sweep_time = 40;
+    sweep_time = 20;
     PB_seg1 = zeros(2, 2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
@@ -267,10 +267,24 @@ end
     [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time, sweep_time);
     
     %%set AC field parameter
-    idx = cmdBytes(2);
-    res_freq = 1000;
+    [f1, f2] = deal(0, 0);
+    if angle_idx == 1
+        if tof_idx <= 8
+            [f1, f2] = deal(2000, 5000);
+        elseif tof_idx >= 9 && tof_idx <= 17
+            [f1, f2] = deal(3000, 6000);
+        end
+    elseif angle_idx == 2
+        if tof_idx <= 7
+            [f1, f2] = deal(1000, 4000);
+        elseif tof_idx >= 8 && tof_idx <= 12
+            [f1, f2] = deal(2000, 5000);
+        elseif tof_idx >= 13 && tof_idx <= 17
+            [f1, f2] = deal(3000, 6000);
+        end
+    end
     [AC_dict("fstart"), AC_dict("fstop"), ...
-        AC_dict("sweep_t"), AC_dict("Vpp")] = deal(50, 6000, sweep_time, 0.5);
+        AC_dict("sweep_t"), AC_dict("Vpp")] = deal(f1, f2, sweep_time, 0.5);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
