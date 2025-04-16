@@ -87,24 +87,26 @@ def main():
                 print(f"RF freq set to {rf_freq}")
                 continue
             frequency = float(response)
-            time.sleep(3-0.31) #-0.07
-            afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}') # use this for orbits
-            time.sleep(1-0.3)
-            # afgAC.afg.write('SOUR1:FREQ 0.223869232')
-            # afgAC.afg.write('SOUR1:VOLT 0.4')
-            # afgAC.afg.write('SOUR1:VOLT:OFFS 0')
+            time.sleep(1.25) #-0.07
+            afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency-2}') # use this for orbits
+            time.sleep(0.75-0.002)
+            afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}') 
+            time.sleep(2)
             # afgAC.start_output()
-            time.sleep(1-0.06+0.3-1+0.3) #-1
-            # afgRF.start_output(channel=2)
+            afgAC.afg.write(f'SOUR{channel}:FUNC SQU')
+            time.sleep(1)
             afgRF.start_output()
-            time.sleep(0.5)
-            # afgRF.start_output(channel=2)
-            # time.sleep(3.5)
-            time.sleep(50)
+            time.sleep(1)
             afgAC.set_volts(voltage = 0.001)
             afgAC.set_freq(0.01)
+            
+            # # afgRF.start_output(channel=2)
+            # afgRF.start_output()
+            # time.sleep(0.5)
+            # # afgRF.start_output(channel=2)
+            # # time.sleep(3.5)
+            time.sleep(30)
             print(f"All set. Response was: {response} Hz")
-            time.sleep(11)
             afgTJ.stop_output()
             afgAC.stop_output()
             afgRF.stop_output()

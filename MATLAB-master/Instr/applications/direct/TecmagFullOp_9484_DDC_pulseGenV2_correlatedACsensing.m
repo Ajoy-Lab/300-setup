@@ -13,7 +13,7 @@ while restart
 
     %% Set defaults Vars
     savealldata=false;
-    savesinglechunk=false;
+    savesinglechunk=true;
     chunknumber = 1;
     savemultwind=false;
     controlAFG_AC = true;
@@ -217,7 +217,7 @@ end
         while(u2.BytesAvailable == 0)
             % If no bytes in u2 buffer, wait 10ms then check again
             pause(0.01);
-         end
+        end
         %         cmdBytes = fread(u2);
         readBytes = fscanf(u2);
         dataBytes=1;counter=1;
@@ -333,38 +333,40 @@ end
     
 %     slarray = 140:1:180;
 %     shuffled_array = slarray(randperm(numel(slarray)));
-%     
 %     SL_angle = shuffled_array(idx);
 %     pi_b = pi*(shuffled_array(idx)/180);
     
 
     spacing = 100e-6;
-    analyte_freq_l = 10.^(0:0.25:4);
+    %analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
     pi_b = pi*0.92;
     % pi_b = pi*0.5;
     SL_angle = pi_b/pi * 360/vertices;
-    ACfreqarr = 1:1:200;
     rng(42);
     
     disp(['Current index is: ', num2str(idx)]);
     disp(['The SL angle at the current index is: ', num2str(SL_angle)]);
     disp(['The pi value at the current index is: ', num2str(pi_b*1000000)]);
     
-    
-    ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
-%     disp(ACfreqarrshuffled);
-    
-    
+    ACfreqarr = 1:1:200;
     %ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
-    %FMVpparr = [0.1 0.2 0.4 0.6 0.8 1.0 1.2];
-    
+    ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
+    % disp(ACfreqarrshuffled);
     idx = mod(idx - 1, numel(ACfreqarr)) + 1;
     ACfreq = ACfreqarrshuffled(idx);
     %ACfreq = ACfreqarr(idx);
+    
+    %FMVpparr = [0.1 0.2 0.4 0.6 0.8 1.0 1.2]
     %idx = mod(idx - 1, numel(FMVpparr)) + 1;
     %FMVpp = FMVpparr(idx);
+    
+    voltarr = 0:0.04:1;
+    voltarrshuffled = voltarr(randperm(length(voltarr)));
+    disp(voltarrshuffled);
+    idx = mod(idx - 1, numel(voltarr)) + 1;
+    volt_value = voltarrshuffled(idx);
     
     lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
@@ -379,7 +381,7 @@ end
     trigs = [0 1]; %acquire on every "pi" pulse
     
 %     reps = [1 194174];
-    reps = [1 50000];
+    reps = [1 100000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -395,7 +397,7 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2, 150e-6); %+3
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2, 150e-6); %+2
     PB_seg3 = zeros(2, 2);
     [PB_seg3(1,1), PB_seg3(2,1)] = deal(0, 1);
     [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+4
@@ -410,30 +412,30 @@ end
     %ACfreq = 10;
     
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3;   %0.3
-    AC_dict.freq        = trajectory_freq+0.5;
+    AC_dict.Vpp         = 0.3; % volt_value; % 0.001;   %0.3
+    AC_dict.freq        = trajectory_freq;%+0.5; %0.01;
     AC_dict.DC_offset   = 0.0;
-    AC_dict.phase       = 0;
+    AC_dict.phase       = 125;
     
-    waveformAC          = 'SQU';    %scan: SQU
-    %ACfreq = 10;                
+    waveformAC          = 'SIN';    %scan: SQU
+    ACfreq = 20;                
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0.2;        %0.2;             
+    AC_dict2.Vpp        = 0.1;        %0.2;             
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 1.0;%0.5; %0.15
+    AC_dictRF.Vpp       = 0.5;%0.5; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
-    AFG_RF_useFM        = false;
-    AFG_RF_use2FM       = true;
+    AFG_RF_useFM        = true;
+    AFG_RF_use2FM       = false;
     AFG_RF_external_mod = false;
     AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 1.0;
-    AC_dictRF.FMdeviation = 550; %500
+    AC_dictRF.FMfreq    = 3.0;
+    AC_dictRF.FMdeviation = 50; %500
     
     if u3status == 1
         rf_text = num2str(AC_dictRF.freq);
@@ -476,10 +478,11 @@ end
     %    tek2.burst_mode_trig_sinwave(AC_dict2.freq, AC_dict2.Vpp,...
     %        AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
     %end
+    ncyclesAC = round(reps(2)*(spacings(2) + lengths(2))*AC_dict2.freq) + 10;
     if controlAFG_AC
         if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
             tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
-                AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
+                AC_dict2.DC_offset, AC_dict2.phase, ncyclesAC, true);
         end
     end
     try
@@ -890,6 +893,9 @@ end
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 relPhase = phase_wrap_pi_to_m_pi(relPhase);
                 try
+                    a = datestr(now,'yyyy-mm-dd-HHMMSS');
+                    fn = sprintf([a,' Proteus']);
+                    
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
                     set(p1,'markersize',1.25);
@@ -908,6 +914,7 @@ end
                     set(p1,'markersize',1.25);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
+                    title(fn);
                     
                     %xyza
                     start_fig(2,[5 2]);
