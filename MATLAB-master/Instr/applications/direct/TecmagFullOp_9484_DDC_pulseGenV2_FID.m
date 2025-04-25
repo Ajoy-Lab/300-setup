@@ -104,6 +104,8 @@ else
         
     catch ME
         admin.Close();
+        disp('Executing instrreset...')
+        instrreset;
         rethrow(ME) 
     end    
 end
@@ -222,10 +224,9 @@ end
     
 %     pulse_name = ['init_pul'];
     pi = cmdBytes(3)*1e-6;
-    init_pulse = cmdBytes(2)*1e-6;
     amps = [1];
     frequencies = [0];
-    lengths = [init_pulse];
+    lengths = [pi/2];
     phases = [0];
     mods = [0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
     spacings = [50000e-6]; %default [50000e-6]
@@ -305,7 +306,7 @@ end
 
                 Tmax=1; % will be 1 for FID
                 
-                tacq=10000; %default 40000
+                tacq=40000; %default 40000
 
                 numberOfPulses=1; %in 1 second %will be 1 for FID
                 loops=Tmax;
