@@ -235,6 +235,7 @@ end
     fprintf(sprintf("This is pi: %d \n", pi));
     scan_idx = cmdBytes(2)-1;
     seq_idx = mod(scan_idx, 2);
+    AC_Vpp_l = [0.1, 0.5, 0.9];
     AC_phase_l = (0:10:180);
     if seq_idx == 0
         lengths = [pi_half, pi_half, pi, pi_half];
@@ -301,8 +302,8 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0)
     AC_dict.freq = reso_freq;
-    AC_dict.Vpp = 0.5;
-    AC_dict.phase = AC_phase_l(fix(scan_idx/2) + 1);
+    AC_dict.Vpp = AC_Vpp_l(fix(scan_idx/38)+ 1);
+    AC_dict.phase = AC_phase_l(mod(fix(scan_idx/2), 19) + 1);
     AC_dict.DC_offset = 0;
     
     
