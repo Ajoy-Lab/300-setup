@@ -234,43 +234,73 @@ end
     ch4 = 4;
     
     idx = cmdBytes(2)-1;
-    pi_mult_l = (0.97:0.01:1.03);
-    pi_mult_idx = fix(idx/9)+1;
-    pi = cmdBytes(3)*1e-6*pi_mult_l(pi_mult_idx);
-    spacing = 100e-6;
+    pi_mult = 1+(rand-0.5)/10;
+    pi = 2*round_to_DAC_freq(cmdBytes(3)*1e-6/2,sampleRateDAC_freq, 64);
+    spacing = 120e-6+pi;
+    min_spacing = 0.05e-6;
 %     lengthsDD = pi/2*cat(2,ones(1,16),[2]);
 %     phasesDD = [270 0 180 90 90 0 180 270 270 180 0 90 90 180 0 270 0];
 %     spacingsDD = [spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing spacing-pi/2 spacing-pi/2];
     %1/2T, 0 phase
 %     lengthsDD = [pi/2 pi/2 pi pi/2 pi/2 pi/2 pi/2 pi pi/2 pi/2];
 %     phasesDD = [90 0 0 180 270 90 0 180 180 270];
-%     spacingsDD = spacing*[1 1 1 1 2 1 1 1 1 2];
+%     spacingsDD = [spacing-pi/2 spacing-3*pi/4 spacing-3*pi/4 spacing-pi/2 2*spacing-pi/2 spacing-pi/2 spacing-3*pi/4 spacing-3*pi/4 spacing-pi/2 2*spacing-pi/2];
+%     trigsDD = [1 1 1 1 1 1 1 1 1 1];
     %1/T 90 phase
     lengthsDD = pi*repmat([1 1/2 1/2],1,24);
     phasesDD = [180 180 90 0 0 90 0 0 90 0 0 270 180 180 90 180 ...
     180 90 180 180 270 180 180 90 0 0 270 180 180 270 180 180 270 0 0];
     phasesDDinv = flip(mod(phasesDD+180,360),2);
-    phasesDD = cat(2,phasesDD, phasesDDinv, [90 270]);
-    spacingsDD = repmat([spacing 0.05e-6 spacing],1,24);
+    phasesDD = cat(2,phasesDD, phasesDDinv, [270 90]);
+    %phasesDD = mod(phasesDD+180,360);
+    spacingsDD = cat(2,repmat([spacing-pi-min_spacing/2 min_spacing spacing-pi-min_spacing/2],1,24));
+%     , ...
+%         [spacing-3*pi/2-min_spacing min_spacing min_spacing]);
+
+    trigsDD = cat(2,repmat([1 0 1],1,24));
+%     ,[1,0,0]);
+    
+    lengthsDDback = pi*repmat([3/2 3/2 1],1,24);
+    phasesDDback = flip(phasesDD,2);
+    spacingsDDback = cat(2,[min_spacing spacing-3*pi/2-min_spacing], ...
+        repmat([spacing-pi min_spacing spacing-pi],1,23), [2*spacing+pi-min_spacing]);
+
+
+    trigsDDback = repmat([0,1,1],1,24);
+    
     sepRead = false;
+    
+%     lengthsDD = cat(2,lengthsDD,lengthsDDback);
+%     phasesDD = cat(2,phasesDD,phasesDDback);
+% %     phasesDD(phasesDD==270)=270;
+% %     phasesDD(phasesDD==90)=90;
+%     spacingsDD = cat(2,spacingsDD,spacingsDDback);
+%     trigsDD = cat(2,trigsDD,trigsDDback);
     
     if sepRead
         repDD = 4;
         lengths = {[pi/2 pi/2] cat(2,repmat(lengthsDD,1,repDD), [50e-6])};
-        phases = {[315 45] cat(2,repmat(phasesDD,1,repDD), [0])};
-        spacings = {[5e-6 36e-6] cat(2,repmat(spacingsDD,1,repDD), [36e-6])};
+        phases = {[45 -45] cat(2,repmat(phasesDD,1,repDD), [0])};
+        spacings = {[5e-6 spacing] cat(2,repmat(spacingsDD,1,repDD), [36e-6])};
         trigs = {[0 1] cat(2,repmat(zeros(1,length(lengthsDD)),1,repDD),[1])}; 
     else
         repDD = 1;
         lengths = {[pi/2 pi/2] lengthsDD};
-        phases = {[135 45] phasesDD};
+        initial_axis = -45;
+        phases = {[initial_axis+90 initial_axis] phasesDD};
         spacings = {[5e-6 spacing] spacingsDD};
-        trigs = {[0 1] repmat([1,0,1],1,24)};
+        %trigsDD = cat(2,repmat([1 0 1],1,23),[1,0,0],repmat([0,1,1],1,24));
+        trigs = {[0 1] trigsDD};
+        
+        lengths = {[pi/2 pi/2] [pi/2 pi/2 pi/2 pi/2]};
+        phases = {[90 0] [45 90 135 180]};
+        spacings = {[5e-6 36e-6] [36e-6 36e-6 36e-6 36e-6]};
+        trigs = {[0 1] [1 1 1 1]};
     end
     
     amps = {ones(1,length(lengths{1})),ones(1,length(lengths{2}))};
     frequencies = {zeros(1,length(lengths{1})),zeros(1,length(lengths{2}))};
-    mods = {zeros(1,length(lengths{1})),zeros(1,length(lengths{2}))};
+    mods = {ones(1,length(lengths{1})),ones(1,length(lengths{2}))};
     markers = {ones(1,length(lengths{1})),ones(1,length(lengths{2}))};
     markers2 = {zeros(1,length(lengths{1})),zeros(1,length(lengths{2}))};
     for seqidx=1:2
@@ -278,19 +308,19 @@ end
         spacings{seqidx} = round_to_DAC_freq(spacings{seqidx}, sampleRateDAC_freq, 64);
     end
     
-    reps = {[1 600] ones(1,length(lengths{2}))};
-    repeatSeq = [1 400]; % how many times to repeat the block of pulses
-    
-    T = sum(lengthsDD+spacingsDD);
-    harmonic = 1;
+    reps = {[1 100] 100*ones(1,length(lengths{2}))};
+    repeatSeq = [1 1];
+    T = sum(lengths{2}.*reps{2}+spacings{2}.*reps{2});
+    harmonic = 2;
     %%set PB parameter
-    num_periods = 0;%floor(1/(2*(sum(lengthsDD(1:3)+spacingsDD(1:3)))));
+    
+    num_periods = 0;%floor(0.5/(2*(sum(lengthsDD(1:3)+spacingsDD(1:3)))));
     start_time = lengths{1}(1) + spacings{1}(1) + reps{1}(2)*(lengths{1}(2) +spacings{1}(2)) + ... 
-        (num_periods)*(2*(sum(lengthsDD(1:3)+spacingsDD(1:3)))) + lengthsDD(1)/2-spacingsDD(end);
-    PB_seg1 = zeros(2*repeatSeq(2),2);
+        (num_periods)*sum(lengthsDD+spacingsDD) + lengthsDD(1)/2;
+    PB_seg1 = zeros(2,2);
     [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
-    ncycles = round(12*repeatSeq(2)/harmonic);
+    ncycles = round(24*repeatSeq(2)/harmonic);
     if sepRead
         for repIdx=1:repeatSeq(2)-1
             [PB_seg1(1+2*repIdx,1), PB_seg1(2+2*repIdx,1)] = deal(0, 1);
@@ -303,9 +333,14 @@ end
     
     AC_dict.freq = resFreq;
     Vpp_l = (0:0.001:0.005);
-    AC_dict.Vpp = 0;
+    Vpp_idx = mod(fix(idx/2),4)+1;
+    
+    AC_dict.Vpp = 0.;
+    
     AC_dict.DC_offset = 0;
-    AC_dict.phase = 90;
+    phase_l = [0 180];
+    phase_idx = mod(idx,2)+1;
+    AC_dict.phase = 180;%phase_l(phase_idx);
     PB(ch3) = PB_seg1;
     %no need to initialize both channels
     initializeAWG(ch3);
@@ -317,9 +352,8 @@ end
     
     
 %                 tof = -1000*cmdBytes(2);
-                tof_err_l = (-100:25:100);
-                tof_err_idx = mod(idx,9)+1;
-                tof = cmdBytes(6)+tof_err_l(tof_err_idx);
+                %tof_err = 300*(rand-0.5);
+                tof = cmdBytes(6);
                 
                 ch=1;
                 initializeAWG(ch);
@@ -334,8 +368,9 @@ end
                     defPulse("j"+string(i),amps{2}(i),mods{2}(i), lengths{2}(i), phases{2}(i), spacings{2}(i));
                     nextSeqNames{end+1} = "j"+string(i);
                 end
-                defBlock('next', nextSeqNames, reps{2}, markers{2}, trigs{2});
-                makeBlocks({'pulsed_SL', 'next'}, ch, repeatSeq);
+                defBlock('next', nextSeqNames, reps{2}, markers{2}, trigsDD);
+
+                makeBlocks({'pulsed_SL','next'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
                 assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
@@ -357,7 +392,8 @@ end
 %                numberOfPulses_total = cmdBytes(3);
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
-                numberOfPulses_total = reps{1}(2) + sum(trigs{2})*repeatSeq(2);
+                numberOfPulses_total = reps{1}(2) + sum(trigsDD)*repeatSeq(2);
+                numberOfPulses_total = reps{1}(2) + sum(reps{2})*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -456,6 +492,7 @@ end
                 
                 
             case 3 % Measure
+                %pause(10);
                 inst.SendScpi(sprintf(':DIG:CHAN 2'));
                 fprintf('Triggering pulse sequence\n');
                 rc = inst.SendScpi('*TRG');
@@ -691,10 +728,18 @@ end
                     time_axis = cat(2,spin_lock_time_axis,DD_time_axis);
                 else
                     time_axis = spin_lock_time_axis;
+%                     DD_times = cumsum(lengths{2}+spacings{2})+spin_lock_time_axis(end);
+%                     DD_times = DD_times(trigsDD==1);
+%                     
+                    
                     for seq_idx = 0:repeatSeq(2)-1
-                        DD_times = cumsum(lengths{2}+spacings{2});
-                        DD_time_axis = spin_lock_time_axis(end) + seq_idx*T + DD_times([1 3 4 6 7 9 10 12 13 15 16 18 19 21 22 24 25 27 28 30 31 33 34 36 37 39 40 42 43 45 46 48 49 51 52 54 55 57 58 60 61 63 64 66 67 69 70 72]);
-                        time_axis = cat(2,time_axis,DD_time_axis);
+                        pulse_start = 0;
+                        for pulse_idx = 1:length(lengths{2})
+                            DD_times = (lengths{2}(pulse_idx)+spacings{2}(pulse_idx))*(1:reps{2}(pulse_idx))+pulse_start;
+                            pulse_start = DD_times(end);
+                           
+                            time_axis = cat(2,time_axis,DD_times+seq_idx*T);
+                        end
                     end
                 end
 %                 %drop first point -- NOT ANYMORE
@@ -704,7 +749,12 @@ end
                 relPhase = phase_wrap_pi_to_m_pi(relPhase);
                 try
                     start_fig(12,[5 1]);
-                    p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
+                    
+%                     time_axis_select = time_axis(reps{1}(2):end);
+%                     time_axis_select = time_axis_select(1:sum(trigsDD):end);
+%                     phase_select = relPhase(reps{1}(2):end);
+%                     phase_select = phase_select(1:sum(trigsDD):end);
+                    p1=plot_preliminaries(time_axis,relPhase,2,'noline');
                     set(p1,'markersize',2);
                     plot_labels('Time [s]', 'Phase [au]');
                     
@@ -746,7 +796,7 @@ end
                 % Save data
                 fprintf('Writing data to Z:.....\n');
                 save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','lengths',...
-                    'phases','spacings','reps','trigs','amps','repeatSeq','start_time');
+                    'phases','spacings','reps','trigs','amps','repeatSeq','start_time','tof','pi_mult');
                 fprintf('Save complete\n');
                 tek.output_off() 
             case 4 % Cleanup, save and prepare for next experiment
@@ -944,7 +994,7 @@ end
         
     end % end while
     
-    res = inst.SendScpi(':SYST:ERR?');
+    res = inst.SendScpi(':SYST:ERR');
     fprintf(1, '\nEnd - server stopped!! \nInstrument Error Status = %s\n', netStrToStr(res.RespStr));
     
     if cType == "LAN"
@@ -1033,8 +1083,7 @@ function dacSignal = ampScale(bits, rawSignal)
   maxSig = max(rawSignal);
   verticalScale = ((2^bits)/2)-1;
 
-  vertScaled = (rawSignal / maxSig) * verticalScale;
-  dacSignal = (vertScaled + verticalScale);
+  vertScaled = (rawSignal / maxSig) * verticalScale;dacSignal = (vertScaled + verticalScale);
   %plot(dacSignal);
 
 %   if bits > 8
@@ -1256,10 +1305,14 @@ global pulseDict
     
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
+%     free = inst.SendScpi(':TRAC:FREE?');
+%     disp(free.RespStr);
     
     myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr)); %ask Joan why this happens
-
+    %disp(length(myMkr));
     res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
+%     free = inst.SendScpi(':TRAC:FREE?');
+%     disp(free.RespStr);    
     disp(res.ErrCode);
     assert(res.ErrCode == 0);
     
@@ -1462,7 +1515,7 @@ global pulseDict
        end
     end
     %%% MAKE FINAL SEGMENT %%% 
-    DClen = 64;
+    DClen = 2048;
     [finalI, finalQ] = makeDC(DClen);
 
     fprintf('pulse sequence generated')
