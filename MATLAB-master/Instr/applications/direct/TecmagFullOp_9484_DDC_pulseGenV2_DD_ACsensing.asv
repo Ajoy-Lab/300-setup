@@ -261,14 +261,14 @@ end
     trigsDD = cat(2,repmat([1 0 1],1,24));
     
     phasesDDbase = phasesDD;
-%     num_phase_cycles = 8;
-%     phase_cycle_l = [90 180 270 0 270 180 90];
-%     for phase_cycle_idx=(1:num_phase_cycles-1)
-%         phasesDD = cat(2,phasesDD,mod(phasesDDbase+phase_cycle_l(phase_cycle_idx),360));
-%     end
-%     lengthsDD = repmat(lengthsDD,1,num_phase_cycles);
-%     spacingsDD = repmat(spacingsDD,1,num_phase_cycles);
-%     trigsDD = repmat(trigsDD,1,num_phase_cycles);
+    num_phase_cycles = 4;
+    phase_cycle_l = [90 180 270 270 0 90 180];
+    for phase_cycle_idx=(1:num_phase_cycles-1)
+        phasesDD = cat(2,phasesDD,mod(phasesDDbase+phase_cycle_l(phase_cycle_idx),360));
+    end
+    lengthsDD = repmat(lengthsDD,1,num_phase_cycles);
+    spacingsDD = repmat(spacingsDD,1,num_phase_cycles);
+    trigsDD = repmat(trigsDD,1,num_phase_cycles);
 % %     , ...
 % %         [spacing-3*pi/2-min_spacing min_spacing min_spacing]);
 % 
