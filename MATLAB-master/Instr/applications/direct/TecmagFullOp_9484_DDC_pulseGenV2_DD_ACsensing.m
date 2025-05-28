@@ -291,11 +291,6 @@ end
         spacings = {[5e-6 spacing] spacingsDD};
         %trigsDD = cat(2,repmat([1 0 1],1,23),[1,0,0],repmat([0,1,1],1,24));
         trigs = {[0 1] trigsDD};
-        
-        lengths = {[pi/2 pi/2] [pi/2 pi/2 pi/2 pi/2]};
-        phases = {[90 0] [45 90 135 180]};
-        spacings = {[5e-6 36e-6] [36e-6 36e-6 36e-6 36e-6]};
-        trigs = {[0 1] [1 1 1 1]};
     end
     
     amps = {ones(1,length(lengths{1})),ones(1,length(lengths{2}))};
@@ -308,9 +303,9 @@ end
         spacings{seqidx} = round_to_DAC_freq(spacings{seqidx}, sampleRateDAC_freq, 64);
     end
     
-    reps = {[1 100] 100*ones(1,length(lengths{2}))};
-    repeatSeq = [1 1];
-    T = sum(lengths{2}.*reps{2}+spacings{2}.*reps{2});
+    reps = {[1 300] ones(1,length(lengths{2}))};
+    repeatSeq = [1 200];
+    T = sum(lengthsDD+spacingsDD);
     harmonic = 2;
     %%set PB parameter
     
@@ -393,7 +388,6 @@ end
 %                reps(2) = numberOfPulses_total;
 %                 numberOfPulses_total = reps(2);
                 numberOfPulses_total = reps{1}(2) + sum(trigsDD)*repeatSeq(2);
-                numberOfPulses_total = reps{1}(2) + sum(reps{2})*repeatSeq(2);
 
                 
                 Tmax=cmdBytes(4);
@@ -728,18 +722,12 @@ end
                     time_axis = cat(2,spin_lock_time_axis,DD_time_axis);
                 else
                     time_axis = spin_lock_time_axis;
-%                     DD_times = cumsum(lengths{2}+spacings{2})+spin_lock_time_axis(end);
-%                     DD_times = DD_times(trigsDD==1);
-%                     
+                    DD_times = cumsum(lengths{2}+spacings{2})+spin_lock_time_axis(end);
+                    DD_times = DD_times(trigsDD==1);
+                    
                     
                     for seq_idx = 0:repeatSeq(2)-1
-                        pulse_start = 0;
-                        for pulse_idx = 1:length(lengths{2})
-                            DD_times = (lengths{2}(pulse_idx)+spacings{2}(pulse_idx))*(1:reps{2}(pulse_idx))+pulse_start;
-                            pulse_start = DD_times(end);
-                           
-                            time_axis = cat(2,time_axis,DD_times+seq_idx*T);
-                        end
+                        time_axis = cat(2,time_axis,DD_times+seq_idx*T);
                     end
                 end
 %                 %drop first point -- NOT ANYMORE
@@ -750,11 +738,11 @@ end
                 try
                     start_fig(12,[5 1]);
                     
-%                     time_axis_select = time_axis(reps{1}(2):end);
-%                     time_axis_select = time_axis_select(1:sum(trigsDD):end);
-%                     phase_select = relPhase(reps{1}(2):end);
-%                     phase_select = phase_select(1:sum(trigsDD):end);
-                    p1=plot_preliminaries(time_axis,relPhase,2,'noline');
+                    time_axis_select = time_axis(reps{1}(2):end);
+                    time_axis_select = time_axis_select(1:sum(trigsDD):end);
+                    phase_select = relPhase(reps{1}(2):end);
+                    phase_select = phase_select(1:sum(trigsDD):end);
+                    p1=plot_preliminaries(time_axis_select,phase_select,2,'noline');
                     set(p1,'markersize',2);
                     plot_labels('Time [s]', 'Phase [au]');
                     
