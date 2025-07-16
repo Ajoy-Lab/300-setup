@@ -289,6 +289,58 @@ classdef Tektronix_AFG_31000
             fprintf(obj.gpib_obj, sprintf("SOURce1:VOLT:LEV:IMM:OFFS %d", voltage));
             fprintf(obj.gpib_obj, "OUTP1:STAT ON");
         end
+        
+        function set_Z_pulse(obj, period, pulse_width, lead_delay, Vpp, DC_offset, ncycles)
+            %{
+            Configures a pulsed waveform on the AFG31000 in burst mode.
+
+            Arguments:
+                - period: total pulse period (in microseconds)
+                - pulse_width: width of the high part of the pulse (in microseconds)
+                - lead_delay: delay before pulse starts after trigger (in microseconds)
+                - Vpp: peak-to-peak voltage (will be clamped to 1 V max)
+                - DC_offset: voltage offset (in volts)
+                - ncycles: number of cycles in the burst
+            %}
+
+            % Clamp Vpp to 1.0V
+            Vpp = min(Vpp, 1.0);
+
+            % Convert time values from µs to seconds
+            period_s = period * 1e-6;
+            pulse_width_s = pulse_width * 1e-6;
+            lead_delay_s = lead_delay * 1e-6;
+
+            % Safety check: width must be smaller than period
+            if pulse_width_s >= period_s
+                error('Pulse width must be smaller than period.');
+            end
+
+            % Trigger configuration
+            fprintf(obj.gpib_obj, "TRIG:SLOP POS");
+            fprintf(obj.gpib_obj, "TRIG:SEQ:SOUR EXT");
+
+            % Burst mode configuration
+            fprintf(obj.gpib_obj, "BURSt:STATE ON");
+            fprintf(obj.gpib_obj, "SOURce1:BURSt:MODE TRIG");
+            fprintf(obj.gpib_obj, "SOURce1:BURSt:INF:REARm");
+            fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
+
+            % Select pulse waveform
+            fprintf(obj.gpib_obj, "SOURce1:FUNCtion:SHAPe PULSe");
+
+            % Set pulse parameters (period first to avoid 50% duty bug)
+            fprintf(obj.gpib_obj, sprintf("SOURce1:PULSe:PERiod %.9f", period_s));
+            fprintf(obj.gpib_obj, sprintf("SOURce1:PULSe:WIDTh %.9f", pulse_width_s));
+            fprintf(obj.gpib_obj, sprintf("SOURce1:PULSe:DELay %.9f", lead_delay_s));
+
+            % Set voltage and offset
+            fprintf(obj.gpib_obj, sprintf("SOURce1:VOLT %.3f", Vpp));
+            fprintf(obj.gpib_obj, sprintf("SOURce1:VOLT:OFFS %.3f", DC_offset));
+
+            % Enable output
+            fprintf(obj.gpib_obj, "OUTP1:STAT ON");
+        end
     
         function output_off(obj)
             %{

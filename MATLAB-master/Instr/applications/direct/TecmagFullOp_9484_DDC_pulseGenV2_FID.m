@@ -503,7 +503,7 @@ end
                         pulseAmp(idx) = abs(realMean + 1.0i*imagMean);
                         relPhase(idx) = angle(realMean + 1.0i*imagMean);
                     end
-
+                    fprintf('\n Phase is %d \n', relPhase(1));
                     clear pulses;
                     fprintf('Data processing iteration %d complete!\n', n);
                     toc

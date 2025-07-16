@@ -268,8 +268,8 @@ end
     % ---------------------------------------------------------------------
     tic
 %     pulse_name = ['init_pul', 'theta1'];
-    pi = 2*cmdBytes(3)*1e-6;
-    amps = [0.5 0.5 0.5];
+    pi = cmdBytes(3)*1e-6;
+    amps = [1 1 1];
     frequencies = [0 0 0];
     lengths = [pi/2 pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
@@ -364,7 +364,7 @@ end
                 Tmax=cmdBytes(4);
                 
                 
-                tacq=cmdBytes(5);
+                tacq=12;%cmdBytes(5);
 %                 tacq=128;
 %                 tacq=64;
 %                 tacq=96;
@@ -702,6 +702,9 @@ end
                 phase_base = mean(relPhase(reps(2)-4:reps(2))); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
+                offset = pulseAmp(reps(2)+3)*cos(relPhase(reps(2)+3))/(pulseAmp(reps(2))*cos(relPhase(reps(2))));
+                error = (1+4*offset/(3*2*3.14159))^-1;
+                fprintf("Try %d \n", pi*error);
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');

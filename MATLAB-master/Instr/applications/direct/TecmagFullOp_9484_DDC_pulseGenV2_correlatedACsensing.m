@@ -127,7 +127,7 @@ while restart
             admin.Close();
             try
                 instrreset;
-                disp("instrreset done for you")
+                disp("doing instrreset for you... please wait")
             catch
                 disp("instrreset did not work")
             end
@@ -306,7 +306,7 @@ end
     idx = cmdBytes(2);
     pi_idx = idx;
     vertices_l = [2 3 4 5 6 8 12 14];
-    vertices = 2;%vertices_l(idx);  %scan: 4
+    vertices = 4;%vertices_l(idx);  %scan: 4
     first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22];
     %first_angle = 180/vertices;%first_angle_arr(vertices);
     
@@ -337,7 +337,30 @@ end
 %     pi_b = pi*(shuffled_array(idx)/180);
     
 
-    spacing = 100e-6;
+    %%%%%%%%%%%% 2D random scan of freq and amp
+    
+    freqs = [5, 20, 40, 80, 120, 200, 400, 600, 1000];
+    volts = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.6];
+
+    % Step 1: Generate all combinations of freqs and volts
+    [voltsGrid, freqsGrid] = meshgrid(volts, freqs);
+    combinations = [freqsGrid(:), voltsGrid(:)]; % 54 x 2 matrix
+
+    % Step 2: Shuffle the combinations randomly
+    shuffledIdx = randperm(size(combinations, 1));
+    shuffledCombinations = combinations(shuffledIdx, :);
+    
+    disp(shuffledCombinations);
+    volt_idx = mod(idx - 1, size(shuffledCombinations, 1)) + 1;
+
+    sense_freq = shuffledCombinations(volt_idx, 1);
+    sense_volt = shuffledCombinations(volt_idx, 2);
+    
+    disp(['sense_freq at the current index is: ', num2str(sense_freq)]);
+    disp(['sense_volt at the current index is: ', num2str(sense_volt)]);
+
+    %%%%%%%%%%%%
+    spacing = 55e-6;
     %analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
@@ -364,7 +387,7 @@ end
     
     voltarr = -0.3:0.005:0.3;
     voltarrshuffled = voltarr(randperm(length(voltarr)));
-    disp(voltarrshuffled);
+    %disp(voltarrshuffled);
     idx = mod(idx - 1, numel(voltarr)) + 1;
     volt_value = voltarrshuffled(idx);
     
@@ -415,19 +438,19 @@ end
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
     AC_dict.Vpp         = 0.3; % 0.001;   %0.3
     AC_dict.freq        = trajectory_freq+1; %0.01;
-    AC_dict.DC_offset   = volt_value;
+    AC_dict.DC_offset   = 0; %volt_value;
     AC_dict.phase       = 0;%125;
     
     waveformAC          = 'SIN';    %scan: SQU
-    ACfreq = 20;                
+    ACfreq = sense_freq;                
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0.15;        %0.2;             
+    AC_dict2.Vpp        = 0;%sense_volt;        %0.2;             
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
     f_RFoffset = 0;
     AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.3;%0.5; %0.15
+    AC_dictRF.Vpp       = 0.0;%0.5; %0.15
     AC_dictRF.DC_offset = 0;
     AC_dictRF.phase     = 0;
     
@@ -435,8 +458,8 @@ end
     AFG_RF_use2FM       = false;
     AFG_RF_external_mod = false;
     AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 3.0;
-    AC_dictRF.FMdeviation = 50; %500
+    AC_dictRF.FMfreq    = 1.5;
+    AC_dictRF.FMdeviation = 400; %500
     
     if u3status == 1
         rf_text = num2str(AC_dictRF.freq);

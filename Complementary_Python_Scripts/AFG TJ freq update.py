@@ -89,13 +89,12 @@ def main():
             frequency = float(response)
             time.sleep(3-0.155) #-0.07
             afgTJ.afg.write(f'SOUR{channel}:FREQ {frequency}') # use this for orbits
-            time.sleep(1-0.3)
-            # afgAC.start_output()
-            time.sleep(1-0.06+0.1) #-1
+            time.sleep(0.7)
+            afgAC.start_output()
+            time.sleep(1.04)
             # afgRF.start_output(channel=2)
-            afgRF.start_output()
-            time.sleep(0.5)
-            time.sleep(5)
+            # afgRF.start_output()
+            time.sleep(5.5)
             afgAC.set_volts(voltage = 0.001)
             afgAC.set_freq(0.01)
             print(f"All set. Response was: {response} Hz")
