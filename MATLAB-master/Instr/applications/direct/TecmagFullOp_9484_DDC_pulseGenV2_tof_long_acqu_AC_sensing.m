@@ -131,7 +131,7 @@ end
     fprintf('Reset complete\n');
     fprintf('initializing Tektronix AFG 31000\n');
     tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
-    
+    tek.output_off();
     fprintf("Tektronix Initialization complete\n");
     
     fprintf('Reset complete\n');
@@ -270,19 +270,13 @@ end
     % ---------------------------------------------------------------------
     index = cmdBytes(2);
     Tmax = cmdBytes(4);
-     freq_idx = mod(index, 26)+1;
-     angle_idx = fix(index/26)+1;
-     freq_offset_l = (0:200:5000);
-     angle_l = (90:-15:15);
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
-    flip_angle = angle_l(angle_idx)/180*pi;
-    fprintf("This is the flip angle applied: %.2f \n", angle_l(angle_idx));
-    fprintf("This is the offset applied: %.2f \n", freq_offset_l(freq_idx));
-    
     % initialize parameters
-    lengths = [pi/2  flip_angle];
-    spacings = [5e-6 36e-6];
+    angle_l = [pi/2, pi/12];
+    tof_offset_l = [0, 4000];
+    lengths = [pi/2  angle_l(1)];
+    spacings = [5e-6 40e-6];
     amps = [1 1];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -296,7 +290,8 @@ end
     
     
     % fix the total time to 2e6*pi/2 pulses
-    num_x_pulses = (lengths(1)+spacings(2))*2e6/((lengths(2)+spacings(2)));
+    total_time = 180 ;
+    num_x_pulses = (total_time - lengths(1) - spacings(1))/(lengths(2) + spacings(2));
     % round up to the nearest Tmax to help with processing
     num_x_pulses = ceil(num_x_pulses/Tmax)*Tmax;
     num_slots = ceil(num_x_pulses/1e6);
@@ -331,8 +326,9 @@ end
     fprintf("PB download finished \n");
     setNCO_IQ(ch3, 0, 0);
     
-    AC_dict.freq = 50;
-    AC_dict.Vpp = 1;
+    freq_l = [1/(4*(lengths(2) + spacings(2))), 3906.773592404018];
+    AC_dict.freq = freq_l(1);
+    AC_dict.Vpp = 0.5;
     AC_dict.phase = 0;
     AC_dict.DC_offset = 0;
     
@@ -343,7 +339,7 @@ end
     fprintf(sprintf("This AC phase: %d \n", AC_dict.phase));
     
 %                 tof = -1000*cmdBytes(2);
-                tof = cmdBytes(6) + freq_offset_l(freq_idx);
+                tof = cmdBytes(6) + tof_offset_l(1);
                 
                 ch=1;
                 initializeAWG(ch);
