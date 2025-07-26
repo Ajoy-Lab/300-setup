@@ -273,10 +273,9 @@ end
     sampleRateDAC_freq = 675000000;
     pi = cmdBytes(3)*1e-6;
     % initialize parameters
-    angle_l = [pi/2, pi/12];
-    tof_offset_l = [0, 4000];
-    lengths = [pi/2  angle_l(1)];
-    spacings = [5e-6 40e-6];
+    tof_offset_l = (0:300:4500);
+    lengths = [pi/2  pi/8];
+    spacings = [5e-6 pi/2];
     amps = [1 1];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -287,9 +286,6 @@ end
     repeatSeq = [1];
     lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
     spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
-    
-    
-    % fix the total time to 2e6*pi/2 pulses
     total_time = 180 ;
     num_x_pulses = (total_time - lengths(1) - spacings(1))/(lengths(2) + spacings(2));
     % round up to the nearest Tmax to help with processing

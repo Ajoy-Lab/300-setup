@@ -704,7 +704,7 @@ end
                 relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
                 offset = pulseAmp(reps(2)+3)*cos(relPhase(reps(2)+3))/(pulseAmp(reps(2))*cos(relPhase(reps(2))));
                 error = (1+4*offset/(3*2*3.14159))^-1;
-                fprintf("Try %d \n", pi*error);
+                fprintf("\n Try %d us pi pulse \n", pi*error);
                 try
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');

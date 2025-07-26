@@ -1,5 +1,9 @@
 function downLoad_mrkr(ch, segMem, state1, state2, inst)
     fprintf('Downloading marker to channel %s, segment %s \n', num2str(ch), num2str(segMem))
+%     disp(['ch: ', num2str(ch)]);
+%     disp(['segMem: ', num2str(segMem)]);
+%     disp(['state1 (length = ', num2str(length(state1)), '): ', mat2str(state1)]);
+%     disp(['state2 (length = ', num2str(length(state2)), '): ', mat2str(state2)]);
     
     myMkr = uint8(state1 + 2*state2);
     

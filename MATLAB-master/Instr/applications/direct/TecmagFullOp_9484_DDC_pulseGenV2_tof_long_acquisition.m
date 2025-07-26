@@ -263,19 +263,14 @@ end
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    index = cmdBytes(2) - 1;
-    sampleRateDAC_freq = 675000000;
+    index = cmdBytes(2);
+    freq_offset_l = (0:300:4500);
+    freq_offset = freq_offset_l(index);
     Tmax = cmdBytes(4);
     pi = cmdBytes(3)*1e-6;
-    flip_angle_idx = fix(index / 26) + 1;
-    freq_offset_idx = mod(index, 26) + 1;
-    flip_angle_l = [5/180, 90/180];
-    freq_offset_l = (0:200:5000);
-    flip_angle = flip_angle_l(flip_angle_idx)*pi;
-    freq_offset = freq_offset_l(freq_offset_idx);
     % initialize parameters
-    lengths = [pi/2  flip_angle];
-    spacings = [5e-6 36e-6];
+    lengths = [pi/2  pi/8];
+    spacings = [5e-6 pi/8*4];
     amps = [1 1];
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite
@@ -289,7 +284,8 @@ end
     
     
     % fix the number of pi/2 pulses to 2e6
-    num_x_pulses = (lengths(1)+spacings(2))*2.1e6/((lengths(2)+spacings(2)));
+    total_time = 180 ;
+    num_x_pulses = (total_time - lengths(1) - spacings(1))/(lengths(2) + spacings(2));
     % round up to the nearest Tmax to help with processing
     num_x_pulses = ceil(num_x_pulses/Tmax)*Tmax;
     num_slots = ceil(num_x_pulses/1e6);

@@ -143,8 +143,11 @@ classdef Tektronix_AFG_31000
 %             else
 %                 fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
 %             end
-            fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
-            
+            if ncycles == "INF"
+                fprintf(obj.gpib_obj, "SOURce1:BURSt:NCYCles INF");
+            else
+                fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
+            end
             % turn on output then set the frequency
             fprintf(obj.gpib_obj, "OUTP1:STAT ON");
             fprintf(obj.gpib_obj, "FUNCTION SIN");

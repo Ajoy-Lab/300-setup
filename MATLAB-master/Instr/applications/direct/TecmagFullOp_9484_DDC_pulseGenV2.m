@@ -99,6 +99,7 @@ else
         
         % Connect to the selected instrument ..
         should_reset = true;
+        disp(sId)
         inst = admin.OpenInstrument(sId, should_reset);
         instId = inst.InstrId;
         
@@ -193,6 +194,7 @@ end
         end
         %         cmdBytes = fread(u2);
         readBytes = fscanf(u2);
+        disp(['Full received Bytes: ', num2str(readBytes)]);
         dataBytes=1;counter=1;
         while ~isempty(readBytes)
             [tempBytes,readBytes]=strtok(readBytes,',');
@@ -279,7 +281,7 @@ end
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 600000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
                 tof = cmdBytes(6);
@@ -383,6 +385,11 @@ end
 %                 readLen = 129600;
 %                 readLen = 126912; % actual tacq=128
 %                 readLen = 97920; % for tacq=96
+
+                fprintf('numberOfPulses_total: %.2f\n', numberOfPulses_total);
+                fprintf('numberOfPulses: %.0f\n', numberOfPulses);
+                fprintf('loops: %.0f\n', loops);
+                fprintf('readLen: %.0f\n', readLen);
                 
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
@@ -1245,10 +1252,12 @@ global pulseDict
     x=2;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
+        disp(['lenblock2: ', num2str(lenBlock)]);
         for z = 1:lenBlock
            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
+           disp(['reps2: ', num2str(reps{y}(z))]);
            if (repeatSeq(y) > 1 && z==1) % if first task in a block
                inst.SendScpi('TASK:COMP:TYPE STAR');
                inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
@@ -1285,6 +1294,7 @@ global pulseDict
 
     %%%% FUNCTION STARTS HERE %%%%
     numBlocks = length(blockDict);
+    disp(['numblocks: ', num2str(numBlocks)]);
     numPulses = 0;
     lengthsPts = {};
     spacingsPts = {};
@@ -1307,6 +1317,7 @@ global pulseDict
     x=1;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
+        disp(['lenblock: ', num2str(lenBlock)]);
         for z = 1:lenBlock
             DClen = spacingsPts{y}(z);
             %%% make DC segment %%%
@@ -1331,7 +1342,108 @@ global pulseDict
     [finalI, finalQ] = makeDC(DClen);
 
     fprintf('pulse sequence generated')
- 
+    
+%     vars = whos;
+%     for k = 1:length(vars)
+%         name = vars(k).name;
+%         value = eval(name);
+% 
+%         disp([name ' = ']);
+% 
+%         if isnumeric(value) || islogical(value) || ischar(value)
+%             if numel(value) > 100
+%                 disp(['[truncated] size: ', mat2str(size(value)), ', showing first 100 elements:']);
+%                 disp(value(1:100));
+%             else
+%                 disp(value);
+%             end
+%         else
+%             disp('[non-displayable or complex data type]');
+%         end
+%     end
+
+
+% vars = whos;
+% fid = fopen('variables_log.txt', 'w');  % Open file for writing
+% 
+% for k = 1:length(vars)
+%     name = vars(k).name;
+%     try
+%         value = eval(name);
+% 
+%         fprintf(fid, '%s = ', name);
+% 
+%         if isnumeric(value) || islogical(value)
+%             fprintf(fid, '%s\n', mat2str(value));
+%         
+%         elseif ischar(value)
+%             fprintf(fid, '%s\n', value);
+% 
+%         elseif isstring(value)
+%             fprintf(fid, '%s\n', char(value));
+% 
+%         elseif iscell(value)
+%             fprintf(fid, '{\n');
+%             for i = 1:numel(value)
+%                 fprintf(fid, '  {%d}: ', i);
+%                 el = value{i};
+%                 if isnumeric(el) || islogical(el)
+%                     fprintf(fid, '%s\n', mat2str(el));
+%                 elseif ischar(el)
+%                     fprintf(fid, '%s\n', el);
+%                 elseif isstring(el)
+%                     fprintf(fid, '%s\n', char(el));
+%                 elseif iscell(el)
+%                     fprintf(fid, '[nested cell array]\n');
+%                 elseif isstruct(el)
+%                     fprintf(fid, '[struct]\n');
+%                 else
+%                     fprintf(fid, '[%s element]\n', class(el));
+%                 end
+%             end
+%             fprintf(fid, '}\n');
+% 
+%         elseif isa(value, 'containers.Map')
+%             fprintf(fid, 'containers.Map:\n');
+%             keysList = keys(value);
+%             for i = 1:length(keysList)
+%                 key = keysList{i};
+%                 val = value(key);
+%                 if isnumeric(val)
+%                     valStr = mat2str(val);
+%                 elseif ischar(val)
+%                     valStr = val;
+%                 elseif isstring(val)
+%                     valStr = char(val);
+%                 else
+%                     valStr = sprintf('[%s value]', class(val));
+%                 end
+%                 fprintf(fid, '  %s => %s\n', string(key), valStr);
+%             end
+% 
+%         elseif isstruct(value)
+%             fprintf(fid, 'struct:\n');
+%             flds = fieldnames(value);
+%             for i = 1:numel(flds)
+%                 f = flds{i};
+%                 fprintf(fid, '  %s: [%s]\n', f, class(value.(f)));
+%             end
+% 
+%         else
+%             fprintf(fid, '[%s variable]\n', class(value));
+%         end
+% 
+%     catch
+%         fprintf(fid, '%s = [Could not evaluate or print value]\n', name);
+%     end
+% end
+% 
+% fclose(fid);  % Close the file
+
+
+
+
+
     downLoadIQ(ch, 1, holdI, holdQ, inst);
     downLoad_mrkr(ch, 1, markHold, markHold, inst);
     x=1;

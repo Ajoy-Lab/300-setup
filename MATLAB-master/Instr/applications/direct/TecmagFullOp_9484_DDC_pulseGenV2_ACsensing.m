@@ -266,7 +266,7 @@ end
     res_freq = 1/(4*(lengths(2) + spacings(2)));
     freq_l = cat(2,(-1000:50:-300),(-250:10:0),(10:10:250),(300:50:1000)) + res_freq;
     [AC_dict("freq"), AC_dict("Vpp"), ...
-        AC_dict("DC_offset"), AC_dict("phase")] = deal(freq_l(idx), 0.5, 0, 0);
+        AC_dict("DC_offset"), AC_dict("phase")] = deal(res_freq+0.2, 0.005, 0, 0);
     PB(ch3) = PB_seg1;
     PB(ch4) = PB_seg2;
     %no need to initialize both channels
