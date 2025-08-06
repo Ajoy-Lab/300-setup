@@ -1,146 +1,112 @@
-% This version runs a Pulse Spin-locking sequence
-restart = true;
-while restart
-    %% Clear everything
-    clear;
-    close;
-    % try
-    %     instrreset;
-    %     disp("did instrreset")
-    % catch
-    %     disp("nothing to reset")
-    % end
+% This version runs a Pulsed Spin-locking sequence
+%% Clear everything
+clear;
+close;
 
-    %% Set defaults Vars
-    savealldata=false;
-    savesinglechunk=false;
-    chunknumber = 1;
-    savemultwind=false;
-    controlAFG_AC = true;
+%% Set defaults Vars
+savealldata=false;
+savesinglechunk=false;
+savemultwind=false;
 
-
-
-    sampleRate = 2700e6;
-    global sampleRateDAC
-    sampleRateDAC = 9e9;
-    global inst
-    global interp
-    global pulseDict
-    global blockDict
-    pulseDict = containers.Map;
-    blockDict = containers.Map;
-    interp = 4;
-    adcDualChanMode = 2;
-    % fullScaleMilliVolts =1000;
-    trigSource = 1; % 1 = external-trigger
-    dacChanInd = 3;
-    adcChanInd = 2;
-    measurementTimeSeconds = 7; %Integer
-    %delay = 0.0000178; % dead time
-    %delay = 0.0000348; % dead time
-    %delay=0.00000148;
-    %delay = 0.0000108; % dead time
-    %delay = 0.0000028; % dead time
-    delay = 0.0000038; % dead time
-    global bits
-    bits = 16;
+sampleRate = 2700e6;
+global sampleRateDAC
+sampleRateDAC = 9e9;
+global inst
+global interp
+global pulseDict
+global blockDict
+pulseDict = containers.Map;
+blockDict = containers.Map;
+interp = 4;
+adcDualChanMode = 2;
+% fullScaleMilliVolts =1000;
+trigSource = 1; % 1 = external-trigger
+dacChanInd = 3;
+adcChanInd = 2;
+measurementTimeSeconds = 7; %Integer
+%delay = 0.0000178; % dead time
+%delay = 0.0000348; % dead time
+%delay=0.00000148;
+%delay = 0.0000108; % dead time
+%delay = 0.0000028; % dead time
+delay = 0.0000038; % dead time
+global bits
+bits = 16;
 
 
-    % remoteAddr = '192.168.1.2'; % old computer
-    remoteAddr = '192.168.10.5'; % new computer
-    remotePort = 2020;
-    localPort = 9090;
+% remoteAddr = '192.168.1.2'; % old computer
+remoteAddr = '192.168.10.5'; % new computer
+remotePort = 2020;
+localPort = 9090;
 
-    off = 0;
-    on = 1;
-    pfunc = ProteusFunctions;
+off = 0;
+on = 1;
+pfunc = ProteusFunctions;
 
-    dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';
+dll_path = 'C:\\Windows\\System32\\TEPAdmin.dll';
 
-    cType = "DLL";  %"LAN" or "DLL"
+cType = "DLL";  %"LAN" or "DLL"
 
-    paranoia_level = 2;
+paranoia_level = 2;
 
-    if cType == "LAN"
-        try
-            connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
-            inst = TEProteusInst(connStr, paranoia_level);
+if cType == "LAN"
+    try
+        connStr = strcat('TCPIP::',connStr,'::5025::SOCKET');
+        inst = TEProteusInst(connStr, paranoia_level);
+        
+        res = inst.Connect();
+        assert (res == true);
+    catch ME
+        rethrow(ME)
+    end   
+else
+    asm = NET.addAssembly(dll_path);
 
-            res = inst.Connect();
-            assert (res == true);
-        catch ME
-            rethrow(ME)
-        end   
-    else
-        asm = NET.addAssembly(dll_path);
-
-        import TaborElec.Proteus.CLI.*
-        import TaborElec.Proteus.CLI.Admin.*
-        import System.*
-
-        admin = CProteusAdmin(@OnLoggerEvent);
-        rc = admin.Open();
-        assert(rc == 0);   
-
-        restart = true;
-
-        try
-            slotIds = admin.GetSlotIds();
-            numSlots = length(size(slotIds));
-            assert(numSlots > 0);
-
-            % If there are multiple slots, let the user select one ..
-            sId = slotIds(1);
-            if numSlots > 1
-                fprintf('\n%d slots were found\n', numSlots);
-                for n = 1:numSlots
-                    sId = slotIds(n);
-                    slotInfo = admin.GetSlotInfo(sId);
-                    if ~slotInfo.IsSlotInUse
-                        modelName = slotInfo.ModelName;
-                        if slotInfo.IsDummySlot
-                            fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
-                        else
-                            fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
-                        end
+    import TaborElec.Proteus.CLI.*
+    import TaborElec.Proteus.CLI.Admin.*
+    import System.*
+    
+    admin = CProteusAdmin(@OnLoggerEvent);
+    rc = admin.Open();
+    assert(rc == 0);   
+    
+    try
+        slotIds = admin.GetSlotIds();
+        numSlots = length(size(slotIds));
+        assert(numSlots > 0);
+        
+        % If there are multiple slots, let the user select one ..
+        sId = slotIds(1);
+        if numSlots > 1
+            fprintf('\n%d slots were found\n', numSlots);
+            for n = 1:numSlots
+                sId = slotIds(n);
+                slotInfo = admin.GetSlotInfo(sId);
+                if ~slotInfo.IsSlotInUse
+                    modelName = slotInfo.ModelName;
+                    if slotInfo.IsDummySlot
+                        fprintf(' * Slot Number:%d Model %s [Dummy Slot].\n', sId, modelName);
+                    else
+                        fprintf(' * Slot Number:%d Model %s.\n', sId, modelName);
                     end
                 end
-                pause(0.1);
-                choice = 8%input('Enter SlotId ');
-                fprintf('\n');
-                sId = uint32(choice);
             end
-
-            % Connect to the selected instrument ..
-    %         try
-    %             instrreset;
-    %             disp("instrreset done for you")
-    %         catch
-    %             disp("instrreset did not work")
-    %         end
-            should_reset = true;
-            inst = admin.OpenInstrument(sId, should_reset);
-            instId = inst.InstrId;
-            restart = false;
-
-        catch ME
-            admin.Close();
-            try
-                instrreset;
-                disp("doing instrreset for you... please wait")
-            catch
-                disp("instrreset did not work")
-            end
-%             rethrow(ME) 
-            disp(['Error occurred: ', ME.message]);
-
-            % Optionally, you can add a delay before restarting
-            pause(2); % Pauses for 5 seconds before restarting
-
-            % Set restart to true to restart the code
-            restart = true;
-        end   
-    end
+            pause(0.1);
+            choice = 8%input('Enter SlotId ');
+            fprintf('\n');
+            sId = uint32(choice);
+        end
+        
+        % Connect to the selected instrument ..
+        should_reset = true;
+        disp(sId)
+        inst = admin.OpenInstrument(sId, should_reset);
+        instId = inst.InstrId;
+        
+    catch ME
+        admin.Close();
+        rethrow(ME) 
+    end    
 end
     
     % ---------------------------------------------------------------------
@@ -164,28 +130,47 @@ end
 %     res = inst.SendScpi(sampleRateDAC_str); % set sample clock
 %     assert(res.ErrCode == 0);
     
-
-
     fprintf('Reset complete\n');
-    fprintf('initializing Tektronix AFG 31000\n');
-    try
-        tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
-    catch
-        instrreset;
-        disp("Instrreset done for tek object.")
-        tek = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019986::INSTR");
-        % disp("Test");
-    end
-    if controlAFG_AC
-        tek2 = Tektronix_AFG_31000("USB0::0x0699::0x0355::C019987::INSTR");
-    end
-    try
-        tekRF = Tektronix_AFG_31000("USB0::0x0699::0x035A::B011535::INSTR");
-    catch
-        disp("tekRF not available");
-    end
-        
-    fprintf("Tektronix Initialization complete\n");
+    
+    
+%     % ---------------------------------------------------------------------
+%     % RF Pulse Config
+%     % ---------------------------------------------------------------------
+%     
+%     
+%     amps = [1.0 1.0];
+%     frequencies = [0 0];
+%     lengths = [60e-6 60e-6];
+%     phases = [0 90];
+%     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
+%     spacings = [100e-6 43e-6];
+%     reps = [1 194174];
+%     markers = [1 1]; %always keep these on
+%     markers2 = [0 0];
+%     trigs = [0 1]; %acquire on every "pi" pulse
+%     repeatSeq = [1];
+
+    
+    % ---------------------------------------------------------------------
+    % ADC Config
+    % ---------------------------------------------------------------------
+    
+    %inst.SendScpi(':DIG:MODE DUAL');
+    
+    %inst.SendScpi(sprintf(':DIG:CHAN CH%d', adcChanInd)); 
+    
+    %inst.SendScpi(':DIG:DDC:MODE COMP');
+    % inst.SendScpi(':DIG:DDC:CFR2 0.0');
+    %  inst.SendScpi(':DIG:DDC:PHAS2 90.0');
+   
+    %inst.SendScpi(sprintf(':DIG:FREQ %g', sampleRate));
+    
+    %inst.SendScpi(':DIG:CHAN:RANG LOW');
+    
+    % Enable acquisition in the digitizer's channels  
+    %inst.SendScpi(':DIG:CHAN:STAT ENAB');
+    
+    %fprintf('ADC Configured\n');
     
     %% Measurement Loop
     u2 = udp(remoteAddr, 'RemotePort', remotePort, 'LocalPort', localPort);
@@ -199,17 +184,6 @@ end
         fprintf('Server not connected\n');
     end
     
-    u3 = udp('127.0.0.1', 'RemotePort', 12345, 'LocalPort', 12346);  % Local UDP object
-    u3status = 0;
-    try
-        fopen(u3);
-        fprintf('Server u3 connected and started\n');
-        u3status = 1;
-    catch
-        fclose(u3);
-        fprintf('Server u3 not connected\n');
-    end
-    
 %     Loop to repeatedly wait for messages and send replies
 %     Break or Ctrl+C to get out of loop
     while ( connect==on )
@@ -220,6 +194,7 @@ end
         end
         %         cmdBytes = fread(u2);
         readBytes = fscanf(u2);
+        disp(['Full received Bytes: ', num2str(readBytes)]);
         dataBytes=1;counter=1;
         while ~isempty(readBytes)
             [tempBytes,readBytes]=strtok(readBytes,',');
@@ -264,8 +239,6 @@ end
     inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd)); 
     inst.SendScpi(':DIG:ACQ:FREE');    
     inst.SendScpi(sprintf(':DIG:FREQ %f', sampleRate));
-    disp("case 1 sampleRate:");
-    disp(sampleRate);
     inst.SendScpi(':DIG:DDC:CLKS AWG');
     inst.SendScpi(':DIG:DDC:MODE COMP');
     inst.SendScpi(':DIG:DDC:CFR2 75.38E6');
@@ -286,263 +259,31 @@ end
     
     fprintf('ADC Configured\n');
     fprintf('Clocks synced\n');
-    tek.output_off()
-    if controlAFG_AC
-        tek2.output_off()
-    end
-    try
-        tekRF.just_output_off()
-    end
-    
-        case 2 % Aquire on trig
+                
+            case 2 % Aquire on trig
                 
     % ---------------------------------------------------------------------
     % RF Pulse Config
     % ---------------------------------------------------------------------
-    sampleRateDAC_freq = 675000000;
-    fprintf("setting up pulse blaster sequence\n");
-    PB = containers.Map('KeyType', 'double', 'ValueType', 'any');
-    ch3 = 3;
-    ch4 = 4;
-    
-    idx = cmdBytes(2);
-    pi_idx = idx;
-    vertices_l = [2 3 4 5 6 8 12 14];
-    vertices = 4;%vertices_l(idx);  %scan: 4
-    first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22];
-    %first_angle = 180/vertices;%first_angle_arr(vertices);
-    
+    tic
+%     pulse_name = ['init_pul', 'theta1'];
+    pi = cmdBytes(3)*1e-6;
     amps = [1 1];
     frequencies = [0 0];
-    pi = cmdBytes(3)*1e-6;
-    
-    %array = 100:0.05:112;                               % Create an array with values ranging from 107 to 110 with a step of 0.1
-    %shuffledArray = array(randperm(length(array)));     % Randomly shuffle the array
-    %index = mod(idx - 1, length(shuffledArray)) + 1;    % Use the index
-    %pi_b = shuffledArray(index)*1e-6;                     % Get one of the pi values in a random order
-    %disp(array);
-    
-    rng(42);    % Set the random seed for reproducibility
-    values_45 = normrnd(50, 15, [1000, 1]); % Generate values from normal distributions centered at 45, 90, and 135
-    values_90 = normrnd(90, 10, [2000, 1]);
-    values_135 = normrnd(130, 15, [1000, 1]);
-    values = [values_45; values_90; values_135]; % Combine the values into a single array
-    
-    %values = normrnd(90, 1.5, [2000, 1]);
-    values = values(values >= 40 & values <= 150); % Filter the values to be within the range [40, 150]
-    shuffled_indices = randperm(length(values)); % Shuffle the values
-    shuffled_values = values(shuffled_indices);
-    
-%     slarray = 140:1:180;
-%     shuffled_array = slarray(randperm(numel(slarray)));
-%     SL_angle = shuffled_array(idx);
-%     pi_b = pi*(shuffled_array(idx)/180);
-    
-
-    %%%%%%%%%%%% 2D random scan of freq and amp
-    
-    freqs = [5, 20, 40, 80, 120, 200, 400, 600, 1000];
-    volts = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.6];
-
-    % Step 1: Generate all combinations of freqs and volts
-    [voltsGrid, freqsGrid] = meshgrid(volts, freqs);
-    combinations = [freqsGrid(:), voltsGrid(:)]; % 54 x 2 matrix
-
-    % Step 2: Shuffle the combinations randomly
-    shuffledIdx = randperm(size(combinations, 1));
-    shuffledCombinations = combinations(shuffledIdx, :);
-    
-    disp(shuffledCombinations);
-    volt_idx = mod(idx - 1, size(shuffledCombinations, 1)) + 1;
-
-    sense_freq = shuffledCombinations(volt_idx, 1);
-    sense_volt = shuffledCombinations(volt_idx, 2);
-    
-    disp(['sense_freq at the current index is: ', num2str(sense_freq)]);
-    disp(['sense_volt at the current index is: ', num2str(sense_volt)]);
-
-    %%%%%%%%%%%%
-    spacing = 55e-6;
-    %analyte_freq_l = 10.^(0:0.25:4);
-    %analyte_freq = analyte_freq_l(idx);
-    
-    pi_b = pi*0.92;
-    % pi_b = pi*0.5;
-    SL_angle = pi_b/pi * 360/vertices;
-    rng(42);
-    
-    disp(['Current index is: ', num2str(idx)]);
-    disp(['The SL angle at the current index is: ', num2str(SL_angle)]);
-    disp(['The pi value at the current index is: ', num2str(pi_b*1000000)]);
-    
-    ACfreqarr = 1:1:200;
-    %ACfreqarr = [1 2 3 4 5 6 7 8 9 10 20 30 40 50 60 70 80 90 100 150 200];
-    ACfreqarrshuffled = ACfreqarr(randperm(length(ACfreqarr)));
-    % disp(ACfreqarrshuffled);
-    idx = mod(idx - 1, numel(ACfreqarr)) + 1;
-    ACfreq = ACfreqarrshuffled(idx);
-    %ACfreq = ACfreqarr(idx);
-    
-    %FMVpparr = [0.1 0.2 0.4 0.6 0.8 1.0 1.2]
-    %idx = mod(idx - 1, numel(FMVpparr)) + 1;
-    %FMVpp = FMVpparr(idx);
-    
-    voltarr = -0.3:0.005:0.3;
-    voltarrshuffled = voltarr(randperm(length(voltarr)));
-    %disp(voltarrshuffled);
-    idx = mod(idx - 1, numel(voltarr)) + 1;
-    volt_value = voltarrshuffled(idx);
-    
-    lengths = [pi/2 pi_b*2/vertices];%[pi/2 pi_b*2/vertices];
-    disp(sampleRateDAC_freq);
-    disp("case 2 sampleRateDAC_freq for round_to_DAC_freq:");
-    disp(sampleRateDAC_freq);
-    lengths = round_to_DAC_freq(lengths,sampleRateDAC_freq, 64);
+    init_pulse = cmdBytes(2)*1e-6;
+    %lengths = [init_pulse pi/2];
+    lengths = [pi/2 pi/2];
+    fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 spacing];
-    spacings = round_to_DAC_freq(spacings, sampleRateDAC_freq, 64);
-    trajectory_freq = 1/((lengths(2)+spacings(2))*vertices);
-    disp(trajectory_freq);
+    spacings = [5e-6 36e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    % CHECK SPACINGS #############################################
-    
-%     reps = [1 194174];
-    reps = [1 60000];
+    reps = [1 200000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
-    
-    %%set PB parameter
-    start_trajectory_time = 1;
-    T = lengths(2) + spacings(2);
-    num_periods = floor(start_trajectory_time/T);
-    
-    start_time = lengths(1) + spacings(1) + lengths(2) + spacings(2)/2 + (num_periods)*T;
-
-    PB_seg1 = zeros(2, 2);
-    [PB_seg1(1,1), PB_seg1(2,1)] = deal(0, 1);
-    [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
-    PB_seg2 = zeros(2, 2);
-    [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2.5, 150e-6); %+2
-    PB_seg3 = zeros(2, 2);
-    [PB_seg3(1,1), PB_seg3(2,1)] = deal(0, 1);
-    [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+4
-    
-    disp('starttime');
-    disp(start_time);
-    %%set AC field parameter
-
-    %TJidx = idx - 1;
-    %disp((1.08^9)/(1.08^TJidx));
-    %trajectory_freq = (1.08^9) * trajectory_freq / (1.08^idx);
-    tof = cmdBytes(6);
-    RF_freq0 = 75380000 + tof;
-    %ACfreq = 10;
-    
-    disp(volt_value);
-    waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3; % 0.001;   %0.3
-    AC_dict.freq        = trajectory_freq+1; %0.01;
-    AC_dict.DC_offset   = 0; %volt_value;
-    AC_dict.phase       = 0;%125;
-    
-    waveformAC          = 'SIN';    %scan: SQU
-    ACfreq = sense_freq;                
-    AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0;%sense_volt;        %0.2;             
-    AC_dict2.DC_offset  = 0;
-    AC_dict2.phase      = 0;
-    
-    f_RFoffset = 0;
-    AC_dictRF.freq      = RF_freq0 + f_RFoffset; %20; %75352401.49; 
-    AC_dictRF.Vpp       = 0.0;%0.5; %0.15
-    AC_dictRF.DC_offset = 0;
-    AC_dictRF.phase     = 0;
-    
-    AFG_RF_useFM        = true;
-    AFG_RF_use2FM       = false;
-    AFG_RF_external_mod = false;
-    AC_dictRF.FMshape   = 'TRI';
-    AC_dictRF.FMfreq    = 1.5;
-    AC_dictRF.FMdeviation = 400; %500
-    
-    if u3status == 1
-        rf_text = num2str(AC_dictRF.freq);
-        text_to_send = strcat("set_rf_freq_", rf_text);
-        fprintf(text_to_send);
-        fwrite(u3, text_to_send);  % Send a UDP packet to the local Python script
-    end
-    
-    %ch2 = 2;
-    %PB(ch2) = PB_seg3;
-    PB(ch3) = PB_seg1;
-    PB(ch4) = PB_seg2;
-    %no need to initialize both channels
-    initializeAWG(ch3);
-    fprintf("downloading pulseblaster sequence \n");
-    disp("case 2 sampleRateDAC for generate_PB:");
-    disp(sampleRateDAC);
-    generate_PB(PB, sampleRateDAC, inst);
-    fprintf("PB download finished \n");
-    
-    fprintf("set Tektronix 31000 as burst mode \n");
-    ncycles = round(reps(2)*(spacings(2) + lengths(2))*AC_dict.freq) + 10;
-
-    if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
-        tek.burst_mode_trig_waveform(waveformTJ, AC_dict.freq, AC_dict.Vpp,...
-            AC_dict.DC_offset, AC_dict.phase, ncycles, true);
-    end
-    
-    %if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
-    %    tek.burst_mode_trig_sinwave(AC_dict.freq, AC_dict.Vpp,...
-    %        AC_dict.DC_offset, AC_dict.phase, ncycles, true);
-    %end
-
-    % this makes rectangle waves:
-    %if AC_dict.Vpp~=0 || AC_dict.DC_offset~=0
-    %    tek.burst_mode_trig_rectwave(AC_dict.freq, AC_dict.Vpp,...
-    %        AC_dict.DC_offset, AC_dict.phase, ncycles, true);
-    %end
-
-    %tek2.apply_DC(DC_V);
-    %if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
-    %    tek2.burst_mode_trig_sinwave(AC_dict2.freq, AC_dict2.Vpp,...
-    %        AC_dict2.DC_offset, AC_dict2.phase, ncycles, true);
-    %end
-    ncyclesAC = round(reps(2)*(spacings(2) + lengths(2))*AC_dict2.freq) + 10;
-    if controlAFG_AC
-        if AC_dict2.Vpp~=0 || AC_dict2.DC_offset~=0
-            tek2.burst_mode_trig_waveform(waveformAC, AC_dict2.freq, AC_dict2.Vpp,...
-                AC_dict2.DC_offset, AC_dict2.phase, ncyclesAC, true);
-        end
-    end
-    try
-      if AC_dictRF.Vpp~=0
-        tekRF.just_output_off();
-        if AFG_RF_useFM
-            tekRF.init_AFG_RF_FM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
-        elseif AFG_RF_use2FM
-            tekRF.init_AFG_RF_twoFM(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase, AC_dictRF.FMshape, AC_dictRF.FMfreq, AC_dictRF.FMdeviation, AFG_RF_external_mod);
-        else
-            tekRF.init_AFG_RF(AC_dictRF.freq, AC_dictRF.Vpp, AC_dictRF.DC_offset, AC_dictRF.phase);
-        end
-      end
-    catch
-        disp('setting tekRF: error occurred');
-    end
-
-    fprintf("setting done\n");
-    
-    
-    setNCO_IQ(ch3, 0, 0);
-    setNCO_IQ(ch4, 0 ,0);
-    
-    
-%                 tof = -1000*cmdBytes(2);
                 tof = cmdBytes(6);
                 
                 ch=1;
@@ -556,22 +297,59 @@ end
                 makeBlocks({'pulsed_SL'}, ch, repeatSeq);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, mods, spacings, reps, markers, markers2, trigs);
                 %generatePulseSeqIQ(ch, amps, frequencies, lengths, phases, spacings, reps, markers, trigs, repeatSeq, indices);
-                assert(sampleRateDAC_freq == sampleRateDAC, "The two sampleRateDAC frequency should be the same");
-                %disp(sampleRateDAC_freq);
-                %disp(sampleRateDAC);
-                disp("here");
+                    
                 setNCO_IQ(ch, 75.38e6+tof, 0);
-                fprintf("snyching Tabor's PB and Pseq \n");
-                inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-                inst.SendScpi(':TRIG:COUPLE ON');
-                inst.SendScpi(':TRIG:CPU:MODE LOCAL');
-                inst.SendScpi(':TRIG:SOUR:ENAB CPU');
-                inst.SendScpi(':TRIG:SEL CPU');
-                inst.SendScpi(':TRIG:STAT ON');
-                resp = inst.SendScpi(':SYST:ERR?');
-                
                 inst.SendScpi(sprintf(':DIG:DDC:CFR2 %d', 75.38e6+tof));
                 
+% %                 need to modify Marker #2 to show up during acquisition
+%                 % ## final segment which will contain the marker
+%                 chNum = 1;
+%                 segNum = 4;
+%                 
+%                 % ## how long the "on" portion needs to be
+%                 onLength = 10e-6;
+%                 
+%                 % ## when does the marker start after the last pulse
+%                 buffer = 10e-6;
+%                 
+%                 % ## select the final segment
+%                 cmd = sprintf(':INST:CHAN %d',chNum);
+%                 inst.SendScpi(cmd);
+%                 cmd = sprintf(':TRAC:SEL %d',segNum);
+%                 inst.SendScpi(cmd);
+%                 
+%                 % ## get the length of the segment
+%                 query = inst.SendScpi(':TRAC:DEF?');
+%                 segLen = pfunc.netStrToStr(query.RespStr);
+%                 mkrsegment_length = str2num(segLen);
+% %                 mkrsegment_length = floor(mkrsegment_length/4);
+%                 
+%                 % ## make a new segment
+%                 mkr_vector_2 = zeros(mkrsegment_length,1);
+%                 mkr_vector_1 = zeros(mkrsegment_length,1);
+%                 onLength_points = floor(onLength*sampleRateDAC/32)*8;
+%                 buffer_start = floor(buffer*sampleRateDAC/32)*8;
+%                 
+%                 % ## make the marker
+% %                 mkr_vector_on = ones(onLength_points,1);
+%                 mkr_vector_2((buffer_start+1) : buffer_start+onLength_points) = 1;% mkr_vector_on;
+%                 % proteus.inst.timeout = 30000
+%                 
+%                 % # Send the binary-data with *OPC? added to the beginning of its prefix.
+%                 mkr_vector = mkr_vector_1 + 2*mkr_vector_2;
+% %                 mkr_vector = mkr_vector(1:2:length(mkr_vector)) + 16 * mkr_vector(2:2:length(mkr_vector));
+%                 mkr_vector = uint8(mkr_vector);
+%                 % inst.WriteBinaryData('*OPC?; :MARK:DATA', mkr_vector);
+%                 inst.WriteBinaryData(':MARK:DATA 0,', mkr_vector);
+%                 
+% %                 % % # Set normal timeout
+% %                 % proteus.inst.timeout = 10000
+% %                 cmd = ':MARK:SEL 1';
+% %                 inst.SendScpi(cmd);
+% %                 cmd = ':MARK:STAT ON';
+% %                 inst.SendScpi(cmd);
+% %                 % proteus.checkForError()
+
                 
                 fprintf('Calculate and set data structures...\n');
                 
@@ -607,12 +385,17 @@ end
 %                 readLen = 129600;
 %                 readLen = 126912; % actual tacq=128
 %                 readLen = 97920; % for tacq=96
+
+                fprintf('numberOfPulses_total: %.2f\n', numberOfPulses_total);
+                fprintf('numberOfPulses: %.0f\n', numberOfPulses);
+                fprintf('loops: %.0f\n', loops);
+                fprintf('readLen: %.0f\n', readLen);
                 
                 offLen = 0;
                 rc = inst.SendScpi(sprintf(':DIG:ACQ:DEF %d, %d',numberOfPulses*loops, 2 * readLen));
                 assert(rc.ErrCode == 0);
                 
-                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd));
+                inst.SendScpi(sprintf(':DIG:CHAN %d', adcChanInd))
                 %rc = inst.SendScpi(':DIG:TRIG:SOUR TASK1'); %digChan
                 %assert(rc.ErrCode == 0);
                 %rc = inst.SendScpi(sprintf(':DIG:TRIG:SELF %f', 0.025)); %0.025 
@@ -638,9 +421,6 @@ end
                 
                 fprintf('Instr setup complete and ready to aquire\n');
                 
-                
-                
-                
                 %netArray = NET.createArray('System.UInt16', 2* readLen*numberOfPulses); %total array -- all memory needed
                 
 %                 rc = inst.SetAdcAcquisitionEn(on,off);
@@ -655,8 +435,8 @@ end
 %                  assert(rc.ErrCode == 0);
                  rc = inst.SendScpi(':DIG:ACQ:FRAM:CAPT:ALL');   
                  assert(rc.ErrCode == 0);
-%                  rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
-%                  assert(rc.ErrCode == 0);
+                 rc = inst.SendScpi(':DIG:ACQ:ZERO:ALL');
+                 assert(rc.ErrCode == 0);
 
 %                 rc = inst.SetAdcFramesLayotrigut(numberOfPulses*loops, readLen); %set memory of the AWG
     %                 assert(rc == 0);
@@ -668,31 +448,36 @@ end
                 rc = inst.SendScpi(':DIG:INIT OFF'); 
                 assert(rc.ErrCode == 0);
                 rc = inst.SendScpi(':DIG:INIT ON');
-                disp('3');
+                assert(rc.ErrCode == 0);
+                toc
                
-               
-                
+%                 rc = inst.SetAdcCaptureEnable(on);
+%                 assert(rc == 0);
+
+%                 resp1 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
+%                 resp1 = strtrim(pfunc.netStrToStr(resp1.RespStr));
+%                 pause(0.1);
+%                 resp2 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
+%                 resp2 = strtrim(pfunc.netStrToStr(resp2.RespStr));
+%                 pause(0.1);
+%                 resp3 = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
+%                 resp3 = strtrim(pfunc.netStrToStr(resp3.RespStr));
                 
                 
             case 3 % Measure
-                disp('4');
-                inst.SendScpi(sprintf(':DIG:CHAN 2'));
-                if u3status == 1
-                    freq_text = num2str(trajectory_freq);
-                    text_to_send = strcat("start_output",freq_text);
-                    strcat("start_output", freq_text);
-                    fprintf(text_to_send);
-                    fwrite(u3, text_to_send);  % Send a UDP packet to the local Python script
-                end
+                
+                %inst.SendScpi(':DIG:INIT ON');
+                inst.SendScpi(sprintf(':DIG:CHAN 2'))
                 fprintf('Triggering pulse sequence\n');
                 rc = inst.SendScpi('*TRG');
+                
                 assert(rc.ErrCode == 0);
                 
                 n=0;
                 
                % pause(Tmax+3);
                 
-                for n = 1:1200
+                for n = 1:1600
                     
                     resp = inst.SendScpi(':DIG:ACQ:FRAM:STAT?');
                     resp = strtrim(pfunc.netStrToStr(resp.RespStr));
@@ -737,9 +522,6 @@ end
                 padded_len= 2^(power_of_2) ;%2^15;
                 %padded_len = readLen;
                 %padded_len = 4096;
-                %disp(sampleRate);
-                disp("case 2 sampleRate for calculation of dF and f:");
-                disp(sampleRate);
                 dF = sampleRate/16/padded_len; %set the discretization of freq in terms of sampleRate
                 f = -sampleRate/16/2:dF:sampleRate/16/2-dF; %sampleRate sets the 'bandwidth'
                 
@@ -753,6 +535,7 @@ end
                 cyclesPoints = 50;
                 fprintf('Shuttle complete\n')
                 fprintf('Transfering aquired data to computer....\n')
+                pulse_chunk_of_interest = 0;
                 for n = 1:loops
                     fprintf('Start Read %d .... ', n);
                     firstIndex = ((n-1)*numberOfPulses)+1;
@@ -819,17 +602,13 @@ end
                     end
                     
                     if savesinglechunk
-                        %fprintf(num2str(n));
-                        if  true%n==chunknumber %determines which chunk will be saved
+                        if  n==1 %determines which chunk will be saved
                             pulsechunk = int16(pulses);
-                            pulse = pulses(:, 1)
-                            time_vec = 1:length(pulse);
-                            time_axis = time_vec./sampleRate;
                             a = datestr(now,'yyyy-mm-dd-HHMMSS');
                             fn = sprintf([a,'_Proteus_chunk', num2str(n)]);
                             % Save data
                             fprintf('Writing data to Z:.....\n');
-                            save(['Z:\' fn],'pulsechunk','time_axis');
+                            save(['Z:\' fn],'pulsechunk');
                             %writematrix(pulses);
                         end
                     end
@@ -854,39 +633,40 @@ end
                             end
                         end
                         
-%                         if n == 1
-%                             if i == 500
-%                                 figure(6);clf;
-%                                 plot(pulse);
-%                                 figure(7);clf;
-%                                 plot(f,abs(fftshift(fft(pulse,padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
-%                         if n == 4
-%                             if i == 2
-%                                 figure(8);clf;
-%                                 plot(pulse);
-%                                 figure(9);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                                 figure(10);clf;
-%                                 %plot(time_axis,real(pulse),'m');
-%                             end
-%                         end
-%                         if n == 58
-%                             if i == 9708
-%                                 %figure(10);clf;
-%                                 %plot(pulse);
-%                                 figure(11);clf;
-%                                 plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
-%                                 hold on;
-%                                 yline(2048);
-%                             end
-%                         end
-
+                        if n == 1
+                            if i == 10
+                                figure(6);clf;
+                                plot(pulse);
+                                figure(16);clf;
+                                plot(real(pulse));
+                                figure(7);clf;
+                                plot(f,abs(fftshift(fft(pulse,padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
+                        if n == 1
+                            if i == 1
+                                pulse_chunk_of_interest = pulse;
+                                figure(10);clf;
+                                plot(pulse_chunk_of_interest);
+                                figure(11);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse_chunk_of_interest),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end                        
+                        if n == 1
+                            if i == 2
+                                figure(8);clf;
+                                plot(pulse);
+                                figure(9);clf;
+                                plot(f,abs(fftshift(fft(pulse-mean(pulse),padded_len))));
+                                hold on;
+                                yline(2048);
+                            end
+                        end
+                        
                         idx = i+(numberOfPulses*(n-1));
                         realMean = mean(real(pulse));
                         imagMean = mean(imag(pulse));
@@ -922,55 +702,31 @@ end
                 
                 %ivec=1:numberOfPuacqlses*loops;
                 ivec=1:length(pulseAmp);
-                
-                %time_cycle=pw+96+(tacq+2+4+2+delay2)*1e-6;
+                delay2 = 0.000003; % dead time the unknown one, this is actually rof3 -Ozgur
                 time_cycle=lengths(2)+spacings(2);
-%                 time_cycle=time_cycle.*6; % for WHH-4
-                                 %time_cycle=pw+extraDelay+(4+2+2+tacq+17)*1e-6;
                 time_axis=time_cycle.*ivec;
-%                 %drop first point -- NOT ANYMORE
-%                 time_axis(1)=[];pulseAmp(1)=[];relPhase(1)=[];
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
-                relPhase = phase_wrap_pi_to_m_pi(relPhase);
+                relPhase = arrayfun(@phase_wrap_pi_to_m_pi, relPhase);
                 try
-                    a = datestr(now,'yyyy-mm-dd-HHMMSS');
-                    fn = sprintf([a,' Proteus']);
-                    
                     start_fig(12,[5 1]);
                     p1=plot_preliminaries(time_axis,(relPhase),2,'noline');
-                    set(p1,'markersize',1.25);
-                    plot_labels('Time [s]', 'Phase [rad]');
-                    set(gca,'ylim',[-1.5,1.5]);
-                    %set(gca,'xlim',[1.8,3]);
-%                     start_fig(1,[3 2]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',1);
-%                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
-%                     set(gca,'xlim',[0,25e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
+                    set(p1,'markersize',1);
+                    plot_labels('Time [s]', 'Phase [au]');
                     
                     start_fig(1,[5 2]);
                     p1=plot_preliminaries(time_axis,pulseAmp,1,'noline');
-                    set(p1,'markersize',1.25);
+                    set(p1,'markersize',1);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
-                    title(fn);
                     
-                    %xyza
                     start_fig(2,[5 2]);
                     p1=plot_preliminaries(time_axis,zeros(1,length(time_axis)),5,'nomarker');
                     set(p1,'linestyle','--'); set(p1,'linewidth',1);
                     p1=plot_preliminaries(time_axis,pulseAmp.*cos(relPhase),1,'noline');
                     set(p1,'markersize',1);
                     set(gca,'ylim',[-max(pulseAmp)*1.05,max(pulseAmp)*1.05]);
-                    plot_labels('Time [s]', 'Ix [au]');
-                    
-%                     start_fig(13,[5 1]);
-%                     p1=plot_preliminaries(time_axis,pulseAmp,1,'nomarker');
-%                     set(p1,'linewidth',0.5);
-%                     set(gca,'xlim',[5-8e-3,5+30e-3]);
-%                     plot_labels('Time [s]', 'Signal [au]');
+                    plot_labels('Time [s]', 'Signal [au]');
 
                 catch
                     disp('Plot error occured');
@@ -980,18 +736,11 @@ end
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
                 % Save data
-                % Save data
                 fprintf('Writing data to Z:.....\n');
-                save(['Z:\' fn],'pulseAmp','time_axis','relPhase','AC_dict','AC_dict2','lengths',...
-                    'phases','spacings','reps','trigs','repeatSeq','start_time','pi', 'pi_b', 'tacq', 'pi_idx', 'SL_angle', 'AC_dictRF', 'waveformTJ', 'waveformAC', 'trajectory_freq', 'vertices', 'f_RFoffset', 'RF_freq0', 'AFG_RF_useFM', 'AFG_RF_use2FM', 'AFG_RF_external_mod', 'tof');
+                save(['Z:\' fn],'pulseAmp','time_axis','relPhase', ...
+                    'lengths', 'phases', 'spacings', 'reps', 'tof', 'pulse_chunk_of_interest');
                 fprintf('Save complete\n');
-                tek.output_off() 
-                if controlAFG_AC
-                    tek2.output_off()
-                end
-                try
-                    tekRF.just_output_off()
-                end
+                
             case 4 % Cleanup, save and prepare for next experiment
                 rc = inst.SendScpi(':DIG:INIT OFF');
                 assert(rc.ErrCode == 0);
@@ -1052,15 +801,13 @@ end
 %                 pol_times = [t1 t2 t3];
 %                 pol_times = nonzeros(pol_times);
 %                 starting_pol_sign = 1;
+%                 
                 inst.SendScpi("*CLS")
                 inst.SendScpi("*RST")
                 res = inst.SendScpi(['INST:CHAN ' num2str(dacChanInd)]); % select channel 2
-                inst.SendScpi(':TRAC:ZERO:ALL');
                 assert(res.ErrCode == 0);
                 
                 % check if its the good variable bc im not sure
-                disp("case 6 sampleRateDAC for sendscpi:");
-                disp(sampleRateDAC);
                 inst.SendScpi([':FREQ:RAST ' num2str(sampleRateDAC)]);
                 assert(res.ErrCode == 0);
                 
@@ -1075,10 +822,7 @@ end
                 fStart = fCenter - 0.5*awg_bw_freq;
                 disp(['fstart = ' num2str(fStart)]);
                 fStop = fCenter + 0.5*awg_bw_freq;
-                disp("case 6 sampleRateDAC for calculation of dt and makeChirp():");
-                disp(sampleRateDAC);
                 dt = 1/sampleRateDAC;
-                
                 
                 chirps{1}.dacSignal = makeChirp(sampleRateDAC, rampTime, dt, fStart, fStop, bits);   
                 chirps{2}.dacSignal = fliplr(chirps{1}.dacSignal);
@@ -1092,8 +836,7 @@ end
                 fprintf(num2str(length(chirps{1}.dacSignal)));
                 fprintf('\n') ;
 
-disp("case 6 sampleRateDAC for build_tasktable:");
-disp(sampleRateDAC);
+
 task_list = build_tasktable(inst,pol_times,chirps,sampleRateDAC,'first sign',starting_pol);
 
 % % Play seg 1
@@ -1111,8 +854,6 @@ inst.SendScpi(':TRIG:LEV 1.0');
 inst.SendScpi(':TRIG:ACTIVE:STAT ON');
 
 % create the task table
-disp("case 2 sampleRateDAC for create_task_table:");
-disp(sampleRateDAC);
 create_task_table(inst,task_list, sampleRateDAC);
 
 % write task table
@@ -1127,8 +868,7 @@ res = inst.SendScpi(':OUTP ON');
 assert(res.ErrCode == 0);
 for iter = (1:10)
     Pines_write(2021, '6');
-end       
-                
+end                
             case 7 % Play MW chirp waveform
                 
                 % ---------------------------------------------------------------------
@@ -1159,12 +899,10 @@ end
                 for iter = (1:10)
                     Pines_write(2022, '7');
                 end
-                
             case 8
                 
                 % Disable MW chirp output
                 res = inst.SendScpi(':OUTP OFF');
-                inst.SendScpi(':TRIG:ACTIVE:STAT ON');
                 assert(res.ErrCode == 0);
                 
                 fprintf('MW Chirp Waveform stopped playing (on purpose)\n');
@@ -1432,7 +1170,6 @@ function task_list = build_tasktable(inst,pol_times,chirps,sampleRateDAC,varargi
         res = inst.WriteBinaryData(prefix, myWfm);
         
         if strcmp(test,'off') == 1
-            disp(sampleRateDAC);
             srs_freq_str = [':SOUR:NCO:CFR1 ' sprintf('%0.2e',  sampleRateDAC - chirps{i}.srs_freq)]; %srs_freq
             res = inst.SendScpi(srs_freq_str);
             assert(res.ErrCode == 0);
@@ -1478,19 +1215,13 @@ function initializeAWG(ch)
      %sampleRateInterp = 2017.5e6;
      %sampleRateInterp =  2*interp * sampleRateDAC;
      %sampleRateDAC = sampleRateDAC/(2*interp);
-     disp("initializeAWG() ch, sampleRateInterp, sampleRateDAC:");
-     disp(ch);
-     disp(sampleRateInterp);
      sampleRateDAC = sampleRateInterp/(2*interp);
-     disp(sampleRateDAC);
      inst.SendScpi(sprintf(':INST:CHAN %d',ch));
      %inst.SendScpi(sprintf(':FREQ:RAST %d',sampleRateDAC));
      inst.SendScpi(sprintf(':FREQ:RAST %d',2.5E9));
      %fprintf('Ch %s DAC clk freq %s\n', num2str(ch), num2str(sampleRateDAC)) 
      inst.SendScpi(':SOUR:VOLT MAX');
-     inst.SendScpi('SOUR:FUNC:MODE TASK');
      inst.SendScpi(':INIT:CONT ON');
-     inst.SendScpi(':TRAC:ZERO:ALL');
      res = inst.SendScpi(':TRAC:DEL:ALL');
      assert(res.ErrCode==0);
 end
@@ -1505,127 +1236,6 @@ global interp
 global sampleRateInterp
 global blockDict
 global pulseDict
-
-disp("generatePulseSeqIQ() sampleRateDAC, sampleRateInterp:");
-disp(sampleRateDAC);
-disp(sampleRateInterp);
-    
-    function downLoad_mrkr(ch, segMem, dacWave, mkrNum, state1, state2)
-    fprintf('Downloading marker to channel %s, segment %s\n', num2str(ch), num2str(segMem))
-    
-    myMkr = uint8(state1 + 2*state2);
-    
-    inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-    inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
-    %disp("Position1");
-
-    myMkr = myMkr(1:2:length(myMkr)) + 16 * myMkr(2:2:length(myMkr)); %ask Joan why this happens
-
-    res = inst.WriteBinaryData(':MARK:DATA 0,', myMkr);
-    assert(res.ErrCode == 0);
-    
-    inst.SendScpi(sprintf(':MARK:SEL %d',1));
-    inst.SendScpi(':MARK:VOLT:PTOP 0.5');
-    inst.SendScpi(':MARK:VOLT:OFFS 0.25');
-    inst.SendScpi(':MARK:STAT ON');
-    
-    inst.SendScpi(sprintf(':MARK:SEL %d',2));
-    inst.SendScpi(':MARK:VOLT:PTOP 1.0');
-    %inst.SendScpi(':MARK:VOLT:LEV 0.0')
-    inst.SendScpi(':MARK:VOLT:OFFS 0.0');
-    inst.SendScpi(':MARK:STAT ON');
-    
-    end
-
-    function downLoadIQ(ch, segMem, dacWaveI, dacWaveQ, markerState1, markerState2, mkrNum)
-        disp(sprintf('Downloading waveform to channel %s, segment %s', num2str(ch), num2str(segMem)))
-
-        dacWaveIQ = [dacWaveI; dacWaveQ];
-        dacWaveIQ = dacWaveIQ(:)';
-        %disp("pos1");
-        inst.SendScpi(sprintf(':INST:CHAN %d',ch));
-        inst.SendScpi(':TRAC:FORM U16');
-        inst.SendScpi(sprintf(':TRAC:DEF %d, %d',segMem, length(dacWaveIQ)));
-        inst.SendScpi(sprintf(':TRAC:SEL %d',segMem));
-
-%         res = inst.WriteBinaryData(':TRAC:DATA 0,', dacWaveIQ)
-%         %assert(res.ErrCode==0);
-        
-        % Download the binary data to segment
-        prefix = ':TRAC:DATA 0,';
-        
-        global bits
-        if (bits==16)
-            myWfm = uint16(dacWaveIQ);
-            myWfm = typecast(myWfm, 'uint8');
-        else
-            myWfm = uint8(dacWaveIQ);
-        end
-        
-        res = inst.WriteBinaryData(prefix, myWfm);
-        
-        downLoad_mrkr(ch, segMem, myWfm, mkrNum, markerState1, markerState2)
-    end   
-
-    function [mydcI, mydcQ] = makeDC(length)
-
-    
-    segLen = 64*round(length/64); %must be a multiple of 64
-    
-    max_dac = 2^16-1;
-    half_dac = floor(max_dac/2);
-    
-    dacWave = zeros(1, segLen) + half_dac;
-    
-    mydcI = dacWave;
-    mydcQ = dacWave;
-    
-    end 
-
-    function [myWaveI, myWaveQ] = makeSqPulse(modFreq, pulseLen, amplitude, phase, mods)
-        
-        ampI = amplitude;
-        ampQ = amplitude;
-
-        segLen = 32*round(pulseLen/32); %must be a multiple of 32
-        cycles = segLen * modFreq / sampleRateDAC;
-        time = linspace(0, segLen-1, segLen);
-        omega = 2 * pi * cycles;
-    
-        
-        %disp('pulse modulation freq = ' + sampleRateDAC*cycles/segLen)
-        if mods==1
-            timeGauss = linspace(-segLen/2, segLen/2, segLen);
-            sigma = segLen/6;
-            modWave = exp(-0.5*(timeGauss/sigma).^2);
-
-        elseif mods==2
-            timeCosh = linspace(-segLen/2, segLen/2, segLen);
-            tau = 2.355/1.76*segLen/6;
-            modWave = cosh(timeCosh./tau).^-2;
-        
-        elseif mods==3
-            timeHerm = linspace(-segLen/2, segLen/2, segLen);
-            sigma = segLen/6;
-            factor = 0.667;
-            modWave = (1-factor*0.5*(timeHerm/sigma).^2).*exp(-0.5*(timeHerm/sigma).^2);
-        
-        else
-            modWave = 1;
-            
-        end
-        disp(sprintf('pulse segment length = %d points, actual time= %d', segLen, segLen/sampleRateDAC))
-        max_dac = 2^16-1;
-        half_dac = floor(max_dac/2);
-
-        dacWave = ampI*cos(omega*time/segLen + pi*phase/180);
-        dacWaveI = (dacWave.*modWave + 1)*half_dac;
-        myWaveI = dacWaveI;
-        
-        dacWave = ampQ*sin(omega*time/segLen + pi*phase/180);
-        dacWaveQ = (dacWave.*modWave + 1)*half_dac;
-        myWaveQ = dacWaveQ;
-    end 
     
     function setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq)
     disp('setting task table')
@@ -1635,17 +1245,19 @@ disp(sampleRateInterp);
     inst.SendScpi(sprintf(':TASK:COMP:LENG %d',numSegs)); % this should be more general?
     inst.SendScpi(sprintf(':TASK:COMP:SEL %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',1));
-    inst.SendScpi(':TASK:COMP:ENAB INT');
+    inst.SendScpi(':TASK:COMP:ENAB CPU');
     inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',1));
     inst.SendScpi(sprintf(':TASK:COMP:NEXT1 %d',2));
     inst.SendScpi(':TASK:COMP:TYPE SING');
     x=2;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
+        disp(['lenblock2: ', num2str(lenBlock)]);
         for z = 1:lenBlock
            inst.SendScpi(sprintf(':TASK:COMP:SEL %d',x));
            inst.SendScpi(sprintf(':TASK:COMP:SEGM %d',indices{y}(z)));
            inst.SendScpi(sprintf(':TASK:COMP:LOOP %d',reps{y}(z)));
+           disp(['reps2: ', num2str(reps{y}(z))]);
            if (repeatSeq(y) > 1 && z==1) % if first task in a block
                inst.SendScpi('TASK:COMP:TYPE STAR');
                inst.SendScpi(sprintf(':TASK:COMP:SEQ %d',repeatSeq(y))); % number of loops for sequence   
@@ -1682,11 +1294,11 @@ disp(sampleRateInterp);
 
     %%%% FUNCTION STARTS HERE %%%%
     numBlocks = length(blockDict);
+    disp(['numblocks: ', num2str(numBlocks)]);
     numPulses = 0;
     lengthsPts = {};
     spacingsPts = {};
-    disp("   sampleRateDAC for lengthsPts:")
-    disp(sampleRateDAC);
+
     for u = 1:numBlocks
         numPulses = numPulses + length(amps{u});
         lengthsPts{end+1} = sampleRateDAC * lengths{u};
@@ -1705,6 +1317,7 @@ disp(sampleRateInterp);
     x=1;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
+        disp(['lenblock: ', num2str(lenBlock)]);
         for z = 1:lenBlock
             DClen = spacingsPts{y}(z);
             %%% make DC segment %%%
@@ -1713,7 +1326,7 @@ disp(sampleRateInterp);
             markDC = uint8(zeros(DClenreal, 1));
             markDC2 = uint8(zeros(DClenreal,1));
             %%% make Pulse %%% 
-            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0);
+            [tempI, tempQ] = makeSqPulse(frequencies{y}(z), lengthsPts{y}(z),  amps{y}(z), phases{y}(z), 0, sampleRateDAC);
             pulseLenReal = length(tempI);
             markIQ = uint8(zeros(pulseLenReal, 1) + markers1{y}(z));
             markIQ2 = uint8(zeros(pulseLenReal, 1) + trigs{y}(z));
@@ -1729,37 +1342,130 @@ disp(sampleRateInterp);
     [finalI, finalQ] = makeDC(DClen);
 
     fprintf('pulse sequence generated')
- 
-    downLoadIQ(ch, 1, holdI, holdQ, markHold, markHold, 1);
+    
+%     vars = whos;
+%     for k = 1:length(vars)
+%         name = vars(k).name;
+%         value = eval(name);
+% 
+%         disp([name ' = ']);
+% 
+%         if isnumeric(value) || islogical(value) || ischar(value)
+%             if numel(value) > 100
+%                 disp(['[truncated] size: ', mat2str(size(value)), ', showing first 100 elements:']);
+%                 disp(value(1:100));
+%             else
+%                 disp(value);
+%             end
+%         else
+%             disp('[non-displayable or complex data type]');
+%         end
+%     end
+
+
+% vars = whos;
+% fid = fopen('variables_log.txt', 'w');  % Open file for writing
+% 
+% for k = 1:length(vars)
+%     name = vars(k).name;
+%     try
+%         value = eval(name);
+% 
+%         fprintf(fid, '%s = ', name);
+% 
+%         if isnumeric(value) || islogical(value)
+%             fprintf(fid, '%s\n', mat2str(value));
+%         
+%         elseif ischar(value)
+%             fprintf(fid, '%s\n', value);
+% 
+%         elseif isstring(value)
+%             fprintf(fid, '%s\n', char(value));
+% 
+%         elseif iscell(value)
+%             fprintf(fid, '{\n');
+%             for i = 1:numel(value)
+%                 fprintf(fid, '  {%d}: ', i);
+%                 el = value{i};
+%                 if isnumeric(el) || islogical(el)
+%                     fprintf(fid, '%s\n', mat2str(el));
+%                 elseif ischar(el)
+%                     fprintf(fid, '%s\n', el);
+%                 elseif isstring(el)
+%                     fprintf(fid, '%s\n', char(el));
+%                 elseif iscell(el)
+%                     fprintf(fid, '[nested cell array]\n');
+%                 elseif isstruct(el)
+%                     fprintf(fid, '[struct]\n');
+%                 else
+%                     fprintf(fid, '[%s element]\n', class(el));
+%                 end
+%             end
+%             fprintf(fid, '}\n');
+% 
+%         elseif isa(value, 'containers.Map')
+%             fprintf(fid, 'containers.Map:\n');
+%             keysList = keys(value);
+%             for i = 1:length(keysList)
+%                 key = keysList{i};
+%                 val = value(key);
+%                 if isnumeric(val)
+%                     valStr = mat2str(val);
+%                 elseif ischar(val)
+%                     valStr = val;
+%                 elseif isstring(val)
+%                     valStr = char(val);
+%                 else
+%                     valStr = sprintf('[%s value]', class(val));
+%                 end
+%                 fprintf(fid, '  %s => %s\n', string(key), valStr);
+%             end
+% 
+%         elseif isstruct(value)
+%             fprintf(fid, 'struct:\n');
+%             flds = fieldnames(value);
+%             for i = 1:numel(flds)
+%                 f = flds{i};
+%                 fprintf(fid, '  %s: [%s]\n', f, class(value.(f)));
+%             end
+% 
+%         else
+%             fprintf(fid, '[%s variable]\n', class(value));
+%         end
+% 
+%     catch
+%         fprintf(fid, '%s = [Could not evaluate or print value]\n', name);
+%     end
+% end
+% 
+% fclose(fid);  % Close the file
+
+
+
+
+
+    downLoadIQ(ch, 1, holdI, holdQ, inst);
+    downLoad_mrkr(ch, 1, markHold, markHold, inst);
     x=1;
     for y = 1:numBlocks
         lenBlock = length(indices{y});
         for z = 1:lenBlock
-           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, segMat{3,x},segMat{4,x}, 1);
+           downLoadIQ(ch, indices{y}(z), segMat{1,x}, segMat{2,x}, inst);
+           downLoad_mrkr(ch, indices{y}(z), segMat{3,x}, segMat{4,x}, inst);
            x=x+1;
         end
     end
-    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, markHold, markHold, 1);
+    downLoadIQ(ch, length(pulseDict)+2, finalI, finalQ, inst);
+    downLoad_mrkr(ch, length(pulseDict)+2, markHold, markHold, inst);
     setTask_Pulse(ch, numPulses, numSegs, reps, trigs, indices, repeatSeq);
  
     fprintf('pulse sequence written \n');
-end
-
-function set_trig(trig_num, voltage_level)
-    global inst
-    inst.SendScpi(sprintf(':TRIG:ACTIVE:SEL TRG%d', trig_num));
-    inst.SendScpi(sprintf(':TRIG:LEV %.3f', voltage_level));
-    inst.SendScpi(':TRIG:ACTIVE:STAT ON');
 end
 
 function setNCO_IQ(ch, cfr, phase)
     global sampleRateDAC
     global sampleRateInterp
     global inst
-    disp("setNCO_IQ ch, sampleRateDAC, sampleRateInterp");
-    disp(ch);
-    disp(sampleRateDAC);
-    disp(sampleRateInterp);
     inst.SendScpi(sprintf(':INST:CHAN %d',ch));
     inst.SendScpi([':FREQ:RAST ' num2str(2.5E9)]);
     inst.SendScpi(':SOUR:INT X8');
@@ -1772,11 +1478,6 @@ function setNCO_IQ(ch, cfr, phase)
     inst.SendScpi(sprintf(':SOUR:NCO:PHAS1 %d',phase));
     resp = inst.SendScpi(':OUTP ON');
     assert(resp.ErrCode==0);
-
-    disp("after setNCO_IQ ch, sampleRateDAC, sampleRateInterp");
-    disp(ch);
-    disp(sampleRateDAC);
-    disp(sampleRateInterp);
 end    
 
 
@@ -1899,4 +1600,5 @@ function makeBlocks(blockNames, channel, repeatSeq)
     generatePulseSeqIQ(channel, amps, frequencies, lengthsTime, phases, waitTimes, reps, markers, trigs, repeatSeq, indices);
     
 end
+ 
  

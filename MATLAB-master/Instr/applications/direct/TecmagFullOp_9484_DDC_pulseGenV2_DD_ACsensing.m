@@ -239,7 +239,7 @@ end
     pi = 2*pi_mult*round_to_DAC_freq(cmdBytes(3)*1e-6/2,sampleRateDAC_freq, 64);
 
     spacing = 100e-6+pi;
-    min_spacing = 0.05e-6;%(idx+1)*0.2e-6;
+    min_spacing = (idx+1)*0.5e-6;
 %     lengthsDD = pi/2*cat(2,ones(1,16),[2]);
 %     phasesDD = [270 0 180 90 90 0 180 270 270 180 0 90 90 180 0 270 0];
 %     spacingsDD = [spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing 2*spacing spacing spacing-pi/2 spacing-pi/2];
@@ -331,7 +331,7 @@ end
     
 
     reps = {[1 0] ones(1,length(lengths{2}))};
-    repeatSeq = [1 1200];
+    repeatSeq = [1 300];
     T = sum(lengths{2}+spacings{2});
     harmonic = 2;
     %%set PB parameter
