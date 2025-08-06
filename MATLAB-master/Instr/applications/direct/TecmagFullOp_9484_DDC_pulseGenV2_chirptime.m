@@ -270,18 +270,16 @@ end
     pi = cmdBytes(3)*1e-6;
     amps = [1 1];
     frequencies = [0 0];
-    init_pulse = cmdBytes(2)*1e-6;
-    %lengths = [init_pulse pi/2];
     lengths = [pi/2 pi/2];
     fprintf("This is the length of the first pulse %d \n", lengths(1));
     phases = [0 90];
     mods = [0 0]; %0 = square, 1=gauss, 2=sech, 3=hermite 
-    spacings = [5e-6 36e-6];
+    spacings = [5e-6 70e-6];
     markers = [1 1]; %always keep these on
     markers2 = [0 0];
     trigs = [0 1]; %acquire on every "pi" pulse
     
-    reps = [1 200000];
+    reps = [1 1000000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
                 tof = cmdBytes(6);
@@ -777,7 +775,7 @@ end
                 srs_freq = 0.3625e9; % new value for good chirp
                 srs_amp = cmdBytes(9);
                 pol_times = [cmdBytes(10) cmdBytes(11) cmdBytes(12) cmdBytes(13) cmdBytes(14) cmdBytes(15)];
-                pol_times = nonzeros(pol_times);
+                pol_times = 60;
                 starting_pol_sign = cmdBytes(16);
                 
                 if starting_pol_sign == 1
@@ -789,19 +787,6 @@ end
                     break
                 end
                 
-       
-%                 awg_center_freq = 3.775e9;
-%                 awg_bw_freq = 24e6;
-%                 awg_amp = 1.2;
-%                 sweep_freq = 750;
-%                 sweep_sigma = 0.1;
-%                 symm = 0;
-%                 srs_freq = 0.3625e9; % new value for good chirp
-%                 srs_amp = 3;
-%                 pol_times = [t1 t2 t3];
-%                 pol_times = nonzeros(pol_times);
-%                 starting_pol_sign = 1;
-%                 
                 inst.SendScpi("*CLS")
                 inst.SendScpi("*RST")
                 res = inst.SendScpi(['INST:CHAN ' num2str(dacChanInd)]); % select channel 2
