@@ -143,7 +143,7 @@ classdef Tektronix_AFG_31000
 %             else
 %                 fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));
 %             end
-            if ncycles == "INF"
+            if  isa(ncycles, string)
                 fprintf(obj.gpib_obj, "SOURce1:BURSt:NCYCles INF");
             else
                 fprintf(obj.gpib_obj, sprintf("SOURce1:BURSt:NCYCles %d", ncycles));

@@ -34,8 +34,8 @@ global bits
 bits = 16;
 
 
-% remoteAddr = '192.168.1.2'; % old computer
-remoteAddr = '192.168.10.5'; % new computer
+%remoteAddr = '192.168.1.2'; % old computer
+remoteAddr = '192.168.1.3'; % new computer
 remotePort = 2020;
 localPort = 9090;
 
