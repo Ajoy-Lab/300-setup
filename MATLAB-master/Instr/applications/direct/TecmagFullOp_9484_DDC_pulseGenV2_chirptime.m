@@ -775,7 +775,7 @@ end
                 srs_freq = 0.3625e9; % new value for good chirp
                 srs_amp = cmdBytes(9);
                 pol_times = [cmdBytes(10) cmdBytes(11) cmdBytes(12) cmdBytes(13) cmdBytes(14) cmdBytes(15)];
-                pol_times = 60;
+                pol_times = pol_times(1);
                 starting_pol_sign = cmdBytes(16);
                 
                 if starting_pol_sign == 1
