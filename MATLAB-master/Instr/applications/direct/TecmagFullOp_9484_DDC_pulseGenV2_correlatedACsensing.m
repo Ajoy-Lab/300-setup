@@ -308,7 +308,7 @@ end
     idx = cmdBytes(2);
     pi_idx = idx;
     vertices_l = [2 3 4 5 6 8 12 14];
-    vertices = 4;%vertices_l(idx);  %scan: 4
+    vertices = 2;%vertices_l(idx);  %scan: 4
     first_angle_arr = [0 180 90 108.47 90 130.90 90 127.12 90 114.18 122.73 114.89 90 107.22];
     %first_angle = 180/vertices;%first_angle_arr(vertices);
     
@@ -362,7 +362,8 @@ end
     disp(['sense_volt at the current index is: ', num2str(sense_volt)]);
 
     %%%%%%%%%%%%
-    spacing = 55e-6;
+    spacing = 100e-6;
+%     spacing = 55e-6;
     %analyte_freq_l = 10.^(0:0.25:4);
     %analyte_freq = analyte_freq_l(idx);
     
@@ -411,7 +412,7 @@ end
     % CHECK SPACINGS #############################################
     
 %     reps = [1 194174];
-    reps = [1 60000];
+    reps = [1 100000];
     repeatSeq = [1]; % how many times to repeat the block of pulses
     
     
@@ -444,6 +445,19 @@ end
     %ACfreq = 10;
     
     disp(volt_value);
+%     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
+%     AC_dict.Vpp         = 0.3; % 0.001;   %0.3
+%     AC_dict.freq        = 20; %0.01;
+%     AC_dict.DC_offset   = 0; %volt_value;
+%     AC_dict.phase       = 0;%125;
+%     
+%     waveformAC          = 'SIN';    %scan: SQU
+%     ACfreq = 20; %sense_freq;                
+%     AC_dict2.freq       = ACfreq;   %20
+%     AC_dict2.Vpp        = 0.0;%sense_volt;        %0.2;             
+%     AC_dict2.DC_offset  = 0;
+%     AC_dict2.phase      = 0;
+    
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
     AC_dict.Vpp         = 0.3; % 0.001;   %0.3
     AC_dict.freq        = trajectory_freq+1; %0.01;
@@ -451,9 +465,9 @@ end
     AC_dict.phase       = 0;%125;
     
     waveformAC          = 'SIN';    %scan: SQU
-    ACfreq = sense_freq;                
+    ACfreq = 20; %sense_freq;                
     AC_dict2.freq       = ACfreq;   %20
-    AC_dict2.Vpp        = 0;%sense_volt;        %0.2;             
+    AC_dict2.Vpp        = 0.04;%sense_volt;        %0.2;             
     AC_dict2.DC_offset  = 0;
     AC_dict2.phase      = 0;
     
@@ -933,6 +947,9 @@ end
                 phase_base = mean(relPhase(1000:2000)); % take average phase during initial spin-locking to be x-axis
                 relPhase = relPhase - phase_base; % shift these values so phase starts at 0 (x-axis)
                 relPhase = phase_wrap_pi_to_m_pi(relPhase);
+                
+                sensitivity = calculate_sensitivity(time_axis, pulseAmp, relPhase, AC_dict2.freq, AC_dict2.Vpp);
+                
                 try
                     a = datestr(now,'yyyy-mm-dd-HHMMSS');
                     fn = sprintf([a,' Proteus']);
@@ -955,7 +972,7 @@ end
                     set(p1,'markersize',1.25);
                     set(gca,'ylim',[0,max(pulseAmp)*1.05]);
                     plot_labels('Time [s]', 'Signal [au]');
-                    title(fn);
+                    title(sprintf('%s\nSensitivity (nT/sqrt(Hz)): %.2f\n', fn, sensitivity * 1e3));
                     
                     %xyza
                     start_fig(2,[5 2]);
@@ -976,6 +993,8 @@ end
                     disp('Plot error occured');
                 end
                 
+                
+   
                 %fn=dataBytes; %filename
                 a = datestr(now,'yyyy-mm-dd-HHMMSS');
                 fn = sprintf([a,'_Proteus']);
@@ -1900,3 +1919,108 @@ function makeBlocks(blockNames, channel, repeatSeq)
     
 end
  
+
+function sensitivity = calculate_sensitivity(time, amp, phase, ACdictfAC, ACdictVAC)
+    % Select the time range
+    mask = (time >= 3.6) & (time <= 4.6);
+    
+    % Cut measurement to interval
+    cut_time = time(mask);
+    cut_amp = amp(mask) .* cos(phase(mask));
+    
+    if mod(length(cut_time), 2) == 0
+        cut_time = cut_time(1:end-1);
+        cut_amp = cut_amp(1:end-1);
+    end
+    
+    % Time starts at zero
+    cut_time = cut_time - cut_time(1);
+    
+    % Background suppression
+    nPairs = floor(length(cut_amp) / 2);
+    signal = zeros(1, nPairs);
+    for i = 1:nPairs
+        signal(i) = (cut_amp(2*i-1) + cut_amp(2*i+1)) / 2 - cut_amp(2*i);
+    end
+    
+    % FFT
+    dt = cut_time(6) - cut_time(5); % spacing in [1::2] indices
+    half_time = cut_time(2:2:end);
+    fs = 1 / (half_time(6) - half_time(5));
+%     freqs = ((0:length(signal)-1) - floor(length(signal)/2)) * (fs / length(signal));
+    N = length(signal);
+    freqs = (0:N-1) * (fs / N);   % start with 0 to Nyquist
+    freqs(N/2+1:end) = freqs(N/2+1:end) - fs; % wrap negatives
+    fft_spectrum = fft(signal);
+    
+    [~, max_magnitude_index] = min(abs(freqs - ACdictfAC));
+    max_frequency = freqs(max_magnitude_index);
+    max_magnitude = abs(fft_spectrum(max_magnitude_index)) / length(signal);
+    
+    % Sine fit
+    guess_amplitude = (max(signal) - min(signal)) / 2;
+    guess_frequency = max_frequency;
+    guess_phase = angle(fft_spectrum(max_magnitude_index));
+    guess_offset = mean(signal);
+    
+    % Fit sine wave using MATLAB's fit function
+    sine_model = @(p, t) p(1) * sin(2*pi*p(2)*t + p(3)) + p(4);
+    p0 = [guess_amplitude, guess_frequency, guess_phase, guess_offset];
+    options = optimset('Display','off');
+    p_opt = lsqcurvefit(sine_model, p0, half_time(:), signal(:), [], [], options);
+    
+    sine_fit = sine_model(p_opt, half_time);
+    
+    % Scaling
+    scale = ACdictVAC * 164.85 / 2 / p_opt(1);
+    fft_spectrum_scaled = fft((signal - mean(signal)) * scale);
+    
+    % Mask frequencies outside ±10 Hz from target
+    mask_noise = abs(abs(freqs) - ACdictfAC) > 10;
+    noise_amplitudes = abs(fft_spectrum_scaled(mask_noise)) * 2 / length(signal);
+    noise_rms = sqrt(mean(noise_amplitudes.^2));
+    
+    % Sensitivity calculation
+    delta_f = fs / length(signal); % bin width
+    sensitivity = noise_rms / sqrt(delta_f);
+    
+    fprintf('Sensitivity new (nT/sqrt(Hz)): %.2f\n', sensitivity * 1e3);
+
+
+    % --- Plotting ---
+    figure('Name','Sensitivity Analysis','Position',[100 100 1200 700]);
+    sgtitle(sprintf('Sensed field: %.1f Hz, %.2f V', ACdictfAC, ACdictVAC));
+
+    % Row 1, Col 1: cut amplitudes
+    subplot(3,2,1);
+    plot(cut_time(1:2:end), cut_amp(1:2:end), 'Color',[0 0.447 0.741],'DisplayName','odd samples'); hold on;
+    plot(cut_time(2:2:end), cut_amp(2:2:end), 'Color',[0.85 0.325 0.098],'DisplayName','even samples');
+    legend show; xlabel('Time (s)'); ylabel('Amplitude'); title('Cut Amplitudes');
+
+    % Row 2, Col 1: background suppressed signal
+    subplot(3,2,3);
+    plot(half_time, signal, 'Color',[0.494 0.184 0.556],'DisplayName','Signal'); hold on;
+    plot(half_time, sine_fit, 'Color',[0.85 0.325 0.098],'DisplayName','Sine Fit');
+    legend show; xlabel('Time (s)'); ylabel('Signal'); title('Signal and Sine Fit');
+
+    % Row 2, Col 2: FFT spectrum
+    subplot(3,2,4);
+    scatter(freqs, abs(fft_spectrum), 20, 'b', 'filled'); hold on;
+    scatter(freqs(max_magnitude_index), abs(fft_spectrum(max_magnitude_index)), 40, 'r', 'filled');
+    xlabel('Frequency (Hz)'); ylabel('FFT Amplitude'); title('FFT Spectrum');
+
+    % Row 3, Col 1: Scaled signal & sine fit
+    subplot(3,2,5);
+    plot(half_time, signal*scale, 'Color',[0.494 0.184 0.556],'DisplayName','Signal'); hold on;
+    plot(half_time, sine_fit*scale, 'Color',[0.85 0.325 0.098],'DisplayName','Sine fit');
+    legend show;
+    xlabel('Time (s)'); ylabel('Signal (\muT)'); title('Signal, Sine Fit, and Difference');
+
+    % Row 3, Col 2: Noise spectrum
+    subplot(3,2,6);
+    scaled_fft_amplitudes = abs(fft_spectrum_scaled)*2/length(signal);
+    scatter(freqs(mask_noise), scaled_fft_amplitudes(mask_noise), 20, 'b', 'filled'); hold on;
+    scatter(freqs(~mask_noise), scaled_fft_amplitudes(~mask_noise), 20, 'r', 'filled');
+    xlabel('Frequency (Hz)'); ylabel('FFT Amplitude (\muT)'); title('Noise Spectrum');
+
+end
