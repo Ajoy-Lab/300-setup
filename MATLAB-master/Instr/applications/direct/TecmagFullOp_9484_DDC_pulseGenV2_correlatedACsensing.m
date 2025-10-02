@@ -417,7 +417,7 @@ end
     
     
     %%set PB parameter
-    start_trajectory_time = 1;
+    start_trajectory_time = 0.1;
     T = lengths(2) + spacings(2);
     num_periods = floor(start_trajectory_time/T);
     
@@ -428,7 +428,7 @@ end
     [PB_seg1(1,2), PB_seg1(2,2)] = deal(start_time, 150e-6);
     PB_seg2 = zeros(2, 2);
     [PB_seg2(1,1), PB_seg2(2,1)] = deal(0, 1);
-    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+2.5, 150e-6); %+2
+    [PB_seg2(1,2), PB_seg2(2,2)] = deal(start_time+1.5, 150e-6); %+2
     PB_seg3 = zeros(2, 2);
     [PB_seg3(1,1), PB_seg3(2,1)] = deal(0, 1);
     [PB_seg3(1,2), PB_seg3(2,2)] = deal(start_time+4, 150e-6); %+4
@@ -459,7 +459,7 @@ end
 %     AC_dict2.phase      = 0;
     
     waveformTJ          = 'SIN'; %SIN   %SIN, SQU, TRI
-    AC_dict.Vpp         = 0.3; % 0.001;   %0.3
+    AC_dict.Vpp         = 0.40; % 0.001;   %0.3
     AC_dict.freq        = trajectory_freq+1; %0.01;
     AC_dict.DC_offset   = 0; %volt_value;
     AC_dict.phase       = 0;%125;
@@ -1922,7 +1922,7 @@ end
 
 function sensitivity = calculate_sensitivity(time, amp, phase, ACdictfAC, ACdictVAC)
     % Select the time range
-    mask = (time >= 3.6) & (time <= 4.6);
+    mask = (time >= 2.2) & (time <= 3.2);
     
     % Cut measurement to interval
     cut_time = time(mask);
@@ -1976,7 +1976,7 @@ function sensitivity = calculate_sensitivity(time, amp, phase, ACdictfAC, ACdict
     fft_spectrum_scaled = fft((signal - mean(signal)) * scale);
     
     % Mask frequencies outside ±10 Hz from target
-    mask_noise = abs(abs(freqs) - ACdictfAC) > 10;
+    mask_noise = abs(freqs) > 30; %abs(abs(freqs) - ACdictfAC) > 10;
     noise_amplitudes = abs(fft_spectrum_scaled(mask_noise)) * 2 / length(signal);
     noise_rms = sqrt(mean(noise_amplitudes.^2));
     
@@ -1988,7 +1988,8 @@ function sensitivity = calculate_sensitivity(time, amp, phase, ACdictfAC, ACdict
 
 
     % --- Plotting ---
-    figure('Name','Sensitivity Analysis','Position',[100 100 1200 700]);
+    figure(20); clf;
+    set(gcf, 'Name', 'Sensitivity Analysis', 'Position', [100 100 1200 700]);
     sgtitle(sprintf('Sensed field: %.1f Hz, %.2f V', ACdictfAC, ACdictVAC));
 
     % Row 1, Col 1: cut amplitudes
